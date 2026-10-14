@@ -589,7 +589,7 @@ ${_currentConspect!.content}
                     ),
                     strong: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : Colors.black84,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                     listBullet: TextStyle(
                       fontSize: 14,

@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -166,7 +165,7 @@ class PdfExportService {
                 pw.Expanded(
                   child: pw.Text(
                     trimmed.substring(2).trim(),
-                    style: const pw.TextStyle(fontSize: 10, lineHeight: 1.3),
+                    style: const pw.TextStyle(fontSize: 10, lineSpacing: 1.3),
                   ),
                 ),
               ],
@@ -179,7 +178,7 @@ class PdfExportService {
             padding: const pw.EdgeInsets.only(bottom: 4),
             child: pw.Text(
               trimmed,
-              style: const pw.TextStyle(fontSize: 10, lineHeight: 1.4),
+              style: const pw.TextStyle(fontSize: 10, lineSpacing: 1.4),
             ),
           ),
         );

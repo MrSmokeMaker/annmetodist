@@ -94,7 +94,7 @@ class GlassTextField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(color: focusBorder, width: 1.5),
+              borderSide: BorderSide(color: focusBorder, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.md),

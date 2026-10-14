@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -121,7 +120,6 @@ class AppTheme {
         primary: AppColors.primaryIndigo,
         secondary: AppColors.cyan,
         surface: AppColors.darkSurface,
-        background: AppColors.darkBackground,
         error: AppColors.error,
       ),
       fontFamily: null, // Системный шрифт платформы (SF Pro на iOS, Roboto на Android)
@@ -184,7 +182,6 @@ class AppTheme {
         primary: AppColors.primaryIndigo,
         secondary: AppColors.cyan,
         surface: AppColors.lightSurface,
-        background: AppColors.lightBackground,
         error: AppColors.error,
       ),
       textTheme: const TextTheme(
