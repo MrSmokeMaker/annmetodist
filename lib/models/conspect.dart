@@ -1,3 +1,5 @@
+import 'printable_card.dart';
+
 class Conspect {
   final String id;
   final String title;
@@ -13,6 +15,8 @@ class Conspect {
   final List<String> feedbackTags;
   final int variantIndex;
   final String? batchGroupId;
+  final List<PrintableCard>? cards;
+  final String? parentAudioScript;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -31,6 +35,8 @@ class Conspect {
     this.feedbackTags = const [],
     this.variantIndex = 1,
     this.batchGroupId,
+    this.cards,
+    this.parentAudioScript,
     required this.createdAt,
     this.updatedAt,
   });
@@ -50,6 +56,8 @@ class Conspect {
     List<String>? feedbackTags,
     int? variantIndex,
     String? batchGroupId,
+    List<PrintableCard>? cards,
+    String? parentAudioScript,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -68,6 +76,8 @@ class Conspect {
       feedbackTags: feedbackTags ?? this.feedbackTags,
       variantIndex: variantIndex ?? this.variantIndex,
       batchGroupId: batchGroupId ?? this.batchGroupId,
+      cards: cards ?? this.cards,
+      parentAudioScript: parentAudioScript ?? this.parentAudioScript,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -89,6 +99,8 @@ class Conspect {
       'feedbackTags': feedbackTags,
       'variantIndex': variantIndex,
       'batchGroupId': batchGroupId,
+      'cards': cards?.map((c) => c.toJson()).toList(),
+      'parentAudioScript': parentAudioScript,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -113,6 +125,10 @@ class Conspect {
           const [],
       variantIndex: (map['variantIndex'] as num?)?.toInt() ?? 1,
       batchGroupId: map['batchGroupId'] as String?,
+      cards: (map['cards'] as List<dynamic>?)
+          ?.map((c) => PrintableCard.fromJson(Map<String, dynamic>.from(c as Map)))
+          .toList(),
+      parentAudioScript: map['parentAudioScript'] as String?,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

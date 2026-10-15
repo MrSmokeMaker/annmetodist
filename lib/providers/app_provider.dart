@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/method_repository.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
+import '../models/printable_card.dart';
 import '../models/method_prompt.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
@@ -161,6 +162,9 @@ class AppProvider with ChangeNotifier {
 
       final titleSuffix = totalVariants > 1 ? ' (Вариант $variantIndex)' : '';
 
+      final cards = PromptBuilder.extractPrintableCards(generatedText);
+      final parentAudio = PromptBuilder.extractParentAudioScript(generatedText);
+
       final conspect = Conspect(
         id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
         title: '$topicTitle$titleSuffix',
@@ -175,6 +179,8 @@ class AppProvider with ChangeNotifier {
         content: generatedText,
         variantIndex: variantIndex,
         batchGroupId: batchGroupId,
+        cards: cards.isNotEmpty ? cards : null,
+        parentAudioScript: parentAudio,
         createdAt: DateTime.now(),
       );
 
@@ -255,6 +261,47 @@ class AppProvider with ChangeNotifier {
     );
 
     await saveConspect(updated);
+  }
+
+  // Шаг 3: Генерация карточек для существующего конспекта
+  Future<List<PrintableCard>> generateCardsForConspect(String conspectId) async {
+    final index = _conspects.indexWhere((c) => c.id == conspectId);
+    if (index == -1) return [];
+
+    final conspect = _conspects[index];
+    final prompts = PromptBuilder.buildCardsOnlyPrompt(
+      topic: conspect.topic,
+      ageGroup: Topic.getAgeGroupLabel(conspect.ageGroup),
+      conspectContent: conspect.content,
+    );
+
+    _isGenerating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _yandexGptService.generateConspect(
+        systemPrompt: prompts['systemPrompt']!,
+        userPrompt: prompts['userPrompt']!,
+      );
+
+      final cards = PromptBuilder.extractPrintableCards(response);
+      if (cards.isNotEmpty) {
+        final updated = conspect.copyWith(
+          cards: cards,
+          updatedAt: DateTime.now(),
+        );
+        await saveConspect(updated);
+        return cards;
+      }
+      return [];
+    } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
   }
 
   // Library / Conspects CRUD

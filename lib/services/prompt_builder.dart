@@ -1,3 +1,6 @@
+import 'dart:convert';
+import '../models/printable_card.dart';
+
 class PromptBuilder {
   /// Базовый шаблон (каркас) промпта.
   static const String defaultTemplate = '''
@@ -22,6 +25,19 @@ class PromptBuilder {
 3. # Ход занятия (пошаговый сценарий с таймингом для каждого этапа, репликами учителя и примерными ответами учеников).
 4. # Дифференциация заданий (вариант 'проще' для детей с трудностями и 'сложнее' для опережающих детей).
 5. # Лист заданий для печати (раздаточный материал: упражнения, прописи или карточки с заданиями).
+6. # Подсказка для родителя (текстовая заготовка на 30–60 секунд для родителя: как мягко и доступно объяснить тему ребенку, на что обратить внимание и как поддержать).
+7. # Карточки для занятия (раздаточные карточки для листа А4. В конце этого раздела обязательно приведи строго валидный JSON-блок с 4–6 карточками:
+```json
+[
+  {
+    "front_text": "буква/слог/слово/вопрос",
+    "back_text": "пояснение или подсказка",
+    "image_hint": "описание зрительного образа",
+    "type": "letter|syllable|word|task"
+  }
+]
+```
+).
 
 Специальные правила:
 - Если возрастная группа — дошкольники (4–6 лет), занятие должно проводиться в игровой сюжетной форме, длительность не более 15–25 минут, обязательна динамическая пауза / логоритмика.
@@ -121,5 +137,82 @@ class PromptBuilder {
         ? ' (Вариант $variantIndex)'
         : '';
     return 'Составь подробный конспект занятия$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
+  }
+
+  /// Шаг 3: Извлечение аудио-подсказки для родителя из текста конспекта
+  static String? extractParentAudioScript(String content) {
+    final regExp = RegExp(
+      r'#+\s*Подсказка для родителя[^\n]*\n([\s\S]*?)(?=(?:\n#+|\n```json|\Z))',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(content);
+    if (match != null) {
+      final text = match.group(1)?.trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  /// Шаг 3: Извлечение структурированного JSON-блока с карточками
+  static List<PrintableCard> extractPrintableCards(String content) {
+    try {
+      // Ищем блок ```json [...] ``` или просто [...]
+      final jsonBlockRegex = RegExp(r'```(?:json)?\s*(\[\s*\{[\s\S]*?\}\s*\])\s*```');
+      final match = jsonBlockRegex.firstMatch(content);
+      String? jsonStr = match?.group(1);
+
+      if (jsonStr == null) {
+        final rawArrayRegex = RegExp(r'(\[\s*\{[\s\S]*?\}\s*\])');
+        final rawMatch = rawArrayRegex.firstMatch(content);
+        jsonStr = rawMatch?.group(1);
+      }
+
+      if (jsonStr != null) {
+        final decoded = jsonDecode(jsonStr);
+        if (decoded is List) {
+          return decoded
+              .map((item) => PrintableCard.fromJson(Map<String, dynamic>.from(item as Map)))
+              .toList();
+        }
+      }
+    } catch (_) {
+      // В случае сбоя парсинга JSON
+    }
+    return [];
+  }
+
+  /// Шаг 3: Промпт для генерации карточек по готовому конспекту (отвечать ТОЛЬКО валидным JSON)
+  static Map<String, String> buildCardsOnlyPrompt({
+    required String topic,
+    required String ageGroup,
+    required String conspectContent,
+  }) {
+    final systemPrompt = '''
+Ты — методист дошкольного и начального образования.
+Создай набор из 6 раздаточных карточек на лист А4 для занятия по теме "$topic" ($ageGroup).
+Формат ответа: СТРОГО только валидный JSON-массив без какого-либо дополнительного текста или markdown-разметки.
+
+Схема каждого объекта:
+{
+  "front_text": "крупный текст лицевой стороны (буква, слог, слово или краткое задание)",
+  "back_text": "подсказка, проверочный ответ или пояснение для ребенка",
+  "image_hint": "описание зрительного образа (например: Яблоко, Дом)",
+  "type": "letter|syllable|word|task"
+}
+''';
+
+    final userPrompt = '''
+На основе следующего конспекта сформируй ровно 6 карточек для распечатки на листе А4:
+$conspectContent
+
+Верни СТРОГО один JSON-массив из 6 карточек.
+''';
+
+    return {
+      'systemPrompt': systemPrompt,
+      'userPrompt': userPrompt,
+    };
   }
 }

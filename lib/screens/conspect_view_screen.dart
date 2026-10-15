@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/method_prompt.dart';
+import '../models/printable_card.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
 import '../providers/app_provider.dart';
 import '../services/pdf_export_service.dart';
+import '../services/prompt_builder.dart';
 import '../theme.dart';
 import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
@@ -492,6 +495,11 @@ ${_currentConspect!.content}
                       ),
                     ),
 
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // Шаг 3: Аудио-подсказка для родителя (быстрая плашка)
+                    _buildParentAudioHintBanner(isDark),
+
                     const SizedBox(height: AppSpacing.md),
 
                     // Edit Mode or Structured Glass Sections View
@@ -554,6 +562,11 @@ ${_currentConspect!.content}
                         isDark,
                       ),
                     ],
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Шаг 3: Секция «Раздаточные карточки (распечатка А4)»
+                    _buildPrintableCardsSection(isDark),
 
                     const SizedBox(height: AppSpacing.lg),
 
@@ -880,6 +893,413 @@ ${_currentConspect!.content}
               );
             }).toList(),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Шаг 3: Быстрая плашка «Подсказка для родителя»
+  Widget _buildParentAudioHintBanner(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    final audioText = _currentConspect!.parentAudioScript ??
+        PromptBuilder.extractParentAudioScript(_currentConspect!.content);
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
+      borderRadius: AppRadii.lg,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppGradients.cyanBlue,
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+            ),
+            child: const Icon(
+              Icons.record_voice_over_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Подсказка для родителя',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '30–60 сек аудио-заготовка: как объяснить тему',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              side: BorderSide(color: AppColors.cyan.withOpacity(0.5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            icon: const Icon(Icons.headphones_outlined, size: 16, color: AppColors.cyan),
+            label: const Text(
+              'Слушать',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.cyan,
+              ),
+            ),
+            onPressed: () => _showParentAudioModal(
+              audioText ??
+                  'Для этой темы сформулируйте основные правила простыми словами, избегая академических терминов, и поддержите ребенка при первых попытках.',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showParentAudioModal(String script) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161922) : Colors.white,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadii.xl),
+            ),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.12)
+                  : Colors.black.withOpacity(0.08),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.cyanBlue,
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                    ),
+                    child: const Icon(
+                      Icons.record_voice_over_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Подсказка для родителя',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          '⏱ Время звучания: ~45 сек',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 20),
+                    tooltip: 'Скопировать текст',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: script));
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Текст подсказки скопирован в буфер')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.04)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.black.withOpacity(0.06),
+                  ),
+                ),
+                child: Text(
+                  script,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.5,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Понятно'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Шаг 3: Секция «Раздаточные карточки (распечатка А4)»
+  Widget _buildPrintableCardsSection(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    final List<PrintableCard> cards = _currentConspect!.cards ??
+        PromptBuilder.extractPrintableCards(_currentConspect!.content);
+
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderRadius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.indigoViolet,
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                    ),
+                    child: const Icon(
+                      Icons.style_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text(
+                    'Карточки и распечатки',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (cards.isNotEmpty)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cyan,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                  icon: const Icon(Icons.print_outlined, size: 15),
+                  label: const Text('Печать А4 (2×3)'),
+                  onPressed: () async {
+                    try {
+                      await PdfExportService.exportCardsPdf(
+                        cards: cards,
+                        lessonTitle: _currentConspect!.title,
+                        methodName: _currentConspect!.methodName,
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Ошибка печати карточек: $e')),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            cards.isNotEmpty
+                ? 'Готово ${cards.length} карточек. Распечатайте на листе А4 и разрежьте по пунктирным линиям:'
+                : 'К этому занятию можно создать 6 двусторонних карточек для печати на А4:',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          if (cards.isNotEmpty) ...[
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: cards.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.35,
+              ),
+              itemBuilder: (context, idx) {
+                final card = cards[idx];
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.04)
+                        : Colors.black.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.08),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryIndigo.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              PrintableCard.getTypeLabel(card.type).toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryIndigo,
+                              ),
+                            ),
+                          ),
+                          const Text('✂', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        ],
+                      ),
+                      Center(
+                        child: Text(
+                          card.frontText,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: card.frontText.length <= 4 ? 22 : 15,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        card.imageHint != null && card.imageHint!.isNotEmpty
+                            ? '💡 ${card.imageHint}'
+                            : card.backText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ] else ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    side: const BorderSide(color: AppColors.cyan),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                    ),
+                  ),
+                  icon: const Icon(Icons.auto_awesome, color: AppColors.cyan, size: 18),
+                  label: const Text(
+                    'Создать 6 карточек к уроку',
+                    style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () async {
+                    final provider = context.read<AppProvider>();
+                    try {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Генерируем карточки к уроку...')),
+                      );
+                      final newCards = await provider.generateCardsForConspect(_currentConspect!.id);
+                      if (mounted && newCards.isNotEmpty) {
+                        setState(() {
+                          _currentConspect = _currentConspect!.copyWith(cards: newCards);
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Карточки успешно созданы!')),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Ошибка генерации карточек: $e')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
