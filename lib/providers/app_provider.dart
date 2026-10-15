@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/method_repository.dart';
+import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/method_prompt.dart';
+import '../models/situation_template.dart';
 import '../models/topic.dart';
 import '../services/prompt_builder.dart';
 import '../services/storage_service.dart';
@@ -34,6 +36,10 @@ class AppProvider with ChangeNotifier {
   bool get isDarkMode => _isDarkMode;
   List<MethodPrompt> get methods => _methodRepository.methods;
   List<Topic> get topics => _methodRepository.topics;
+  List<SituationTemplate> get situationTemplates =>
+      _methodRepository.situationTemplates;
+  List<ActivityTechnique> get activityLibrary =>
+      _methodRepository.activityLibrary;
   MethodRepository get methodRepository => _methodRepository;
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
@@ -103,6 +109,8 @@ class AppProvider with ChangeNotifier {
     required String duration,
     String? review,
     String? notes,
+    SituationTemplate? situation,
+    List<ActivityTechnique>? activities,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
@@ -116,6 +124,8 @@ class AppProvider with ChangeNotifier {
         duration: duration,
         review: review,
         notes: notes,
+        situationRules: situation?.extraPromptRules,
+        activitySamples: activities?.map((a) => a.sampleText).toList(),
       );
 
       final userPrompt = PromptBuilder.buildUserPrompt(
@@ -123,6 +133,7 @@ class AppProvider with ChangeNotifier {
         topic: topicTitle,
         ageGroup: Topic.getAgeGroupLabel(ageGroup),
         duration: duration,
+        situationTitle: situation?.title,
       );
 
       final generatedText = await _yandexGptService.generateConspect(

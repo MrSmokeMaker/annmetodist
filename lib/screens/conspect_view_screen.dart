@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/method_prompt.dart';
+import '../models/situation_template.dart';
 import '../models/topic.dart';
 import '../providers/app_provider.dart';
 import '../services/pdf_export_service.dart';
@@ -21,6 +23,8 @@ class ConspectViewScreen extends StatefulWidget {
   final String? duration;
   final String? review;
   final String? notes;
+  final SituationTemplate? situation;
+  final List<ActivityTechnique>? activities;
   final bool isNewGeneration;
 
   const ConspectViewScreen({
@@ -32,6 +36,8 @@ class ConspectViewScreen extends StatefulWidget {
     this.duration,
     this.review,
     this.notes,
+    this.situation,
+    this.activities,
     this.isNewGeneration = false,
   });
 
@@ -105,6 +111,8 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
         duration: widget.duration!,
         review: widget.review,
         notes: widget.notes,
+        situation: widget.situation,
+        activities: widget.activities,
       );
 
       setState(() {

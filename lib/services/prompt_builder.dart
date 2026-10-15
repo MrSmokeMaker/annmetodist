@@ -1,6 +1,5 @@
 class PromptBuilder {
   /// Базовый шаблон (каркас) промпта.
-  /// Пользователь может предоставить свой точный текст на Шаге 5.
   static const String defaultTemplate = '''
 Ты — опытный методист-практик начального образования и дошкольной педагогики.
 Составь подробный, структурированный конспект занятия строго по указанным параметрам и методической концепции.
@@ -12,6 +11,8 @@ class PromptBuilder {
 - Планируемая длительность: {ДЛИТЕЛЬНОСТЬ}
 - Повторение предыдущего материала: {ПОВТОРЕНИЕ}
 - Особые замечания и пожелания учителя: {ЗАМЕЧАНИЯ}
+{СИТУАЦИЯ_БЛОК}
+{ПРИЕМЫ_БЛОК}
 
 Требования к структуре конспекта:
 1. # Цель и задачи занятия (обучающие, развивающие, воспитательные).
@@ -33,6 +34,8 @@ class PromptBuilder {
     required String duration,
     String? review,
     String? notes,
+    String? situationRules,
+    List<String>? activitySamples,
     String? customTemplate,
   }) {
     final template = customTemplate ?? defaultTemplate;
@@ -46,13 +49,30 @@ class PromptBuilder {
         ? 'не указано (блок повторения пропустить)'
         : review.trim();
 
+    String situationBlock = '';
+    if (situationRules != null && situationRules.trim().isNotEmpty) {
+      situationBlock = '- Особая ситуация урока: ${situationRules.trim()}';
+    }
+
+    String activitiesBlock = '';
+    if (activitySamples != null && activitySamples.isNotEmpty) {
+      final buffer = StringBuffer();
+      buffer.writeln('\nОбязательно включи в ход занятия следующие приёмы:');
+      for (final sample in activitySamples) {
+        buffer.writeln(sample.trim());
+      }
+      activitiesBlock = buffer.toString().trim();
+    }
+
     return template
         .replaceAll('{БЛОК_МЕТОДИКИ}', methodBlock.trim())
         .replaceAll('{ТЕМА}', effectiveTopic)
         .replaceAll('{КЛАСС}', effectiveAge)
         .replaceAll('{ДЛИТЕЛЬНОСТЬ}', effectiveDuration)
         .replaceAll('{ПОВТОРЕНИЕ}', effectiveReview)
-        .replaceAll('{ЗАМЕЧАНИЯ}', effectiveNotes);
+        .replaceAll('{ЗАМЕЧАНИЯ}', effectiveNotes)
+        .replaceAll('{СИТУАЦИЯ_БЛОК}', situationBlock)
+        .replaceAll('{ПРИЕМЫ_БЛОК}', activitiesBlock);
   }
 
   static String buildUserPrompt({
@@ -60,7 +80,11 @@ class PromptBuilder {
     required String topic,
     required String ageGroup,
     required String duration,
+    String? situationTitle,
   }) {
-    return 'Составь подробный конспект занятия по теме "$topic" для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
+    final situationPart = (situationTitle != null && situationTitle.isNotEmpty)
+        ? ' (ситуация: $situationTitle)'
+        : '';
+    return 'Составь подробный конспект занятия по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
   }
 }
