@@ -10,6 +10,9 @@ class Conspect {
   final String review;
   final String notes;
   final String content;
+  final List<String> feedbackTags;
+  final int variantIndex;
+  final String? batchGroupId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -25,6 +28,9 @@ class Conspect {
     this.review = '',
     this.notes = '',
     required this.content,
+    this.feedbackTags = const [],
+    this.variantIndex = 1,
+    this.batchGroupId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -41,6 +47,9 @@ class Conspect {
     String? review,
     String? notes,
     String? content,
+    List<String>? feedbackTags,
+    int? variantIndex,
+    String? batchGroupId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -56,6 +65,9 @@ class Conspect {
       review: review ?? this.review,
       notes: notes ?? this.notes,
       content: content ?? this.content,
+      feedbackTags: feedbackTags ?? this.feedbackTags,
+      variantIndex: variantIndex ?? this.variantIndex,
+      batchGroupId: batchGroupId ?? this.batchGroupId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -74,6 +86,9 @@ class Conspect {
       'review': review,
       'notes': notes,
       'content': content,
+      'feedbackTags': feedbackTags,
+      'variantIndex': variantIndex,
+      'batchGroupId': batchGroupId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -92,6 +107,12 @@ class Conspect {
       review: map['review'] as String? ?? '',
       notes: map['notes'] as String? ?? '',
       content: map['content'] as String? ?? '',
+      feedbackTags: (map['feedbackTags'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      variantIndex: (map['variantIndex'] as num?)?.toInt() ?? 1,
+      batchGroupId: map['batchGroupId'] as String?,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

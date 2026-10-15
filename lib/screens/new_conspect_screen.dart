@@ -34,6 +34,9 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   SituationTemplate? _selectedSituation;
   final Set<String> _selectedActivities = {};
 
+  // Шаг 2: Пакетная генерация вариантов
+  int _variantsCount = 1; // 1 или 3
+
   final TextEditingController _reviewController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _customTopicController = TextEditingController();
@@ -136,7 +139,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
       return;
     }
 
-    final selectedTechniques = _selectedActivities
+    final List<ActivityTechnique> selectedTechniques = _selectedActivities
         .map((id) => provider.activityLibrary.firstWhere((a) => a.id == id))
         .toList();
 
@@ -153,6 +156,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           notes: _notesController.text.trim(),
           situation: _selectedSituation,
           activities: selectedTechniques,
+          variantsCount: _variantsCount,
           isNewGeneration: true,
         ),
       ),
@@ -904,11 +908,153 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                   ),
                 ),
 
+                const SizedBox(height: AppSpacing.md),
+
+                // Шаг 2: Переключатель «Сгенерировать варианты»
+                GlassCard(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  borderRadius: AppRadii.lg,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: AppGradients.cyanBlue,
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(
+                                  Icons.copy_all_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              const Text(
+                                'Сгенерировать варианты',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Переключатель 1 / 3 варианта
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                            ),
+                            padding: const EdgeInsets.all(3),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [1, 3].map((count) {
+                                final isSelected = _variantsCount == count;
+                                return InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _variantsCount = count;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: isSelected ? AppGradients.indigoViolet : null,
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                    ),
+                                    child: Text(
+                                      count == 1 ? '1 вариант' : '3 варианта',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Если выбрано 3 варианта — показываем 3 пустых glass-карточки с плейсхолдерами
+                      if (_variantsCount == 3) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Будет создано 3 независимых методических варианта:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            for (int i = 1; i <= 3; i++)
+                              Expanded(
+                                child: Container(
+                                  margin: EdgeInsets.only(
+                                    right: i < 3 ? 8 : 0,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                    border: Border.all(
+                                      color: AppColors.cyan.withOpacity(0.3),
+                                      style: BorderStyle.solid,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.description_outlined,
+                                        size: 22,
+                                        color: AppColors.cyan.withOpacity(0.7),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Вариант $i',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        i == 1 ? 'Базовый' : (i == 2 ? 'Игровой' : 'Углублённый'),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: AppSpacing.lg),
 
                 // Кнопка «Сгенерировать»
                 GradientButton(
-                  text: 'Сгенерировать',
+                  text: _variantsCount == 3 ? 'Сгенерировать 3 варианта' : 'Сгенерировать конспект',
                   icon: Icons.auto_awesome,
                   onPressed: _onGeneratePressed,
                 ),

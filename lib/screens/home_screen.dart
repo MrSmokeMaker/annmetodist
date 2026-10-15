@@ -318,9 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: filteredList.length,
                         itemBuilder: (context, index) {
                           final item = filteredList[index];
-                          final formattedDate =
-                              DateFormat('dd MMMM yyyy, HH:mm', 'ru')
-                                  .format(item.createdAt);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: AppSpacing.sm),

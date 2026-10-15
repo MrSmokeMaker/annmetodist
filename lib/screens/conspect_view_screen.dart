@@ -26,6 +26,7 @@ class ConspectViewScreen extends StatefulWidget {
   final SituationTemplate? situation;
   final List<ActivityTechnique>? activities;
   final bool isNewGeneration;
+  final int variantsCount;
 
   const ConspectViewScreen({
     super.key,
@@ -39,6 +40,7 @@ class ConspectViewScreen extends StatefulWidget {
     this.situation,
     this.activities,
     this.isNewGeneration = false,
+    this.variantsCount = 1,
   });
 
   @override
@@ -50,6 +52,8 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
   late bool _isLoading;
   String? _errorMessage;
   Conspect? _currentConspect;
+  List<Conspect> _variants = [];
+  int _selectedVariantIndex = 0;
 
   bool _isEditing = false;
   late TextEditingController _editController;
@@ -68,6 +72,28 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
     _editController = TextEditingController(
       text: _currentConspect?.content ?? '',
     );
+
+    if (_currentConspect != null) {
+      _variants = [_currentConspect!];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_currentConspect!.batchGroupId != null) {
+          final siblings = context
+              .read<AppProvider>()
+              .conspects
+              .where((c) => c.batchGroupId == _currentConspect!.batchGroupId)
+              .toList()
+            ..sort((a, b) => a.variantIndex.compareTo(b.variantIndex));
+          if (siblings.length > 1) {
+            setState(() {
+              _variants = siblings;
+              _selectedVariantIndex =
+                  _variants.indexWhere((c) => c.id == _currentConspect!.id);
+              if (_selectedVariantIndex < 0) _selectedVariantIndex = 0;
+            });
+          }
+        }
+      });
+    }
 
     _saveAnimController = AnimationController(
       vsync: this,
@@ -104,30 +130,66 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
 
     try {
       final provider = context.read<AppProvider>();
-      final conspect = await provider.generateConspect(
-        method: widget.method!,
-        ageGroup: widget.ageGroup!,
-        topicTitle: widget.topicTitle!,
-        duration: widget.duration!,
-        review: widget.review,
-        notes: widget.notes,
-        situation: widget.situation,
-        activities: widget.activities,
-      );
+      if (widget.variantsCount > 1) {
+        final variants = await provider.generateBatchConspects(
+          method: widget.method!,
+          ageGroup: widget.ageGroup!,
+          topicTitle: widget.topicTitle!,
+          duration: widget.duration!,
+          review: widget.review,
+          notes: widget.notes,
+          situation: widget.situation,
+          activities: widget.activities,
+          variantsCount: widget.variantsCount,
+        );
 
-      setState(() {
-        _currentConspect = conspect;
-        _editController.text = conspect.content;
-        _isLoading = false;
-      });
+        setState(() {
+          _variants = variants;
+          _selectedVariantIndex = 0;
+          _currentConspect = variants.isNotEmpty ? variants.first : null;
+          _editController.text = _currentConspect?.content ?? '';
+          _isLoading = false;
+        });
+      } else {
+        final conspect = await provider.generateConspect(
+          method: widget.method!,
+          ageGroup: widget.ageGroup!,
+          topicTitle: widget.topicTitle!,
+          duration: widget.duration!,
+          review: widget.review,
+          notes: widget.notes,
+          situation: widget.situation,
+          activities: widget.activities,
+        );
 
-      // Automatically save to library on first generation
-      await provider.saveConspect(conspect);
+        setState(() {
+          _variants = [conspect];
+          _selectedVariantIndex = 0;
+          _currentConspect = conspect;
+          _editController.text = conspect.content;
+          _isLoading = false;
+        });
+
+        // Automatically save to library on first generation
+        await provider.saveConspect(conspect);
+      }
+
       _triggerSaveFeedback();
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString();
+      });
+    }
+  }
+
+  void _selectVariant(int index) {
+    if (index >= 0 && index < _variants.length) {
+      setState(() {
+        _selectedVariantIndex = index;
+        _currentConspect = _variants[index];
+        _editController.text = _currentConspect?.content ?? '';
+        _isEditing = false;
       });
     }
   }
@@ -332,6 +394,56 @@ ${_currentConspect!.content}
                     vertical: AppSpacing.sm,
                   ),
                   children: [
+                    // Переключатель вариантов, если создано > 1 варианта
+                    if (_variants.length > 1) ...[
+                      GlassCard(
+                        padding: const EdgeInsets.all(6),
+                        child: Row(
+                          children: List.generate(_variants.length, (idx) {
+                            final isSel = _selectedVariantIndex == idx;
+                            final variantNumber = _variants[idx].variantIndex;
+                            return Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 3),
+                                child: InkWell(
+                                  onTap: () => _selectVariant(idx),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      gradient: isSel ? AppGradients.indigoViolet : null,
+                                      color: isSel
+                                          ? null
+                                          : (isDark
+                                              ? Colors.white.withOpacity(0.04)
+                                              : Colors.black.withOpacity(0.04)),
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Вариант $variantNumber',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                          color: isSel
+                                              ? Colors.white
+                                              : (isDark
+                                                  ? AppColors.textSecondaryDark
+                                                  : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+
                     // Top Info Glass Chip Banner
                     GlassCard(
                       padding: const EdgeInsets.symmetric(
@@ -358,14 +470,14 @@ ${_currentConspect!.content}
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _currentConspect!.methodName,
+                                  _currentConspect!.title,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 Text(
-                                  '${_currentConspect!.subject} • ${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
+                                  '${_currentConspect!.methodName} • ${_currentConspect!.subject} • ${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDark
@@ -442,6 +554,11 @@ ${_currentConspect!.content}
                         isDark,
                       ),
                     ],
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Шаг 2: Секция «Обратная связь»
+                    _buildFeedbackSection(isDark),
 
                     const SizedBox(height: AppSpacing.lg),
 
@@ -627,5 +744,144 @@ ${_currentConspect!.content}
     }
 
     return widgets;
+  }
+
+  /// Шаг 2: Секция «Обратная связь» с адаптацией последующих генераций
+  Widget _buildFeedbackSection(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    final provider = context.watch<AppProvider>();
+    // Находим актуальный конспект в провайдере
+    final current = provider.conspects.firstWhere(
+      (c) => c.id == _currentConspect!.id,
+      orElse: () => _currentConspect!,
+    );
+    final activeTags = current.feedbackTags;
+
+    final feedbackOptions = [
+      {
+        'tag': 'Было трудно',
+        'icon': Icons.sentiment_dissatisfied_outlined,
+        'color': const Color(0xFFF59E0B), // amber
+        'hint': 'Упростит темп и добавит наглядные опоры',
+      },
+      {
+        'tag': 'Справился легко',
+        'icon': Icons.sentiment_very_satisfied_outlined,
+        'color': const Color(0xFF10B981), // emerald
+        'hint': 'Добавит вариативности и эвристики',
+      },
+      {
+        'tag': 'Слишком много письма',
+        'icon': Icons.draw_outlined,
+        'color': const Color(0xFF8B5CF6), // purple
+        'hint': 'Автоматически сократит письмо на 30%',
+      },
+    ];
+
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderRadius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.cyanBlue,
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                ),
+                child: const Icon(
+                  Icons.thumb_up_alt_outlined,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Text(
+                'Обратная связь по занятию',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Отметьте результат урока — система учтёт его при следующих генерациях (например, сократит объём письменных заданий на 30%):',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: feedbackOptions.map((opt) {
+              final tag = opt['tag'] as String;
+              final icon = opt['icon'] as IconData;
+              final color = opt['color'] as Color;
+              final hint = opt['hint'] as String;
+              final isSelected = activeTags.contains(tag);
+
+              return Tooltip(
+                message: hint,
+                child: InkWell(
+                  onTap: () async {
+                    await provider.toggleFeedbackTag(current.id, tag);
+                    if (mounted) {
+                      setState(() {
+                        _currentConspect = provider.conspects.firstWhere(
+                          (c) => c.id == current.id,
+                          orElse: () => current,
+                        );
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? color.withOpacity(0.2)
+                          : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                      border: Border.all(
+                        color: isSelected ? color : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? Icons.check_circle_rounded : icon,
+                          size: 16,
+                          color: isSelected ? color : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          tag,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected ? color : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
   }
 }

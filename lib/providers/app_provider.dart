@@ -101,7 +101,16 @@ class AppProvider with ChangeNotifier {
     );
   }
 
-  // Conspect Generation
+  // Шаг 2: Получение истории тегов обратной связи для адаптации промпта
+  List<String> getRecentFeedbackTags() {
+    final Set<String> tags = {};
+    for (final c in _conspects) {
+      tags.addAll(c.feedbackTags);
+    }
+    return tags.toList();
+  }
+
+  // Шаг 2: Одиночная или пакетная генерация
   Future<Conspect> generateConspect({
     required MethodPrompt method,
     required String ageGroup,
@@ -111,12 +120,17 @@ class AppProvider with ChangeNotifier {
     String? notes,
     SituationTemplate? situation,
     List<ActivityTechnique>? activities,
+    int variantIndex = 1,
+    int totalVariants = 1,
+    String? batchGroupId,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final historyTags = getRecentFeedbackTags();
+
       final systemPrompt = PromptBuilder.buildSystemPrompt(
         methodBlock: method.promptBlock,
         topic: topicTitle,
@@ -126,6 +140,9 @@ class AppProvider with ChangeNotifier {
         notes: notes,
         situationRules: situation?.extraPromptRules,
         activitySamples: activities?.map((a) => a.sampleText).toList(),
+        historicalFeedbackTags: historyTags,
+        variantIndex: variantIndex,
+        totalVariants: totalVariants,
       );
 
       final userPrompt = PromptBuilder.buildUserPrompt(
@@ -134,6 +151,7 @@ class AppProvider with ChangeNotifier {
         ageGroup: Topic.getAgeGroupLabel(ageGroup),
         duration: duration,
         situationTitle: situation?.title,
+        variantIndex: totalVariants > 1 ? variantIndex : null,
       );
 
       final generatedText = await _yandexGptService.generateConspect(
@@ -141,9 +159,11 @@ class AppProvider with ChangeNotifier {
         userPrompt: userPrompt,
       );
 
+      final titleSuffix = totalVariants > 1 ? ' (Вариант $variantIndex)' : '';
+
       final conspect = Conspect(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: topicTitle,
+        id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
+        title: '$topicTitle$titleSuffix',
         methodId: method.id,
         methodName: method.name,
         subject: method.subject,
@@ -153,6 +173,8 @@ class AppProvider with ChangeNotifier {
         review: review ?? '',
         notes: notes ?? '',
         content: generatedText,
+        variantIndex: variantIndex,
+        batchGroupId: batchGroupId,
         createdAt: DateTime.now(),
       );
 
@@ -164,6 +186,75 @@ class AppProvider with ChangeNotifier {
       _isGenerating = false;
       notifyListeners();
     }
+  }
+
+  // Шаг 2: Пакетная генерация 3 вариантов подряд
+  Future<List<Conspect>> generateBatchConspects({
+    required MethodPrompt method,
+    required String ageGroup,
+    required String topicTitle,
+    required String duration,
+    String? review,
+    String? notes,
+    SituationTemplate? situation,
+    List<ActivityTechnique>? activities,
+    int variantsCount = 3,
+  }) async {
+    _isGenerating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final List<Conspect> variants = [];
+    final batchGroupId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    try {
+      for (int i = 1; i <= variantsCount; i++) {
+        final variant = await generateConspect(
+          method: method,
+          ageGroup: ageGroup,
+          topicTitle: topicTitle,
+          duration: duration,
+          review: review,
+          notes: notes,
+          situation: situation,
+          activities: activities,
+          variantIndex: i,
+          totalVariants: variantsCount,
+          batchGroupId: batchGroupId,
+        );
+        variants.add(variant);
+        await saveConspect(variant);
+      }
+      return variants;
+    } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
+  // Шаг 2: Переключение тегов обратной связи («Было трудно», «Справился легко», «Слишком много письма»)
+  Future<void> toggleFeedbackTag(String conspectId, String tag) async {
+    final index = _conspects.indexWhere((c) => c.id == conspectId);
+    if (index == -1) return;
+
+    final current = _conspects[index];
+    final List<String> updatedTags = List.from(current.feedbackTags);
+
+    if (updatedTags.contains(tag)) {
+      updatedTags.remove(tag);
+    } else {
+      updatedTags.add(tag);
+    }
+
+    final updated = current.copyWith(
+      feedbackTags: updatedTags,
+      updatedAt: DateTime.now(),
+    );
+
+    await saveConspect(updated);
   }
 
   // Library / Conspects CRUD

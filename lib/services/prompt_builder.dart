@@ -13,6 +13,8 @@ class PromptBuilder {
 - Особые замечания и пожелания учителя: {ЗАМЕЧАНИЯ}
 {СИТУАЦИЯ_БЛОК}
 {ПРИЕМЫ_БЛОК}
+{АДАПТАЦИЯ_БЛОК}
+{ВАРИАНТ_БЛОК}
 
 Требования к структуре конспекта:
 1. # Цель и задачи занятия (обучающие, развивающие, воспитательные).
@@ -36,6 +38,9 @@ class PromptBuilder {
     String? notes,
     String? situationRules,
     List<String>? activitySamples,
+    List<String>? historicalFeedbackTags,
+    int? variantIndex,
+    int? totalVariants,
     String? customTemplate,
   }) {
     final template = customTemplate ?? defaultTemplate;
@@ -64,6 +69,30 @@ class PromptBuilder {
       activitiesBlock = buffer.toString().trim();
     }
 
+    // Шаг 2: Адаптация по обратной связи из истории
+    String adaptationBlock = '';
+    if (historicalFeedbackTags != null && historicalFeedbackTags.isNotEmpty) {
+      final List<String> rules = [];
+      if (historicalFeedbackTags.contains('Слишком много письма')) {
+        rules.add('- Правило адаптации: в предыдущих занятиях было слишком много письма. Сократи объём письменных заданий на 30%, переведя закрепление в устную или игровую форму.');
+      }
+      if (historicalFeedbackTags.contains('Было трудно')) {
+        rules.add('- Правило адаптации: ребенку было трудно на прошлом уроке. Упрости объяснения, снизь темп и добавь больше пошаговых примеров и наглядных опор.');
+      }
+      if (historicalFeedbackTags.contains('Справился легко')) {
+        rules.add('- Правило адаптации: ребенок легко справился с предыдущим материалом. Предложи более вариативные задания с элементами эвристики и повышенной сложности.');
+      }
+      if (rules.isNotEmpty) {
+        adaptationBlock = rules.join('\n');
+      }
+    }
+
+    // Шаг 2: Вариант при пакетной генерации
+    String variantBlock = '';
+    if (variantIndex != null && totalVariants != null && totalVariants > 1) {
+      variantBlock = '- Инструкция по варианту: это вариант $variantIndex из $totalVariants. Сделай его заметно отличным от остальных (предложи другую сюжетную линию, другие игровые упражнения и примеры).';
+    }
+
     return template
         .replaceAll('{БЛОК_МЕТОДИКИ}', methodBlock.trim())
         .replaceAll('{ТЕМА}', effectiveTopic)
@@ -72,7 +101,9 @@ class PromptBuilder {
         .replaceAll('{ПОВТОРЕНИЕ}', effectiveReview)
         .replaceAll('{ЗАМЕЧАНИЯ}', effectiveNotes)
         .replaceAll('{СИТУАЦИЯ_БЛОК}', situationBlock)
-        .replaceAll('{ПРИЕМЫ_БЛОК}', activitiesBlock);
+        .replaceAll('{ПРИЕМЫ_БЛОК}', activitiesBlock)
+        .replaceAll('{АДАПТАЦИЯ_БЛОК}', adaptationBlock)
+        .replaceAll('{ВАРИАНТ_БЛОК}', variantBlock);
   }
 
   static String buildUserPrompt({
@@ -81,10 +112,14 @@ class PromptBuilder {
     required String ageGroup,
     required String duration,
     String? situationTitle,
+    int? variantIndex,
   }) {
     final situationPart = (situationTitle != null && situationTitle.isNotEmpty)
         ? ' (ситуация: $situationTitle)'
         : '';
-    return 'Составь подробный конспект занятия по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
+    final variantPart = (variantIndex != null && variantIndex > 1)
+        ? ' (Вариант $variantIndex)'
+        : '';
+    return 'Составь подробный конспект занятия$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
   }
 }
