@@ -17,6 +17,8 @@ class Conspect {
   final String? batchGroupId;
   final List<PrintableCard>? cards;
   final String? parentAudioScript;
+  final String? promptVersionId;
+  final String parentNotes;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -37,6 +39,8 @@ class Conspect {
     this.batchGroupId,
     this.cards,
     this.parentAudioScript,
+    this.promptVersionId,
+    this.parentNotes = '',
     required this.createdAt,
     this.updatedAt,
   });
@@ -58,6 +62,8 @@ class Conspect {
     String? batchGroupId,
     List<PrintableCard>? cards,
     String? parentAudioScript,
+    String? promptVersionId,
+    String? parentNotes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -78,6 +84,8 @@ class Conspect {
       batchGroupId: batchGroupId ?? this.batchGroupId,
       cards: cards ?? this.cards,
       parentAudioScript: parentAudioScript ?? this.parentAudioScript,
+      promptVersionId: promptVersionId ?? this.promptVersionId,
+      parentNotes: parentNotes ?? this.parentNotes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -101,6 +109,8 @@ class Conspect {
       'batchGroupId': batchGroupId,
       'cards': cards?.map((c) => c.toJson()).toList(),
       'parentAudioScript': parentAudioScript,
+      'promptVersionId': promptVersionId,
+      'parentNotes': parentNotes,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -129,6 +139,8 @@ class Conspect {
           ?.map((c) => PrintableCard.fromJson(Map<String, dynamic>.from(c as Map)))
           .toList(),
       parentAudioScript: map['parentAudioScript'] as String?,
+      promptVersionId: map['promptVersionId'] as String?,
+      parentNotes: map['parentNotes'] as String? ?? '',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

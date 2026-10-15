@@ -61,6 +61,8 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
 
   bool _isEditing = false;
   late TextEditingController _editController;
+  late TextEditingController _parentNotesController;
+  bool _isPreviewNotes = false;
 
   // Animation for save action (fade + scale)
   late AnimationController _saveAnimController;
@@ -75,6 +77,9 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
     _isLoading = widget.isNewGeneration;
     _editController = TextEditingController(
       text: _currentConspect?.content ?? '',
+    );
+    _parentNotesController = TextEditingController(
+      text: _currentConspect?.parentNotes ?? '',
     );
 
     if (_currentConspect != null) {
@@ -122,6 +127,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
   @override
   void dispose() {
     _editController.dispose();
+    _parentNotesController.dispose();
     _saveAnimController.dispose();
     super.dispose();
   }
@@ -152,6 +158,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           _selectedVariantIndex = 0;
           _currentConspect = variants.isNotEmpty ? variants.first : null;
           _editController.text = _currentConspect?.content ?? '';
+          _parentNotesController.text = _currentConspect?.parentNotes ?? '';
           _isLoading = false;
         });
       } else {
@@ -171,6 +178,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           _selectedVariantIndex = 0;
           _currentConspect = conspect;
           _editController.text = conspect.content;
+          _parentNotesController.text = conspect.parentNotes;
           _isLoading = false;
         });
 
@@ -193,6 +201,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
         _selectedVariantIndex = index;
         _currentConspect = _variants[index];
         _editController.text = _currentConspect?.content ?? '';
+        _parentNotesController.text = _currentConspect?.parentNotes ?? '';
         _isEditing = false;
       });
     }
@@ -608,6 +617,11 @@ ${_currentConspect!.content}
 
                     // Шаг 2: Секция «Обратная связь»
                     _buildFeedbackSection(isDark),
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Шаг 6: Секция «Заметки родителя» с Markdown-редактором
+                    _buildParentNotesSection(isDark),
 
                     const SizedBox(height: AppSpacing.lg),
 
@@ -1337,6 +1351,181 @@ ${_currentConspect!.content}
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Шаг 6: Секция «Заметки родителя» с Markdown-редактором и кнопками форматирования
+  Widget _buildParentNotesSection(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderRadius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.cyanBlue,
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                    ),
+                    child: const Icon(
+                      Icons.note_alt_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text(
+                    'Заметки родителя / учителя',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                tooltip: _isPreviewNotes ? 'Редактировать' : 'Предпросмотр Markdown',
+                icon: Icon(
+                  _isPreviewNotes ? Icons.edit_note : Icons.visibility_outlined,
+                  size: 20,
+                  color: AppColors.cyan,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPreviewNotes = !_isPreviewNotes;
+                  });
+                },
+              ),
+            ],
+          ),
+
+          if (!_isPreviewNotes) ...[
+            const SizedBox(height: 8),
+            // Markdown форматирование (кнопки)
+            Wrap(
+              spacing: 6,
+              children: [
+                _buildFormatBtn('**Ж**', () => _insertMarkdown('**', '**')),
+                _buildFormatBtn('*К*', () => _insertMarkdown('*', '*')),
+                _buildFormatBtn('• Список', () => _insertMarkdown('- ', '')),
+                _buildFormatBtn('✔ Чек-лист', () => _insertMarkdown('- [ ] ', '')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _parentNotesController,
+              maxLines: 3,
+              onChanged: (text) {
+                context.read<AppProvider>().updateParentNotes(_currentConspect!.id, text);
+              },
+              style: TextStyle(
+                fontSize: 13.5,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              ),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                hintText: 'Запишите успехи ребенка, новые слова или заметки (Markdown)...',
+                hintStyle: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
+              child: MarkdownBody(
+                data: _parentNotesController.text.isNotEmpty
+                    ? _parentNotesController.text
+                    : '*Заметок пока нет. Переключите режим, чтобы написать заметку.*',
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(
+                    fontSize: 13.5,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _insertMarkdown(String prefix, String suffix) {
+    final text = _parentNotesController.text;
+    final selection = _parentNotesController.selection;
+    if (selection.isValid && !selection.isCollapsed) {
+      final selectedText = text.substring(selection.start, selection.end);
+      final newText = text.replaceRange(
+        selection.start,
+        selection.end,
+        '$prefix$selectedText$suffix',
+      );
+      _parentNotesController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: selection.start + prefix.length + selectedText.length + suffix.length,
+        ),
+      );
+    } else {
+      final offset = selection.isValid ? selection.start : text.length;
+      final newText = text.replaceRange(offset, offset, '$prefix$suffix');
+      _parentNotesController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: offset + prefix.length),
+      );
+    }
+    context.read<AppProvider>().updateParentNotes(_currentConspect!.id, _parentNotesController.text);
+  }
+
+  Widget _buildFormatBtn(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadii.sm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.primaryIndigo.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+          border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.3), width: 0.8),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primaryIndigo,
+          ),
+        ),
       ),
     );
   }

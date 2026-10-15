@@ -1,5 +1,7 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/app_provider.dart';
 import '../services/storage_service.dart';
 import '../theme.dart';
@@ -100,6 +102,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (success) {
       await provider.saveApiKey(key);
       await provider.saveFolderId(folder);
+    }
+  }
+
+  bool _isExporting = false;
+  bool _isImporting = false;
+
+  Future<void> _exportLibrary() async {
+    setState(() => _isExporting = true);
+    try {
+      final provider = context.read<AppProvider>();
+      final bytes = await provider.exportLibraryZip();
+      final filename = 'metodist_library_${DateTime.now().toIso8601String().substring(0, 10)}.zip';
+      final xFile = XFile.fromData(
+        bytes,
+        mimeType: 'application/zip',
+        name: filename,
+      );
+      await Share.shareXFiles(
+        [xFile],
+        text: 'Экспорт библиотеки Методист (конспекты, методики, шаблоны, приёмы)',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ZIP-архив библиотеки успешно сформирован.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка экспорта библиотеки: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _importLibrary() async {
+    setState(() => _isImporting = true);
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final bytes = result.files.first.bytes;
+        if (bytes != null) {
+          final provider = context.read<AppProvider>();
+          final report = await provider.importLibraryZip(bytes);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Импорт завершён! Добавлено/обновлено: ${report['conspects']} конспектов, ${report['prompts']} версий промптов.',
+              ),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка при импорте ZIP-архива: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
     }
   }
 
@@ -372,6 +450,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              // Backup & Library ZIP Card
+              GlassCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                borderRadius: AppRadii.lg,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: AppGradients.cyanBlue,
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                          ),
+                          child: const Icon(
+                            Icons.archive_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Резервная копия и библиотека',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                              Text(
+                                'ZIP-архив конспектов, методик и версий промптов',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Выгрузите всю базу конспектов, версионные промпты и каталоги в единый ZIP-архив для переноса на другое устройство или восстановите библиотеку из ранее сохранённого архива.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.2)
+                                    : Colors.black.withValues(alpha: 0.15),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                              ),
+                            ),
+                            icon: _isImporting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.file_upload_outlined, size: 18),
+                            label: const Text('Импорт ZIP'),
+                            onPressed: _isImporting ? null : _importLibrary,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryIndigo,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                              ),
+                            ),
+                            icon: _isExporting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.download_rounded, size: 18),
+                            label: const Text('Экспорт ZIP'),
+                            onPressed: _isExporting ? null : _exportLibrary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

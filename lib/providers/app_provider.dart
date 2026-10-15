@@ -1,8 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../data/method_repository.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/printable_card.dart';
+import '../models/prompt_version.dart';
 import '../models/method_prompt.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
@@ -205,6 +207,18 @@ class AppProvider with ChangeNotifier {
       final cards = PromptBuilder.extractPrintableCards(generatedText);
       final parentAudio = PromptBuilder.extractParentAudioScript(generatedText);
 
+      // Шаг 6: Кэширование версии промпта в prompt_versions
+      final existingPv = _storageService.getLatestPromptVersion(method.id);
+      final nextVersion = (existingPv?.version ?? 0) + 1;
+      final promptVersion = PromptVersion(
+        id: '${method.id}_v$nextVersion',
+        methodId: method.id,
+        version: nextVersion,
+        content: systemPrompt,
+        createdAt: DateTime.now(),
+      );
+      await _storageService.savePromptVersion(promptVersion);
+
       final conspect = Conspect(
         id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
         title: '$topicTitle$titleSuffix',
@@ -221,6 +235,7 @@ class AppProvider with ChangeNotifier {
         batchGroupId: batchGroupId,
         cards: cards.isNotEmpty ? cards : null,
         parentAudioScript: parentAudio,
+        promptVersionId: promptVersion.id,
         createdAt: DateTime.now(),
       );
 
@@ -355,5 +370,35 @@ class AppProvider with ChangeNotifier {
     await _storageService.deleteConspect(id);
     _conspects = _storageService.getAllConspects();
     notifyListeners();
+  }
+
+  // Шаг 6: Обновление заметок родителя
+  Future<void> updateParentNotes(String conspectId, String notes) async {
+    final index = _conspects.indexWhere((c) => c.id == conspectId);
+    if (index == -1) return;
+
+    final updated = _conspects[index].copyWith(
+      parentNotes: notes,
+      updatedAt: DateTime.now(),
+    );
+    await saveConspect(updated);
+  }
+
+  // Шаг 6: Экспорт библиотеки в ZIP
+  Uint8List exportLibraryZip() {
+    return _storageService.exportLibraryZip(
+      methodsData: _methodRepository.methods.map((m) => m.toJson()).toList(),
+      topicsData: _methodRepository.topics.map((t) => t.toJson()).toList(),
+      situationsData: _methodRepository.situationTemplates.map((s) => s.toJson()).toList(),
+      activitiesData: _methodRepository.activityLibrary.map((a) => a.toJson()).toList(),
+    );
+  }
+
+  // Шаг 6: Импорт библиотеки из ZIP
+  Future<Map<String, int>> importLibraryZip(List<int> bytes) async {
+    final result = await _storageService.importLibraryZip(bytes);
+    _conspects = _storageService.getAllConspects();
+    notifyListeners();
+    return result;
   }
 }
