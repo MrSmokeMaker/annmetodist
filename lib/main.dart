@@ -41,8 +41,8 @@ class MetodistApp extends StatelessWidget {
       title: 'Методист',
       debugShowCheckedModeBanner: false,
       themeMode: appProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.getTheme(isDark: false, isPreschool: appProvider.isPreschoolPalette),
+      darkTheme: AppTheme.getTheme(isDark: true, isPreschool: appProvider.isPreschoolPalette),
       home: appProvider.isLoading
           ? const Scaffold(
               body: AmbientBackground(

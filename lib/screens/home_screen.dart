@@ -210,7 +210,200 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Шаг 5: Мини-дашборд из Hive
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Row(
+                  children: [
+                    // Карточка 1: Сегодня
+                    Expanded(
+                      child: GlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        borderRadius: AppRadii.md,
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.today_rounded, size: 14, color: AppColors.cyan),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Сегодня',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${provider.todayConspectsCount}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'уроков',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Карточка 2: Пройдено тем
+                    Expanded(
+                      child: GlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        borderRadius: AppRadii.md,
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle_outline_rounded, size: 14, color: AppColors.success),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Тем',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${provider.completedTopicsCount}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'в базе',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Карточка 3: Средняя длительность
+                    Expanded(
+                      child: GlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        borderRadius: AppRadii.md,
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.timer_outlined, size: 14, color: Color(0xFFF59E0B)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Ср. время',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${provider.averageDurationMinutes}м',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'на урок',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.sm),
+
+              // Шаг 5: Переключатель «Возрастная палитра»
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  borderRadius: AppRadii.md,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.palette_outlined,
+                            size: 16,
+                            color: provider.isPreschoolPalette ? AppColors.cyan : AppColors.primaryIndigo,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Возрастная палитра:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildAgePaletteTab(
+                              title: 'Дошкольники',
+                              isSelected: provider.isPreschoolPalette,
+                              onTap: () => provider.setPreschoolPalette(true),
+                              isDark: isDark,
+                            ),
+                            _buildAgePaletteTab(
+                              title: '1–2 класс',
+                              isSelected: !provider.isPreschoolPalette,
+                              onTap: () => provider.setPreschoolPalette(false),
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
 
               // Search Bar
               Padding(
@@ -523,6 +716,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAgePaletteTab({
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadii.sm),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppGradients.indigoViolet : null,
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
           ),
         ),
       ),

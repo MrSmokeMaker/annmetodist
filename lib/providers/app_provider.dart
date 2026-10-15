@@ -45,6 +45,46 @@ class AppProvider with ChangeNotifier {
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
 
+  // Шаг 5: Возрастная палитра
+  bool _isPreschoolPalette = true;
+  bool get isPreschoolPalette => _isPreschoolPalette;
+
+  void setPreschoolPalette(bool isPreschool) {
+    if (_isPreschoolPalette != isPreschool) {
+      _isPreschoolPalette = isPreschool;
+      notifyListeners();
+    }
+  }
+
+  // Шаг 5: Данные для мини-дашборда из Hive
+  int get todayConspectsCount {
+    final now = DateTime.now();
+    return _conspects.where((c) {
+      return c.createdAt.year == now.year &&
+          c.createdAt.month == now.month &&
+          c.createdAt.day == now.day;
+    }).length;
+  }
+
+  int get completedTopicsCount {
+    final uniqueTopics = _conspects.map((c) => c.topic.trim().toLowerCase()).toSet();
+    return uniqueTopics.length;
+  }
+
+  int get averageDurationMinutes {
+    if (_conspects.isEmpty) return 20;
+    int totalMins = 0;
+    int count = 0;
+    for (final c in _conspects) {
+      final match = RegExp(r'(\d+)').firstMatch(c.duration);
+      if (match != null) {
+        totalMins += int.tryParse(match.group(1)!) ?? 20;
+        count++;
+      }
+    }
+    return count > 0 ? (totalMins / count).round() : 20;
+  }
+
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();

@@ -96,6 +96,45 @@ class AppGradients {
   );
 }
 
+/// Шаг 5: Возрастная палитра (Дошкольники / 1–2 класс)
+class AgePalette {
+  final Color primary;
+  final Color secondary;
+  final Color accent;
+  final LinearGradient gradient;
+
+  const AgePalette({
+    required this.primary,
+    required this.secondary,
+    required this.accent,
+    required this.gradient,
+  });
+
+  // Дошкольники: мягкие, тёплые градиенты (индиго-фиолетовый, бирюза)
+  static const AgePalette preschool = AgePalette(
+    primary: Color(0xFF6366F1),
+    secondary: Color(0xFF06B6D4),
+    accent: Color(0xFFA855F7),
+    gradient: LinearGradient(
+      colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  // 1–2 класс: строже, академические благородные оттенки
+  static const AgePalette school = AgePalette(
+    primary: Color(0xFF3730A3), // Тёмно-синий индиго
+    secondary: Color(0xFF0284C7), // Академический лазурный
+    accent: Color(0xFF475569), // Сдержанный грифельный
+    gradient: LinearGradient(
+      colors: [Color(0xFF312E81), Color(0xFF1E40AF)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+}
+
 class AppRadii {
   static const double sm = 12.0;
   static const double md = 16.0;
@@ -237,6 +276,22 @@ class AppTheme {
       dividerTheme: const DividerThemeData(
         color: Color(0x1F000000),
         thickness: 1,
+      ),
+    );
+  }
+
+  /// Шаг 5: Получение темы с учетом возрастной палитры (Дошкольники / 1–2 класс)
+  static ThemeData getTheme({required bool isDark, bool isPreschool = true}) {
+    final palette = isPreschool ? AgePalette.preschool : AgePalette.school;
+    final baseTheme = isDark ? darkTheme : lightTheme;
+
+    return baseTheme.copyWith(
+      colorScheme: (isDark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
+        primary: palette.primary,
+        secondary: palette.secondary,
+        tertiary: palette.accent,
+        surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        error: AppColors.error,
       ),
     );
   }
