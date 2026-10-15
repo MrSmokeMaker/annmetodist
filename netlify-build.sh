@@ -15,7 +15,7 @@ echo "=== Getting dependencies ==="
 flutter pub get
 
 echo "=== Building Flutter Web release ==="
-flutter build web --release
+flutter build web --release --no-web-resources-cdn
 
 echo "=== Ensuring Netlify _redirects and _headers are in build/web ==="
 cp web/_redirects build/web/_redirects 2>/dev/null || true

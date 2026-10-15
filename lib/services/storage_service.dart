@@ -28,52 +28,98 @@ class StorageService {
 
   Future<void> init() async {
     if (_isInitialized) return;
-    await Hive.initFlutter();
-    _conspectsBox = await Hive.openBox(_conspectBoxName);
-    _settingsBox = await Hive.openBox(_settingsBoxName);
-    _promptVersionsBox = await Hive.openBox(_promptVersionsBoxName);
+    try {
+      await Hive.initFlutter();
+      _conspectsBox = await Hive.openBox(_conspectBoxName);
+      _settingsBox = await Hive.openBox(_settingsBoxName);
+      _promptVersionsBox = await Hive.openBox(_promptVersionsBoxName);
 
-    // Seed defaults if empty
-    final existingKey = await _secureStorage.read(key: _apiKeyStorageKey);
-    if (existingKey == null || existingKey.isEmpty) {
-      await _secureStorage.write(key: _apiKeyStorageKey, value: defaultApiKey);
-    }
-    final existingFolder = await _secureStorage.read(key: _folderIdStorageKey);
-    if (existingFolder == null || existingFolder.isEmpty) {
-      await _secureStorage.write(key: _folderIdStorageKey, value: defaultFolderId);
-    }
+      _isInitialized = true;
 
-    _isInitialized = true;
+      // Seed defaults if empty
+      try {
+        final existingKey = await _secureStorage.read(key: _apiKeyStorageKey);
+        if (existingKey == null || existingKey.isEmpty) {
+          await _secureStorage.write(key: _apiKeyStorageKey, value: defaultApiKey);
+        }
+        final existingFolder = await _secureStorage.read(key: _folderIdStorageKey);
+        if (existingFolder == null || existingFolder.isEmpty) {
+          await _secureStorage.write(key: _folderIdStorageKey, value: defaultFolderId);
+        }
+      } catch (_) {
+        // Fallback to Hive _settingsBox on web when secureStorage is restricted
+        if (_settingsBox.get(_apiKeyStorageKey) == null) {
+          await _settingsBox.put(_apiKeyStorageKey, defaultApiKey);
+        }
+        if (_settingsBox.get(_folderIdStorageKey) == null) {
+          await _settingsBox.put(_folderIdStorageKey, defaultFolderId);
+        }
+      }
+    } catch (e) {
+      _isInitialized = false;
+      rethrow;
+    }
   }
 
-  // --- API Key & Folder ID Management (Secure Storage) ---
+  // --- API Key & Folder ID Management (Secure Storage with Hive Fallback) ---
 
   Future<String?> getApiKey() async {
-    final key = await _secureStorage.read(key: _apiKeyStorageKey);
-    return (key != null && key.isNotEmpty) ? key : defaultApiKey;
+    try {
+      final key = await _secureStorage.read(key: _apiKeyStorageKey);
+      if (key != null && key.isNotEmpty) return key;
+    } catch (_) {}
+    if (_isInitialized) {
+      final hiveKey = _settingsBox.get(_apiKeyStorageKey) as String?;
+      if (hiveKey != null && hiveKey.isNotEmpty) return hiveKey;
+    }
+    return defaultApiKey;
   }
 
   Future<void> saveApiKey(String apiKey) async {
-    await _secureStorage.write(key: _apiKeyStorageKey, value: apiKey.trim());
+    try {
+      await _secureStorage.write(key: _apiKeyStorageKey, value: apiKey.trim());
+    } catch (_) {}
+    if (_isInitialized) {
+      await _settingsBox.put(_apiKeyStorageKey, apiKey.trim());
+    }
   }
 
   Future<String?> getFolderId() async {
-    final folder = await _secureStorage.read(key: _folderIdStorageKey);
-    return (folder != null && folder.isNotEmpty) ? folder : defaultFolderId;
+    try {
+      final folder = await _secureStorage.read(key: _folderIdStorageKey);
+      if (folder != null && folder.isNotEmpty) return folder;
+    } catch (_) {}
+    if (_isInitialized) {
+      final hiveFolder = _settingsBox.get(_folderIdStorageKey) as String?;
+      if (hiveFolder != null && hiveFolder.isNotEmpty) return hiveFolder;
+    }
+    return defaultFolderId;
   }
 
   Future<void> saveFolderId(String folderId) async {
-    await _secureStorage.write(key: _folderIdStorageKey, value: folderId.trim());
+    try {
+      await _secureStorage.write(key: _folderIdStorageKey, value: folderId.trim());
+    } catch (_) {}
+    if (_isInitialized) {
+      await _settingsBox.put(_folderIdStorageKey, folderId.trim());
+    }
   }
 
   Future<void> deleteCredentials() async {
-    await _secureStorage.delete(key: _apiKeyStorageKey);
-    await _secureStorage.delete(key: _folderIdStorageKey);
+    try {
+      await _secureStorage.delete(key: _apiKeyStorageKey);
+      await _secureStorage.delete(key: _folderIdStorageKey);
+    } catch (_) {}
+    if (_isInitialized) {
+      await _settingsBox.delete(_apiKeyStorageKey);
+      await _settingsBox.delete(_folderIdStorageKey);
+    }
   }
 
   // --- Conspects Management (Hive Box) ---
 
   List<Conspect> getAllConspects() {
+    if (!_isInitialized) return [];
     final List<Conspect> list = [];
     for (var i = 0; i < _conspectsBox.length; i++) {
       final raw = _conspectsBox.getAt(i);
@@ -107,10 +153,12 @@ class StorageService {
   // --- Settings & Theme Mode ---
 
   bool get isDarkMode {
+    if (!_isInitialized) return true;
     return _settingsBox.get(_themeModeKey, defaultValue: true) as bool;
   }
 
   Future<void> setDarkMode(bool isDark) async {
+    if (!_isInitialized) return;
     await _settingsBox.put(_themeModeKey, isDark);
   }
 

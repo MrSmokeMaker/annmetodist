@@ -7,10 +7,15 @@ import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
 import 'theme.dart';
 import 'widgets/ambient_background.dart';
+import 'widgets/glass_card.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ru', null);
+  try {
+    await initializeDateFormatting('ru', null);
+  } catch (e) {
+    debugPrint('DateFormatting warning: $e');
+  }
 
   final storageService = StorageService();
   final methodRepository = MethodRepository();
@@ -54,7 +59,55 @@ class MetodistApp extends StatelessWidget {
                 ),
               ),
             )
-          : const HomeScreen(),
+          : appProvider.errorMessage != null
+              ? Scaffold(
+                  body: AmbientBackground(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: GlassCard(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: AppColors.error,
+                                size: 48,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Text(
+                                'Ошибка загрузки',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                appProvider.errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryIndigo,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Повторить попытку'),
+                                onPressed: () => appProvider.initialize(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : const HomeScreen(),
     );
   }
 }
