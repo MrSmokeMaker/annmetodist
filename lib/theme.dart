@@ -48,6 +48,13 @@ class AppGradients {
     end: Alignment.bottomRight,
   );
 
+  // Amber -> Orange
+  static const LinearGradient amberOrange = LinearGradient(
+    colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // Glass Borders
   static const LinearGradient glassBorderDark = LinearGradient(
     colors: [

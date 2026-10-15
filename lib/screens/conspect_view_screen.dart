@@ -17,6 +17,7 @@ import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/thinking_indicator.dart';
+import 'lesson_run_screen.dart';
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -335,6 +336,18 @@ ${_currentConspect!.content}
               icon: const Icon(Icons.share_outlined),
               onPressed: _shareConspectText,
             ),
+            // Шаг 4: Вести урок
+            IconButton(
+              tooltip: 'Вести урок',
+              icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.cyan),
+              onPressed: () {
+                Navigator.of(context).push(
+                  FadeSlidePageRoute(
+                    page: LessonRunScreen(conspect: _currentConspect!),
+                  ),
+                );
+              },
+            ),
           ],
         ],
       ),
@@ -490,6 +503,29 @@ ${_currentConspect!.content}
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.cyan,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                              ),
+                            ),
+                            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                            label: const Text(
+                              'Вести урок',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                FadeSlidePageRoute(
+                                  page: LessonRunScreen(conspect: _currentConspect!),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
