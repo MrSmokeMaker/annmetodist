@@ -1,0 +1,17 @@
+{
+  "name": "yandex-gpt-proxy",
+  "version": "1.0.0",
+  "description": "Serverless proxy for Yandex Cloud AI Studio / YandexGPT with CORS support",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "yandex-cloud",
+    "serverless",
+    "yandexgpt",
+    "cors-proxy"
+  ],
+  "author": "",
+  "license": "MIT"
+}

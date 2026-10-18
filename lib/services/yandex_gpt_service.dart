@@ -1,291 +1,193 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
-/// Сервис взаимодействия с YandexGPT API.
-class YandexGptService {
-  // Актуальный OpenAI-совместимый эндпоинт Yandex Cloud
-  static const _openAiEndpoint =
-      'https://llm.api.cloud.yandex.net/v1/chat/completions';
+class YandexGptException implements Exception {
+  final String message;
+  final int? statusCode;
 
-  // Актуальный нативный эндпоинт Foundation Models (синхронная генерация)
-  static const _nativeEndpoint =
-      'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
+  YandexGptException(this.message, [this.statusCode]);
+
+  @override
+  String toString() => message;
+}
+
+class YandexGptService {
+  final StorageService _storageService;
 
   static const String defaultModel = 'yandexgpt-lite';
 
-  final StorageService _storageService;
-  final http.Client? _customClient;
+  YandexGptService({required StorageService storageService})
+      : _storageService = storageService;
 
-  YandexGptService({
-    required StorageService storageService,
-    http.Client? client,
-  })  : _storageService = storageService,
-        _customClient = client;
-
-  http.Client _createClient() => _customClient ?? http.Client();
-
-  /// Проверка подключения к YandexGPT и прав сервисного аккаунта.
   Future<Map<String, dynamic>> testConnection({
     String? apiKey,
     String? folderId,
   }) async {
-    if (kIsWeb) {
+    // Proxy URL is mandatory now
+    final proxyUrl = await _storageService.getProxyUrl();
+    if (proxyUrl == null || proxyUrl.trim().isEmpty) {
       return {
         'success': false,
-        'message':
-            'Прямые запросы к Yandex Cloud API из веб-браузера блокируются политикой CORS браузера. Запустите приложение на Windows, Android или iOS.',
+        'message': 'URL прокси не указан. Укажите его в настройках.',
       };
     }
 
-    final effectiveKey = apiKey?.trim() ?? await _storageService.getApiKey();
-    final effectiveFolder =
-        folderId?.trim() ?? await _storageService.getFolderId();
-
-    if (effectiveKey == null || effectiveKey.isEmpty) {
-      return {'success': false, 'message': 'API-ключ не указан.'};
-    }
-    if (effectiveFolder == null || effectiveFolder.isEmpty) {
-      return {'success': false, 'message': 'Folder ID не указан.'};
-    }
-
-    final client = _createClient();
+    final client = http.Client();
     try {
-      final response = await client.post(
-        Uri.parse(_openAiEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Api-Key $effectiveKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt://$effectiveFolder/$defaultModel',
-          'messages': [
-            {'role': 'user', 'content': 'Тест связи'},
-          ],
-          'temperature': 0.6,
-          'max_tokens': 10,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await client
+          .post(
+            Uri.parse(proxyUrl.trim()),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'messages': [
+                {'role': 'user', 'content': 'Тест связи'},
+              ],
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      // Detailed console diagnostics
+      print('YandexGptService testConnection -> URL: $proxyUrl, status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': 'Соединение с YandexGPT успешно установлено!',
+          'message': 'Соединение с YandexGPT через прокси успешно установлено!',
         };
       }
-
       if (response.statusCode == 401) {
+        print('Диагностика: Неверный API-ключ (401). Переменная YANDEX_API_KEY не задана или некорректна на сервере прокси.');
         return {
           'success': false,
           'statusCode': 401,
-          'message': 'Ошибка 401: Неверный API-ключ Yandex Cloud. Проверьте ключ в настройках.',
+          'message': 'Неверный API-ключ (или ключ не задан на сервере прокси).',
         };
       }
-
       if (response.statusCode == 403) {
+        print('Диагностика: Нет доступа к модели (403).');
         return {
           'success': false,
           'statusCode': 403,
-          'message':
-              'Ошибка 403: Сервисному аккаунту в каталоге ($effectiveFolder) не назначена роль ai.languageModels.user.',
+          'message': 'Нет доступа к модели или не включён Foundation Models в каталоге (403). Проверьте роль ai.languageModels.user.',
         };
       }
-
       if (response.statusCode == 429) {
+        print('Диагностика: Превышен лимит запросов (429).');
         return {
           'success': false,
           'statusCode': 429,
-          'message': 'Ошибка 429: Превышен лимит запросов YandexGPT.',
+          'message': 'Превышен лимит запросов (429). Попробуйте позже.',
         };
       }
-
+      // Other status codes (e.g., 404, 500, 502) -> proxy is unavailable or server error
+      print('Диагностика: Ответ API с ошибкой (${response.statusCode}): ${response.body}');
       return {
         'success': false,
         'statusCode': response.statusCode,
-        'message': 'Ошибка YandexGPT (${response.statusCode}): ${response.body}',
+        'message': 'Прокси недоступен или ошибка сервера (${response.statusCode}): ${response.body}',
+      };
+    } on TimeoutException {
+      print('YandexGptService testConnection -> Таймаут запроса (30 секунд). URL: $proxyUrl');
+      return {
+        'success': false,
+        'message': 'Превышено время ожидания ответа (30 секунд). Проверьте интернет-соединение и повторите.',
       };
     } catch (e) {
-      final errStr = e.toString();
-      if (errStr.contains('Load failed') || errStr.contains('Failed to fetch')) {
-        return {
-          'success': false,
-          'message':
-              'Сетевая ошибка: запрос заблокирован политикой CORS браузера или отсутствует интернет-соединение.',
-        };
-      }
-      return {'success': false, 'message': 'Сетевая ошибка: $e'};
+      print('YandexGptService testConnection -> URL: $proxyUrl');
+      print('Ошибка: $e');
+      print('Подсказка: Похоже, запрос заблокирован браузером (CORS) или сервер недоступен.');
+      return {
+        'success': false,
+        'message': 'Запрос не дошёл до сервера. Проверьте интернет-соединение и повторите.',
+      };
     } finally {
-      if (_customClient == null) {
-        client.close();
-      }
+      client.close();
     }
   }
 
-  /// Генерация конспекта с помощью YandexGPT.
+  /// Generates lesson plan conspect via the proxy server.
   Future<String> generateConspect({
     required String systemPrompt,
     required String userPrompt,
     String model = defaultModel,
   }) async {
-    if (kIsWeb) {
-      throw YandexGptException(
-        'Прямые запросы к Yandex Cloud API из веб-браузера блокируются политикой CORS браузера. Запустите приложение на Windows, Android или iOS.',
-      );
+    // Retrieve proxy URL from storage.
+    final proxyUrl = await _storageService.getProxyUrl();
+    if (proxyUrl == null || proxyUrl.trim().isEmpty) {
+      throw YandexGptException('URL прокси не указан. Укажите его в настройках.');
     }
 
-    final apiKey = await _storageService.getApiKey();
-    final folderId = await _storageService.getFolderId();
-
-    if (apiKey == null || apiKey.trim().isEmpty) {
-      throw YandexGptException(
-        'API-ключ YandexGPT не задан. Пожалуйста, укажите его в настройках.',
-      );
-    }
-    if (folderId == null || folderId.trim().isEmpty) {
-      throw YandexGptException(
-        'Идентификатор каталога (Folder ID) не задан. Пожалуйста, укажите его в настройках.',
-      );
-    }
-
-    final client = _createClient();
+    final client = http.Client();
     try {
-      // 1. Сначала пробуем OpenAI-совместимый эндпоинт
-      var response = await client.post(
-        Uri.parse(_openAiEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Api-Key ${apiKey.trim()}',
-        },
-        body: jsonEncode({
-          'model': 'gpt://${folderId.trim()}/$model',
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': userPrompt},
-          ],
-          'temperature': 0.6,
-          'max_tokens': 3000,
-        }),
-      ).timeout(const Duration(seconds: 40));
+      final body = jsonEncode({
+        'model': model,
+        'messages': [
+          {'role': 'system', 'content': systemPrompt},
+          {'role': 'user', 'content': userPrompt},
+        ],
+        'temperature': 0.6,
+        'max_tokens': 3000,
+      });
+
+      final response = await client
+          .post(
+            Uri.parse(proxyUrl.trim()),
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 30));
+
+      // Diagnostic logging.
+      print('generateConspect -> URL: $proxyUrl, status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+        // Try OpenAI‑compatible shape first.
         final choices = data['choices'] as List<dynamic>?;
         if (choices != null && choices.isNotEmpty) {
-          final message = choices.first['message'] as Map<String, dynamic>?;
-          final content = message?['content'] as String?;
+          final content = choices.first['message']?['content'] as String?;
           if (content != null && content.trim().isNotEmpty) {
             return content.trim();
           }
         }
-      }
-
-      if (response.statusCode == 401) {
-        throw YandexGptException(
-          'Неверный API-ключ Yandex Cloud. Проверьте ключ в настройках.',
-          401,
-        );
-      } else if (response.statusCode == 403) {
-        throw YandexGptException(
-          'Ошибка 403 (Доступ запрещен). Сервисному аккаунту в Яндекс Облаке необходимо назначить роль "ai.languageModels.user".',
-          403,
-        );
-      } else if (response.statusCode == 429) {
-        throw YandexGptException(
-          'Превышен лимит запросов YandexGPT. Попробуйте через минуту.',
-          429,
-        );
-      }
-
-      // 2. Резервный вызов через нативный эндпоинт Foundation Models
-      response = await client.post(
-        Uri.parse(_nativeEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Api-Key ${apiKey.trim()}',
-        },
-        body: jsonEncode({
-          'modelUri': 'gpt://${folderId.trim()}/$model/latest',
-          'completionOptions': {
-            'stream': false,
-            'temperature': 0.6,
-            'maxTokens': '3000',
-          },
-          'messages': [
-            {'role': 'system', 'text': systemPrompt},
-            {'role': 'user', 'text': userPrompt},
-          ],
-        }),
-      ).timeout(const Duration(seconds: 40));
-
-      if (response.statusCode != 200) {
-        if (response.statusCode == 401) {
-          throw YandexGptException(
-            'Неверный API-ключ Yandex Cloud. Проверьте ключ в настройках.',
-            401,
-          );
-        } else if (response.statusCode == 403) {
-          throw YandexGptException(
-            'Ошибка 403 (Доступ запрещен). Сервисному аккаунту в Яндекс Облаке необходимо назначить роль "ai.languageModels.user".',
-            403,
-          );
-        } else if (response.statusCode == 429) {
-          throw YandexGptException(
-            'Превышен лимит запросов YandexGPT. Попробуйте через минуту.',
-            429,
-          );
+        // Fallback to native Foundation Models shape.
+        final result = data['result'] as Map<String, dynamic>?;
+        final alternatives = result?['alternatives'] as List<dynamic>?;
+        if (alternatives != null && alternatives.isNotEmpty) {
+          final text = alternatives.first['message']?['text'] as String?;
+          if (text != null && text.trim().isNotEmpty) {
+            return text.trim();
+          }
         }
-        throw YandexGptException(
-          'Ошибка генерации YandexGPT (${response.statusCode}): ${response.body}',
-          response.statusCode,
-        );
+        throw YandexGptException('Модель YandexGPT вернула пустой ответ. Попробуйте снова.');
       }
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final result = data['result'] as Map<String, dynamic>?;
-      final alternatives = result?['alternatives'] as List<dynamic>?;
-      if (alternatives == null || alternatives.isEmpty) {
-        throw YandexGptException(
-          'Модель YandexGPT вернула пустой ответ. Попробуйте снова.',
-        );
+      print('generateConspect ошибка -> URL: $proxyUrl, status: ${response.statusCode}, body: ${response.body}');
+      // Map known error codes to user‑friendly messages.
+      switch (response.statusCode) {
+        case 401:
+          throw YandexGptException('Неверный API-ключ (401). Проверьте переменную окружения YANDEX_API_KEY на сервере прокси.', 401);
+        case 403:
+          throw YandexGptException('Нет доступа к модели или не включён Foundation Models в каталоге (403). Проверьте роль сервисного аккаунта.', 403);
+        case 429:
+          throw YandexGptException('Превышен лимит запросов (429). Попробуйте через минуту.', 429);
+        default:
+          throw YandexGptException('Ошибка генерации (${response.statusCode}): ${response.body}', response.statusCode);
       }
-
-      final message = alternatives.first['message'] as Map<String, dynamic>?;
-      final text = message?['text'] as String?;
-      if (text == null || text.trim().isEmpty) {
-        throw YandexGptException('Ответ модели пуст. Попробуйте снова.');
-      }
-      return text.trim();
+    } on TimeoutException {
+      print('generateConspect -> Таймаут 30 секунд. URL: $proxyUrl');
+      throw YandexGptException('Превышено время ожидания ответа (30 секунд). Проверьте интернет-соединение и повторите.');
     } catch (e) {
       if (e is YandexGptException) rethrow;
-      if (e is TimeoutException) {
-        throw YandexGptException(
-          'Превышено время ожидания ответа YandexGPT (таймаут). Проверьте интернет-соединение.',
-        );
-      }
-      final errStr = e.toString();
-      if (errStr.contains('Load failed') || errStr.contains('Failed to fetch')) {
-        throw YandexGptException(
-          'Сетевая ошибка: запрос заблокирован политикой CORS браузера или отсутствует интернет-соединение.',
-        );
-      }
-      throw YandexGptException('Сетевая ошибка: $e');
+      print('generateConspect -> URL: $proxyUrl, ошибка: $e');
+      print('Подсказка: Похоже, запрос заблокирован браузером (CORS) или сервер недоступен.');
+      throw YandexGptException('Запрос не дошёл до сервера. Проверьте интернет-соединение и повторите.');
     } finally {
-      if (_customClient == null) {
-        client.close();
-      }
+      client.close();
     }
   }
-}
-
-/// Исключение при работе с YandexGPT.
-class YandexGptException implements Exception {
-  final String message;
-  final int? code;
-  YandexGptException(this.message, [this.code]);
-
-  @override
-  String toString() =>
-      'YandexGptException: $message${code != null ? ' (код $code)' : ''}';
 }
