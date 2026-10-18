@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Generated plugin registrants (Flutter) for desktop platforms
+linux/flutter/
+macos/Flutter/
+windows/flutter/
