@@ -859,15 +859,17 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                       const SizedBox(height: AppSpacing.md),
 
                       // Сетка карточек приёмов (GridView 2 столбца)
-                      GridView.builder(
+                      final bool isDesktop = MediaQuery.of(context).size.width >= 800;
+                       final double cardPadding = isDesktop ? 4.0 : 6.0;
+                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: provider.activityLibrary.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1.25,
+                          crossAxisSpacing: isDesktop ? 6.0 : 8.0,
+                          mainAxisSpacing: isDesktop ? 6.0 : 8.0,
+                          childAspectRatio: isDesktop ? 1.0 : 1.25,
                         ),
                         itemBuilder: (context, index) {
                           final activity = provider.activityLibrary[index];
@@ -886,7 +888,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                             borderRadius: BorderRadius.circular(AppRadii.md),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.all(10),
+                              padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.primaryIndigo.withOpacity(isDark ? 0.22 : 0.12)
