@@ -1,0 +1,29 @@
+name: metodist
+description: A Flutter app for generating conspect using YandexGPT API.
+publish_to: 'none' # Prevent accidental publishing
+version: 1.0.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.5
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  http: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/assets/data/activities.json
+    - assets/assets/data/methods.json
+    - assets/assets/data/situations.json
+    - assets/assets/data/topics.json
