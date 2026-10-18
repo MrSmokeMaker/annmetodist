@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base href="/annmetodist/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Методист — генерация конспектов уроков на базе YandexGPT">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Методист">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- Theme color matching dark theme -->
+  <meta name="theme-color" content="#0F1117">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <title>Методист — Генератор конспектов</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0F1117;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
+                  radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.2) 0%, transparent 60%),
+                  #0F1117;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+    .orb {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      box-shadow: 0 0 32px rgba(99, 102, 241, 0.6);
+      animation: pulse 1.6s infinite ease-in-out;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #94A3B8;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.92); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading-container">
+    <div class="orb"></div>
+    <div class="title">Методист</div>
+    <div class="subtitle">Загрузка приложения...</div>
+  </div>
+
+  <script>
+    function removeLoader() {
+      const loader = document.getElementById('loading');
+      if (loader && loader.style.opacity !== '0') {
+        loader.style.opacity = '0';
+        setTimeout(function() {
+          if (loader && loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 400);
+      }
+    }
+
+    // Modern Flutter first-frame event
+    window.addEventListener('flutter-first-frame', removeLoader);
+
+    // Mutation observer fallback
+    var observer = new MutationObserver(function() {
+      if (document.querySelector('flutter-view') || document.querySelector('flt-glass-pane')) {
+        setTimeout(removeLoader, 300);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Safety timeout
+    setTimeout(removeLoader, 6000);
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -1,8 +1,0 @@
-/build/
-!build/web/**
-/.dart_tool/
-/.flutter-plugins-dependencies
-/.idea/
-/.last_build_id
-
-/.generated/
