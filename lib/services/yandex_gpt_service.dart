@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
 class YandexGptException implements Exception {
@@ -27,10 +27,6 @@ class YandexGptService {
   YandexGptService({required StorageService storageService})
       : _storageService = storageService;
 
-  HttpClient _createHttpClient() {
-    return HttpClient();
-  }
-
   /// Sends test request to verify API credentials and IAM permissions
   Future<Map<String, dynamic>> testConnection({
     String? apiKey,
@@ -53,28 +49,23 @@ class YandexGptService {
       };
     }
 
-    final client = _createHttpClient();
+    final client = http.Client();
     try {
-      // 1. Try OpenAI-compatible endpoint
-      final request = await client.postUrl(Uri.parse(_openAiEndpoint));
-      request.headers.set('Content-Type', 'application/json');
-      request.headers.set('Authorization', 'Api-Key $effectiveKey');
-
-      final payload = {
-        'model': 'gpt://$effectiveFolder/$defaultModel',
-        'messages': [
-          {
-            'role': 'user',
-            'content': 'Тест связи',
-          }
-        ],
-        'temperature': 0.6,
-        'max_tokens': 10,
-      };
-
-      request.write(jsonEncode(payload));
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+      final response = await client.post(
+        Uri.parse(_openAiEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Api-Key $effectiveKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt://$effectiveFolder/$defaultModel',
+          'messages': [
+            {'role': 'user', 'content': 'Тест связи'},
+          ],
+          'temperature': 0.6,
+          'max_tokens': 10,
+        }),
+      );
 
       if (response.statusCode == 200) {
         return {
@@ -95,7 +86,7 @@ class YandexGptService {
       return {
         'success': false,
         'statusCode': response.statusCode,
-        'message': 'Ошибка авторизации (${response.statusCode}): $responseBody',
+        'message': 'Ошибка авторизации (${response.statusCode}): ${response.body}',
       };
     } catch (e) {
       return {
@@ -127,36 +118,28 @@ class YandexGptService {
       );
     }
 
-    final client = _createHttpClient();
-
-    // 1. Try OpenAI-compatible endpoint first
+    final client = http.Client();
     try {
-      final request = await client.postUrl(Uri.parse(_openAiEndpoint));
-      request.headers.set('Content-Type', 'application/json');
-      request.headers.set('Authorization', 'Api-Key ${apiKey.trim()}');
-
-      final payload = {
-        'model': 'gpt://${folderId.trim()}/$model',
-        'messages': [
-          {
-            'role': 'system',
-            'content': systemPrompt,
-          },
-          {
-            'role': 'user',
-            'content': userPrompt,
-          }
-        ],
-        'temperature': 0.6,
-        'max_tokens': 3000,
-      };
-
-      request.write(jsonEncode(payload));
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+      // 1. Try OpenAI-compatible endpoint first
+      var response = await client.post(
+        Uri.parse(_openAiEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Api-Key ${apiKey.trim()}',
+        },
+        body: jsonEncode({
+          'model': 'gpt://${folderId.trim()}/$model',
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': userPrompt},
+          ],
+          'temperature': 0.6,
+          'max_tokens': 3000,
+        }),
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(responseBody) as Map<String, dynamic>;
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
         final choices = data['choices'] as List<dynamic>?;
         if (choices != null && choices.isNotEmpty) {
           final message = choices.first['message'] as Map<String, dynamic>?;
@@ -183,39 +166,27 @@ class YandexGptService {
           429,
         );
       }
-    } catch (e) {
-      if (e is YandexGptException) rethrow;
-      // If network or endpoint issue, fall through to native endpoint
-    }
 
-    // 2. Fallback to native Foundation Models endpoint
-    try {
-      final request = await client.postUrl(Uri.parse(_nativeEndpoint));
-      request.headers.set('Content-Type', 'application/json');
-      request.headers.set('Authorization', 'Api-Key ${apiKey.trim()}');
-
-      final payload = {
-        'modelUri': 'gpt://${folderId.trim()}/$model/latest',
-        'completionOptions': {
-          'stream': false,
-          'temperature': 0.6,
-          'maxTokens': '3000',
+      // 2. Fallback to native Foundation Models endpoint
+      response = await client.post(
+        Uri.parse(_nativeEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Api-Key ${apiKey.trim()}',
         },
-        'messages': [
-          {
-            'role': 'system',
-            'text': systemPrompt,
+        body: jsonEncode({
+          'modelUri': 'gpt://${folderId.trim()}/$model/latest',
+          'completionOptions': {
+            'stream': false,
+            'temperature': 0.6,
+            'maxTokens': '3000',
           },
-          {
-            'role': 'user',
-            'text': userPrompt,
-          }
-        ],
-      };
-
-      request.write(jsonEncode(payload));
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+          'messages': [
+            {'role': 'system', 'text': systemPrompt},
+            {'role': 'user', 'text': userPrompt},
+          ],
+        }),
+      );
 
       if (response.statusCode != 200) {
         if (response.statusCode == 403) {
@@ -235,29 +206,27 @@ class YandexGptService {
           );
         }
         throw YandexGptException(
-          'Ошибка генерации YandexGPT (${response.statusCode}): $responseBody',
+          'Ошибка генерации YandexGPT (${response.statusCode}): ${response.body}',
           response.statusCode,
         );
       }
 
-      final data = jsonDecode(responseBody) as Map<String, dynamic>;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
       final result = data['result'] as Map<String, dynamic>?;
       final alternatives = result?['alternatives'] as List<dynamic>?;
-
       if (alternatives == null || alternatives.isEmpty) {
         throw YandexGptException('Модель YandexGPT вернула пустой ответ. Попробуйте снова.');
       }
 
       final message = alternatives.first['message'] as Map<String, dynamic>?;
       final text = message?['text'] as String?;
-
       if (text == null || text.trim().isEmpty) {
         throw YandexGptException('Ответ модели пуст. Попробуйте снова.');
       }
-
       return text.trim();
-    } on SocketException {
-      throw YandexGptException('Ошибка соединения с сетью. Проверьте интернет.');
+    } catch (e) {
+      if (e is YandexGptException) rethrow;
+      throw YandexGptException('Сетевая ошибка: $e');
     } finally {
       client.close();
     }
