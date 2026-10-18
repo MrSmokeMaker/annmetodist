@@ -1,21 +1,18 @@
 name: metodist
-description: "Мобильное приложение для генерации конспектов занятий с помощью YandexGPT API"
-publish_to: "none"
+description: A Flutter app for generating conspect using YandexGPT API.
+publish_to: 'none' # Prevent accidental publishing
 version: 1.0.0+1
-
 environment:
   sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # State Management
-  provider: ^6.1.2
-
-  # Local Database & Secure Storage
+  provider: ^6.0.5
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+<<<<<<< HEAD
   flutter_secure_storage: ^9.2.2
 
   # Document Generation & Sharing
@@ -33,16 +30,20 @@ dependencies:
   intl: ^0.19.0
   archive: ^4.5.2
   file_picker: ^11.0.3
+=======
+  flutter_secure_storage: ^9.0.0
+  http: ^1.1.0
+>>>>>>> gh-pages
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  hive_generator: ^2.0.1
-  build_runner: ^2.4.9
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
-
   assets:
-    - assets/data/
+    - assets/assets/data/activities.json
+    - assets/assets/data/methods.json
+    - assets/assets/data/situations.json
+    - assets/assets/data/topics.json
