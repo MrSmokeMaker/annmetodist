@@ -16,98 +16,295 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <!-- Theme color matching dark theme -->
-  <meta name="theme-color" content="#0D0F14">
+  <!-- Theme & Viewport -->
+  <meta name="theme-color" content="#0B0D12">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <title>Методист — Генератор конспектов</title>
   <link rel="manifest" href="manifest.json">
 
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0D0F14;
-      color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
-    }
-    .loading-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
-                  radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.2) 0%, transparent 60%),
-                  #0D0F14;
-      z-index: 9999;
-      transition: opacity 0.4s ease;
-    }
-    .orb {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
-      box-shadow: 0 0 32px rgba(99, 102, 241, 0.6);
-      animation: pulse 1.6s infinite ease-in-out;
-      margin-bottom: 24px;
-    }
-    .title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      font-size: 14px;
-      color: #94A3B8;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(0.92); opacity: 0.8; }
-      50% { transform: scale(1.08); opacity: 1; }
-    }
-  </style>
+  <!-- Premium UI Design System -->
+  <link rel="stylesheet" href="custom.css">
 </head>
-<body>
+<body class="page-enter">
+
+  <!-- ── Загрузочный экран ─────────────────────────────── -->
   <div id="loading" class="loading-container">
     <div class="orb"></div>
     <div class="title">Методист</div>
-    <div class="subtitle">Загрузка приложения...</div>
+    <div class="subtitle">Загрузка приложения…</div>
   </div>
 
+  <!-- ── Логика загрузочного экрана ───────────────────── -->
   <script>
-    function removeLoader() {
-      const loader = document.getElementById('loading');
-      if (loader && loader.style.opacity !== '0') {
+    (function () {
+      function removeLoader() {
+        var loader = document.getElementById('loading');
+        if (!loader || loader.dataset.removed) return;
+        loader.dataset.removed = '1';
         loader.style.opacity = '0';
-        setTimeout(function() {
-          if (loader && loader.parentNode) {
-            loader.parentNode.removeChild(loader);
-          }
-        }, 400);
+        setTimeout(function () {
+          if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+        }, 450);
       }
-    }
 
-    // Modern Flutter first-frame event
-    window.addEventListener('flutter-first-frame', removeLoader);
+      // Современный Flutter-событие первого кадра
+      window.addEventListener('flutter-first-frame', removeLoader);
 
-    // Mutation observer fallback
-    var observer = new MutationObserver(function() {
-      if (document.querySelector('flutter-view') || document.querySelector('flt-glass-pane')) {
-        setTimeout(removeLoader, 300);
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+      // MutationObserver — fallback для старых сборок
+      var obs = new MutationObserver(function () {
+        if (
+          document.querySelector('flutter-view') ||
+          document.querySelector('flt-glass-pane')
+        ) {
+          setTimeout(removeLoader, 300);
+          obs.disconnect();
+        }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
 
-    // Safety timeout
-    setTimeout(removeLoader, 6000);
+      // Аварийный таймаут 6 с
+      setTimeout(removeLoader, 6000);
+    })();
   </script>
+
+  <!-- Flutter bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- ── Премиальный UI — вся JS-логика ───────────────── -->
+  <script>
+    (function () {
+
+      /* ─ Каскадный вход (page-enter → loaded) ─ */
+      function triggerPageEnter() {
+        document.body.classList.add('loaded');
+      }
+      window.addEventListener('flutter-first-frame', triggerPageEnter);
+      document.addEventListener('DOMContentLoaded', function () {
+        // Fallback: если Flutter-событие уже случилось раньше
+        if (!document.body.classList.contains('loaded')) {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(triggerPageEnter);
+          });
+        }
+      });
+
+
+      /* ─ Чипы: переключение data-active ─ */
+      document.addEventListener('click', function (e) {
+        var chip = e.target.closest('.chip');
+        if (!chip) return;
+        // Если чипы — radio-группа (один активный)
+        var group = chip.closest('[data-chip-group]');
+        if (group) {
+          group.querySelectorAll('.chip').forEach(function (c) {
+            c.dataset.active = 'false';
+          });
+        }
+        chip.dataset.active = chip.dataset.active === 'true' ? 'false' : 'true';
+      });
+
+
+      /* ─ Toggle-group: скользящий thumb ─ */
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.toggle-group').forEach(initToggle);
+      });
+      function initToggle(group) {
+        var thumb = group.querySelector('.toggle-thumb');
+        var options = group.querySelectorAll('.toggle-option');
+        if (!thumb || !options.length) return;
+
+        function updateThumb(selected) {
+          var rect = selected.getBoundingClientRect();
+          var gRect = group.getBoundingClientRect();
+          thumb.style.left  = (rect.left  - gRect.left)  + 'px';
+          thumb.style.width = rect.width  + 'px';
+          thumb.style.top   = (rect.top   - gRect.top)   + 'px';
+          thumb.style.height= rect.height + 'px';
+        }
+
+        options.forEach(function (opt) {
+          if (opt.dataset.selected === 'true') updateThumb(opt);
+          opt.addEventListener('click', function () {
+            options.forEach(function (o) { o.dataset.selected = 'false'; });
+            opt.dataset.selected = 'true';
+            updateThumb(opt);
+          });
+        });
+      }
+
+
+      /* ─ Dropdown: data-open ─ */
+      document.addEventListener('click', function (e) {
+        // Открыть/закрыть по триггеру
+        var trigger = e.target.closest('[data-dropdown-trigger]');
+        if (trigger) {
+          var dd = trigger.closest('.dropdown');
+          if (dd) dd.dataset.open = dd.dataset.open === 'true' ? 'false' : 'true';
+          e.stopPropagation();
+          return;
+        }
+        // Закрыть при клике вне
+        document.querySelectorAll('.dropdown[data-open="true"]').forEach(function (dd) {
+          dd.dataset.open = 'false';
+        });
+      });
+
+
+      /* ─ Sticky-кнопка генерации ─ */
+      document.addEventListener('DOMContentLoaded', function () {
+        var sticky = document.querySelector('.generate-sticky');
+        if (sticky) {
+          setTimeout(function () { sticky.classList.add('visible'); }, 400);
+        }
+      });
+
+
+      /* ─ Count-up анимация статистики ─ */
+      function animateCount(el) {
+        var target   = parseFloat(el.dataset.target) || 0;
+        var suffix   = el.dataset.suffix || '';
+        var duration = 900;
+        var start    = performance.now();
+
+        function step(now) {
+          var p = Math.min((now - start) / duration, 1);
+          // Easing: ease-out cubic
+          p = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(p * target) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      // Запускаем, как только элементы попадают во вьюпорт
+      function observeStats() {
+        var stats = document.querySelectorAll('.stat-number[data-target]');
+        if (!stats.length) return;
+
+        if ('IntersectionObserver' in window) {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                animateCount(entry.target);
+                io.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.5 });
+          stats.forEach(function (el) { io.observe(el); });
+        } else {
+          stats.forEach(animateCount); // fallback
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', observeStats);
+      // Также запускаем после Flutter-рендера (карточки могут появиться позже)
+      window.addEventListener('flutter-first-frame', function () {
+        setTimeout(observeStats, 500);
+      });
+
+
+      /* ─ Появление карточки результата ─ */
+      // Чтобы вызвать из Flutter: window.metodist.showResult()
+      window.metodist = window.metodist || {};
+      window.metodist.showResult = function (selector) {
+        selector = selector || '.result-card';
+        var card = document.querySelector(selector);
+        if (!card) return;
+        // Сначала убираем skeleton, затем показываем карточку
+        card.classList.remove('skeleton');
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            card.classList.add('visible');
+          });
+        });
+      };
+
+      /* Скелетон для генерации — вызвать перед запросом к API */
+      window.metodist.startLoading = function (selector) {
+        selector = selector || '.result-card';
+        var card = document.querySelector(selector);
+        if (!card) return;
+        card.classList.remove('visible');
+        card.classList.add('skeleton');
+      };
+
+      /* Кнопка «Сгенерировать» — управление состоянием loading */
+      window.metodist.setButtonLoading = function (loading) {
+          document.querySelectorAll('.btn-primary[data-generate]').forEach(function (btn) {
+            if (loading) {
+              btn.classList.add('loading');
+              btn.disabled = true;
+              // сохраняем оригинальное содержимое
+              btn.dataset.originalHTML = btn.dataset.originalHTML || btn.innerHTML.trim();
+              btn.innerHTML = '<svg class="icon icon-spinner" aria-hidden="true"></svg> Генерирую…';
+            } else {
+              btn.classList.remove('loading');
+              btn.disabled = false;
+              if (btn.dataset.originalHTML) btn.innerHTML = btn.dataset.originalHTML;
+            }
+          });
+        };
+        document.querySelectorAll('.btn-primary[data-generate]').forEach(function (btn) {
+          if (loading) {
+            btn.classList.add('loading');
+            btn.disabled = true;
+            btn.dataset.originalText = btn.dataset.originalText || btn.textContent.trim();
+            btn.textContent = 'Генерирую…';
+          } else {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+            if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+          }
+        });
+      };
+
+    })();
+  </script>
+
+<!-- SVG Sprite -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="icon-plus" viewBox="0 0 24 24">
+    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+<!-- Main UI -->
+<div class="app-content">
+  <div class="card new-note">
+    <svg class="icon icon-plus"><use xlink:href="#icon-plus"/></svg>
+    <span class="title">Новый конспект</span>
+  </div>
+
+  <div class="chip-group" data-chip-group>
+    <div class="chip" data-active="false">Класс 1</div>
+    <div class="chip" data-active="false">Класс 2</div>
+    <div class="chip" data-active="false">Класс 3</div>
+  </div>
+
+  <div class="toggle-group">
+    <div class="toggle-option" data-selected="true">1 вариант</div>
+    <div class="toggle-option" data-selected="false">3 варианта</div>
+    <div class="toggle-thumb"></div>
+  </div>
+
+  <div class="dropdown">
+    <button data-dropdown-trigger>Выбрать тему</button>
+    <div class="dropdown__menu">
+      <div class="dropdown__item">Тема 1</div>
+      <div class="dropdown__item">Тема 2</div>
+      <div class="dropdown__item">Тема 3</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" data-generate>Сгенерировать конспект</button>
+
+  <div class="card result-card skeleton"></div>
+
+  <div class="stats">
+    <div class="stat-number" data-target="0">0</div>
+    <div class="stat-label">минут</div>
+  </div>
+</div>
+<div class="generate-sticky"><button class="btn-primary" data-generate>Сгенерировать</button></div>
 </body>
 </html>

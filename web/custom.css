@@ -1,0 +1,572 @@
+/* ============================================================
+   МЕТОДИСТ — Premium UI Design System
+   Единая точка истины для всех токенов и компонентов
+   ============================================================ */
+
+/* ── 1. Переменные (токены) ─────────────────────────────── */
+:root {
+  /* Палитра */
+  --c-accent:            #7C5CFF;
+  --c-accent-hover:      #9B7BFF;
+  --c-accent-grad-start: #8B5CF6;
+  --c-accent-grad-end:   #6366F1;
+  --c-neutral-gray:      #6B7280;
+  --c-text-primary:      #F8FAFC;
+  --c-text-muted:        #94A3B8;
+  --c-bg-base:           #0B0D12;
+  --c-card-bg:           rgba(255,255,255,0.04);
+  --c-card-bg-hover:     rgba(255,255,255,0.07);
+  --c-card-border:       rgba(255,255,255,0.06);
+  --c-grad-spot-1:       rgba(124,92,255,0.09);
+  --c-grad-spot-2:       rgba(92,124,255,0.07);
+
+  /* Тени */
+  --shadow-button:      0 0 24px rgba(124,92,255,0.28), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-button-hover:0 0 36px rgba(124,92,255,0.42), 0 6px 20px rgba(0,0,0,0.5);
+  --shadow-card-inner:  inset 0 1px 0 var(--c-card-border);
+  --shadow-focus:       0 0 0 3px rgba(124,92,255,0.25);
+  --shadow-orb:         0 0 36px rgba(124,92,255,0.65);
+
+  /* Радиусы */
+  --radius-card: 18px;
+  --radius-btn:  13px;
+  --radius-pill: 9999px;
+
+  /* Тайминги и кривые */
+  --dur-enter:   380ms;
+  --dur-leave:   200ms;
+  --dur-stagger:  55ms;
+  --ease-overshoot: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Отступы (шкала 4/8/12/16/20/24) */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+}
+
+/* Уважаем настройку «без анимаций» */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-enter:   0ms;
+    --dur-leave:   0ms;
+    --dur-stagger: 0ms;
+    --ease-overshoot: linear;
+    --ease-spring:    linear;
+    --ease-standard:  linear;
+  }
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+
+/* ── 2. Глобальные основы ───────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--c-bg-base);
+  color: var(--c-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Зафиксированные градиентные пятна — не скроллятся, не кликаются */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(110px);
+  z-index: -1;
+}
+body::before {
+  background: var(--c-grad-spot-1);
+  top: -120px;
+  left: -100px;
+}
+body::after {
+  background: var(--c-grad-spot-2);
+  bottom: -140px;
+  right: -100px;
+}
+
+
+/* ── 3. Стеклянные карточки ─────────────────────────────── */
+.card {
+  background: var(--c-card-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--c-card-border);
+  box-shadow: var(--shadow-card-inner);
+  padding: var(--sp-4);
+  transition: background var(--dur-leave) var(--ease-standard),
+              box-shadow  var(--dur-leave) var(--ease-standard);
+}
+.card:hover {
+  background: var(--c-card-bg-hover);
+  box-shadow: var(--shadow-card-inner), 0 4px 24px rgba(0,0,0,0.25);
+}
+
+/* Карточка «Новый конспект» — флагман */
+.card.new-note {
+  background: linear-gradient(
+    135deg,
+    rgba(124,92,255,0.08) 0%,
+    rgba(99,102,241,0.05) 50%,
+    rgba(255,255,255,0.03) 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+/* Тонкий акцентный ореол вокруг иконки «+» */
+.card.new-note .icon-plus {
+  color: var(--c-accent);
+  filter: drop-shadow(0 0 8px rgba(124,92,255,0.7));
+  transition: filter var(--dur-leave) var(--ease-standard),
+              transform var(--dur-leave) var(--ease-spring);
+}
+.card.new-note:hover .icon-plus {
+  filter: drop-shadow(0 0 14px rgba(124,92,255,0.9));
+  transform: scale(1.12);
+}
+
+
+/* ── 4. Кнопка «Сгенерировать конспект» ────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 14px var(--sp-5);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  outline: none;
+  cursor: pointer;
+
+  background: linear-gradient(
+    to right,
+    var(--c-accent-grad-start),
+    var(--c-accent-grad-end)
+  );
+  /* Тонкая верхняя грань-блик */
+  box-shadow: var(--shadow-button), inset 0 1px 0 rgba(255,255,255,0.18);
+  border-radius: var(--radius-btn);
+
+  /* iOS-нативность */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+
+  will-change: transform, box-shadow;
+  transition:
+    transform   var(--dur-leave) var(--ease-standard),
+    box-shadow  var(--dur-leave) var(--ease-standard),
+    opacity     var(--dur-leave) var(--ease-standard);
+}
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.btn-primary:active {
+  transform: scale(0.97) translateY(0);
+  opacity: 0.9;
+}
+.btn-primary:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 3px;
+}
+/* Состояние загрузки */
+.btn-primary.loading {
+  cursor: wait;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.btn-primary.loading .btn-icon { display: none; }
+.btn-primary.loading::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: var(--sp-2);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ── 5. Чипы (класс, длительность) ─────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+
+  /* Плавная пружинная кривая для ощущения «физики» */
+  transition:
+    background-color var(--dur-leave) var(--ease-standard),
+    color            var(--dur-leave) var(--ease-standard),
+    border-color     var(--dur-leave) var(--ease-standard),
+    transform        var(--dur-leave) var(--ease-spring);
+}
+.chip[data-active="true"] {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: rgba(124,92,255,0.4);
+  transform: scale(1.04);
+}
+.chip[data-active="false"],
+.chip:not([data-active]) {
+  background: rgba(255,255,255,0.06);
+  color: var(--c-text-muted);
+  border-color: var(--c-card-border);
+}
+.chip:hover:not([data-active="true"]) {
+  background: rgba(255,255,255,0.1);
+  color: var(--c-text-primary);
+}
+.chip:active { transform: scale(0.97); }
+
+
+/* ── 6. Переключатель «1 вариант / 3 варианта» ──────────── */
+.toggle-group {
+  display: inline-flex;
+  position: relative;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--c-card-border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+/* Скользящий фон активного сегмента */
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--c-accent);
+  box-shadow: 0 0 12px rgba(124,92,255,0.4);
+  transition: left 250ms var(--ease-standard), width 250ms var(--ease-standard);
+  pointer-events: none;
+  z-index: 0;
+}
+.toggle-option {
+  position: relative;
+  z-index: 1;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  color: var(--c-text-muted);
+  transition: color 200ms var(--ease-standard);
+}
+.toggle-option[data-selected="true"] { color: #fff; }
+
+
+/* ── 7. Выпадающий список ───────────────────────────────── */
+.dropdown {
+  position: relative;
+}
+.dropdown__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: rgba(18,20,30,0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--c-card-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  z-index: 100;
+
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  pointer-events: none;
+  transform-origin: top center;
+  transition:
+    opacity   var(--dur-leave) var(--ease-standard),
+    transform var(--dur-leave) var(--ease-standard);
+}
+.dropdown[data-open="true"] .dropdown__menu {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.dropdown__item {
+  padding: 10px var(--sp-4);
+  cursor: pointer;
+  color: var(--c-text-muted);
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity    var(--dur-leave) var(--ease-standard),
+    transform  var(--dur-leave) var(--ease-standard),
+    color      var(--dur-leave) var(--ease-standard),
+    background var(--dur-leave) var(--ease-standard);
+}
+.dropdown[data-open="true"] .dropdown__item { opacity: 1; transform: none; }
+.dropdown[data-open="true"] .dropdown__item:nth-child(1) { transition-delay: 0ms; }
+.dropdown[data-open="true"] .dropdown__item:nth-child(2) { transition-delay: calc(1 * var(--dur-stagger)); }
+.dropdown[data-open="true"] .dropdown__item:nth-child(3) { transition-delay: calc(2 * var(--dur-stagger)); }
+.dropdown[data-open="true"] .dropdown__item:nth-child(4) { transition-delay: calc(3 * var(--dur-stagger)); }
+.dropdown[data-open="true"] .dropdown__item:nth-child(5) { transition-delay: calc(4 * var(--dur-stagger)); }
+.dropdown__item:hover {
+  background: rgba(124,92,255,0.1);
+  color: var(--c-text-primary);
+}
+
+
+/* ── 8. Каскадное появление экрана (page-enter) ─────────── */
+.page-enter > * {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity   var(--dur-enter) var(--ease-overshoot),
+    transform var(--dur-enter) var(--ease-overshoot);
+}
+/* Стаггер для первых 8 прямых потомков */
+.page-enter > *:nth-child(1) { transition-delay: calc(0  * var(--dur-stagger)); }
+.page-enter > *:nth-child(2) { transition-delay: calc(1  * var(--dur-stagger)); }
+.page-enter > *:nth-child(3) { transition-delay: calc(2  * var(--dur-stagger)); }
+.page-enter > *:nth-child(4) { transition-delay: calc(3  * var(--dur-stagger)); }
+.page-enter > *:nth-child(5) { transition-delay: calc(4  * var(--dur-stagger)); }
+.page-enter > *:nth-child(6) { transition-delay: calc(5  * var(--dur-stagger)); }
+.page-enter > *:nth-child(7) { transition-delay: calc(6  * var(--dur-stagger)); }
+.page-enter > *:nth-child(8) { transition-delay: calc(7  * var(--dur-stagger)); }
+.page-enter.loaded > * { opacity: 1; transform: none; }
+
+
+/* ── 9. Скелетон-загрузка (shimmer) ─────────────────────── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--c-card-bg);
+  border-radius: var(--radius-card);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.08) 40%,
+    rgba(255,255,255,0.14) 50%,
+    rgba(255,255,255,0.08) 60%,
+    transparent 100%
+  );
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+/* Строки-заполнители внутри скелетона */
+.skeleton-line {
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.07);
+  margin-bottom: var(--sp-3);
+}
+.skeleton-line--short { width: 55%; }
+.skeleton-line--medium { width: 80%; }
+.skeleton-line--full   { width: 100%; }
+
+
+/* ── 10. Загрузочный экран ──────────────────────────────── */
+.loading-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 25% 25%, rgba(124,92,255,0.2) 0%, transparent 55%),
+    radial-gradient(circle at 75% 80%, rgba(99,102,241,0.15) 0%, transparent 55%),
+    var(--c-bg-base);
+  z-index: 9999;
+  transition: opacity 0.45s var(--ease-standard);
+}
+.orb {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--c-accent-grad-start), var(--c-accent-grad-end));
+  box-shadow: var(--shadow-orb);
+  animation: pulse-orb 1.8s ease-in-out infinite;
+  margin-bottom: var(--sp-6);
+}
+@keyframes pulse-orb {
+  0%, 100% { transform: scale(0.9);  opacity: 0.75; }
+  50%       { transform: scale(1.08); opacity: 1;    }
+}
+.loading-container .title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: var(--sp-1);
+  /* перекрыть clamp ниже, он нужен только для карточек */
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.loading-container .subtitle {
+  font-size: 0.875rem;
+  color: var(--c-text-muted);
+  animation: pulse-text 2s ease-in-out infinite;
+}
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1;   }
+}
+
+
+/* ── 11. Типографика и micro-детали ─────────────────────── */
+/* Заголовки карточек — до 2 строк */
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* Крупные цифры статистики */
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+  margin-top: var(--sp-1);
+}
+/* Иконки — единый стиль */
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  flex-shrink: 0;
+  color: var(--c-text-muted);
+  transition: color var(--dur-leave) var(--ease-standard);
+}
+.icon--accent { color: var(--c-accent); }
+
+
+/* ── 12. «Липкая» кнопка генерации ─────────────────────── */
+.generate-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--sp-3));
+  padding-top: var(--sp-5);
+  padding-left: var(--sp-4);
+  padding-right: var(--sp-4);
+  /* Плавный «занавес» — контент не обрезается резкой границей */
+  background: linear-gradient(
+    to top,
+    var(--c-bg-base) 0%,
+    var(--c-bg-base) 40%,
+    rgba(11,13,18,0.7) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  z-index: 50;
+
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity   var(--dur-enter) var(--ease-overshoot),
+    transform var(--dur-enter) var(--ease-overshoot);
+}
+.generate-sticky.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.generate-sticky .btn-primary {
+  width: 100%;
+  max-width: 420px;
+}
+
+
+/* ── 13. Карточка результата (появление) ───────────────── */
+.result-card {
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+  transition:
+    opacity   var(--dur-enter) var(--ease-overshoot),
+    transform var(--dur-enter) var(--ease-overshoot);
+}
+.result-card.visible {
+  opacity: 1;
+  transform: none;
+}
+.result-card .result-block {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity   var(--dur-enter) var(--ease-overshoot),
+    transform var(--dur-enter) var(--ease-overshoot);
+}
+.result-card.visible .result-block:nth-child(1) { opacity:1; transform:none; transition-delay: calc(1 * var(--dur-stagger)); }
+.result-card.visible .result-block:nth-child(2) { opacity:1; transform:none; transition-delay: calc(2 * var(--dur-stagger)); }
+.result-card.visible .result-block:nth-child(3) { opacity:1; transform:none; transition-delay: calc(3 * var(--dur-stagger)); }
+.result-card.visible .result-block:nth-child(4) { opacity:1; transform:none; transition-delay: calc(4 * var(--dur-stagger)); }
+.result-card.visible .result-block:nth-child(5) { opacity:1; transform:none; transition-delay: calc(5 * var(--dur-stagger)); }
+
+
+/* ── 14. Глобальная iOS-нативность ─────────────────────── */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+input, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+/* Тема scrollbar (Webkit) */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(124,92,255,0.3);
+  border-radius: 4px;
+}
