@@ -248,6 +248,9 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
     final provider = context.watch<AppProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final bool isDesktop = MediaQuery.of(context).size.width >= 800;
+    final double cardPadding = isDesktop ? 4.0 : 6.0;
+
     final availableTopics = _selectedMethod != null
         ? provider.getTopicsFor(_selectedMethod!.id, _selectedAgeGroup)
         : <Topic>[];
@@ -859,9 +862,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                       const SizedBox(height: AppSpacing.md),
 
                       // Сетка карточек приёмов (GridView 2 столбца)
-                      final bool isDesktop = MediaQuery.of(context).size.width >= 800;
-                       final double cardPadding = isDesktop ? 4.0 : 6.0;
-                       GridView.builder(
+                      GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: provider.activityLibrary.length,

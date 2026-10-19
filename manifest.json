@@ -3,7 +3,7 @@
   "short_name": "Методист",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0F1117",
+  "background_color": "#0D0F14",
   "theme_color": "#6366F1",
   "description": "Персональный ассистент для генерации поурочных конспектов по классическим отечественным методикам на базе YandexGPT",
   "orientation": "portrait-primary",

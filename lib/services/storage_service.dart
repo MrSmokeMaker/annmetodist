@@ -18,6 +18,7 @@ class StorageService {
   // Defaults provided by user
   static const String defaultApiKey = 'REMOVED_API_KEY';
   static const String defaultFolderId = 'REMOVED_FOLDER_ID';
+  static const String defaultProxyUrl = 'https://functions.yandexcloud.net/d4eq8r2ueghpmbl5oj3c';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   late Box _conspectsBox;
@@ -47,6 +48,10 @@ class StorageService {
         if (existingFolder == null || existingFolder.isEmpty) {
           await _secureStorage.write(key: _folderIdStorageKey, value: defaultFolderId);
         }
+        final existingProxy = await _secureStorage.read(key: _proxyUrlStorageKey);
+        if (existingProxy == null || existingProxy.isEmpty) {
+          await _secureStorage.write(key: _proxyUrlStorageKey, value: defaultProxyUrl);
+        }
       } catch (_) {
         // Fallback to Hive _settingsBox on web when secureStorage is restricted
         if (_settingsBox.get(_apiKeyStorageKey) == null) {
@@ -54,6 +59,9 @@ class StorageService {
         }
         if (_settingsBox.get(_folderIdStorageKey) == null) {
           await _settingsBox.put(_folderIdStorageKey, defaultFolderId);
+        }
+        if (_settingsBox.get(_proxyUrlStorageKey) == null) {
+          await _settingsBox.put(_proxyUrlStorageKey, defaultProxyUrl);
         }
       }
     } catch (e) {
@@ -158,6 +166,11 @@ class StorageService {
     return _settingsBox.get(_themeModeKey, defaultValue: true) as bool;
   }
 
+  Future<void> setDarkMode(bool isDark) async {
+    if (!_isInitialized) return;
+    await _settingsBox.put(_themeModeKey, isDark);
+  }
+
   Future<String?> getProxyUrl() async {
     try {
       final url = await _secureStorage.read(key: _proxyUrlStorageKey);
@@ -167,7 +180,7 @@ class StorageService {
       final hiveUrl = _settingsBox.get(_proxyUrlStorageKey) as String?;
       if (hiveUrl != null && hiveUrl.isNotEmpty) return hiveUrl;
     }
-    return null;
+    return defaultProxyUrl;
   }
 
   Future<void> saveProxyUrl(String url) async {
