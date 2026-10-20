@@ -64,6 +64,12 @@ window.createWorksheetPdf = function(jsonStr) {
       'icon-find-pair': '\u003csvg width="20" height="20" viewBox="0 0 24 24"\u003e\u003crect x="6" y="6" width="12" height="12" fill="#E5E7EB"/\u003e\u003c/svg\u003e',
     };
 
+    // Simple renderers for task payloads
+    const renderers = {
+      placeholder: (task) => [{ text: task.template || 'Задание не предусмотрено', style: 'taskBody' }],
+      // Add more task-specific renderers here if needed
+    };
+
     const count = parseInt(data.tasksCount, 10) || 5;
     const withAnswers = data.withAnswers === true;
     const ageGroupLabel = data.ageGroup === 'preschool' ? 'Дошкольники' : (data.ageGroup === 'grade_2' ? '2 класс' : '1 класс');
@@ -155,6 +161,12 @@ window.createWorksheetPdf = function(jsonStr) {
           margin: [0, 0, 0, 14]
         }
       ]
+    };
+
+    // Simple renderers for task payloads
+    const renderers = {
+      placeholder: (task) => [{ text: task.template || 'Задание не предусмотрено', style: 'taskBody' }],
+      // Add more task-specific renderers here if needed
     };
 
     // Optional teacher notes in header
