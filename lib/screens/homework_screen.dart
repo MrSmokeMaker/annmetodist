@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 
 import '../models/method_prompt.dart';
 import '../models/topic.dart';
@@ -117,7 +117,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
 
     try {
       final jsonStr = jsonEncode(payload);
-      js.context.callMethod('createWorksheetPdf', [jsonStr]);
+      js_util.callMethod(html.window, 'createWorksheetPdf', [jsonStr]);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Домашнее задание формируется и скачивается в PDF...'),

@@ -1,5 +1,6 @@
-import 'dart:js' as js;
-import 'package:flutter/material.dart';
+
+
+import 'dart:html' as html;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'data/method_repository.dart';
@@ -11,6 +12,8 @@ import 'widgets/ambient_background.dart';
 import 'widgets/glass_card.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,15 +42,16 @@ void main() async {
 
   // JS Bridge for PDF generation callback (window.onPdfGenerated)
   try {
-    js.context['onPdfGenerated'] = (dynamic fileName) {
+    // Use js_util to set a global property on the window object.
+    // ignore: avoid_dynamic_calls
+    js_util.setProperty(html.window, 'onPdfGenerated', (dynamic fileName) {
       if (fileName != null) {
         final ctx = navigatorKey.currentContext;
         if (ctx != null) {
-          Provider.of<AppProvider>(ctx, listen: false)
-              .addRecentPdf(fileName.toString());
+          Provider.of<AppProvider>(ctx, listen: false).addRecentPdf(fileName.toString());
         }
       }
-    };
+    });
   } catch (e) {
     debugPrint('JS bridge onPdfGenerated setup error: $e');
   }

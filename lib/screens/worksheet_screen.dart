@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'dart:js' as js;
+import 'dart:js_util' as js_util;
+import 'dart:html' as html;
 
 import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
