@@ -11,6 +11,69 @@ window.createWorksheetPdf = function(jsonStr) {
 
     // Vector icons (SVG)
     const iconMap = {
+  star: '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,2 15,11 24,11 17,17 19,26 12,21 5,26 7,17 0,11 9,11" fill="#6366F1"/></svg>',
+  pencil: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#8B5CF6"/></svg>',
+  check: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#10B981"/></svg>',
+  bookmark: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" fill="#EC4899"/></svg>',
+  // custom icons for basic tasks
+  'icon-dictation': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v2H4zM4 10h16v2H4zM4 16h16v2H4z" fill="currentColor"/></svg>',
+  'icon-copy': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 4h12v12H8zM6 6v12H4V6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  'icon-missing-letter': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  'icon-capital': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="16" fill="currentColor">A</text></svg>',
+  'icon-transfer': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 12h12M12 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+  // placeholders for remaining task icons
+  'icon-underline': '<svg width="20" height="20" viewBox="0 0 24 24"><rect width="24" height="24" fill="#E5E7EB"/></svg>',
+  'icon-soft-sign': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#E5E7EB"/></svg>',
+  'icon-letter-y': '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,2 22,22 2,22" fill="#E5E7EB"/></svg>',
+  'icon-unscramble': '<svg width="20" height="20" viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-make-word-from-syllables': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" fill="#E5E7EB"/></svg>',
+  'icon-missing-syllable': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="#E5E7EB"/></svg>',
+  'icon-make-sentence': '<svg width="20" height="20" viewBox="0 0 24 24"><polyline points="4,12 12,4 20,12" fill="none" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-count-sounds-letters': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="12" fill="#E5E7EB">1</text></svg>',
+  'icon-find-mistake': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M2 12h20" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-one-many': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="#E5E7EB"/><circle cx="16" cy="12" r="4" fill="#E5E7EB"/></svg>',
+  'icon-finish-sentence': '<svg width="20" height="20" viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-vocabulary-word': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="#E5E7EB"/></svg>',
+  // math icons placeholders
+  'icon-math-examples': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="12" fill="#E5E7EB">+</text></svg>',
+  'icon-missing-number': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="8" y="8" width="8" height="8" fill="#E5E7EB"/></svg>',
+  'icon-compare-numbers': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="12" text-anchor="middle" font-size="12" fill="#E5E7EB"><></text></svg>',
+  'icon-number-composition': '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="4,20 20,20 12,4" fill="#E5E7EB"/></svg>',
+  'icon-word-problem': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" fill="#E5E7EB"/></svg>',
+  'icon-count-objects': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#E5E7EB"/></svg>',
+  'icon-continue-sequence': '<svg width="20" height="20" viewBox="0 0 24 24"><polyline points="4,12 12,4 20,12" fill="none" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-chain-examples': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 12h16" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-math-dictation': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="12" fill="#E5E7EB">✍</text></svg>',
+  'icon-odd-one-out': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#E5E7EB"/></svg>',
+  'icon-color-by-number': '<svg width="20" height="20" viewBox="0 0 24 24"><rect width="24" height="24" fill="#E5E7EB"/></svg>',
+  // reading icons placeholders
+  'icon-read-syllables': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="12" fill="#E5E7EB">§</text></svg>',
+  'icon-match-word-picture': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="#E5E7EB"/></svg>',
+  'icon-first-last-sound': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="12" text-anchor="middle" font-size="12" fill="#E5E7EB">🔊</text></svg>',
+  'icon-find-sound-word': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#E5E7EB"/></svg>',
+  'icon-repeat-tongue-twister': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 12h16" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-finish-rhyme': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 12h16" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-describe-picture': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" fill="#E5E7EB"/></svg>',
+  // handwriting icons placeholders
+  'icon-trace-elements': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" fill="#E5E7EB"/></svg>',
+  'icon-complete-element': '<svg width="20" height="20" viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="#E5E7EB" stroke-width="2"/></svg>',
+  'icon-cell-pattern': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="#E5E7EB"/></svg>',
+  'icon-graphic-dictation': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" fill="#E5E7EB"/></svg>',
+  // preschool icons placeholders
+  'icon-shadow-match': '<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#E5E7EB"/></svg>',
+  'icon-find-pair': '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="#E5E7EB"/></svg>',
+};
+  star: '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,2 15,11 24,11 17,17 19,26 12,21 5,26 7,17 0,11 9,11" fill="#6366F1"/></svg>',
+  pencil: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#8B5CF6"/></svg>',
+  check: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#10B981"/></svg>',
+  bookmark: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" fill="#EC4899"/></svg>',
+  // custom icons for basic tasks
+  'icon-dictation': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 4h16v2H4zM4 10h16v2H4zM4 16h16v2H4z" fill="currentColor"/></svg>',
+  'icon-copy': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 4h12v12H8zM6 6v12H4V6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  'icon-missing-letter': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  'icon-capital': '<svg width="20" height="20" viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="16" fill="currentColor">A</text></svg>',
+  'icon-transfer': '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 12h12M12 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+};
       star: '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,2 15,11 24,11 17,17 19,26 12,21 5,26 7,17 0,11 9,11" fill="#6366F1"/></svg>',
       pencil: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#8B5CF6"/></svg>',
       check: '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#10B981"/></svg>',
@@ -134,9 +197,12 @@ window.createWorksheetPdf = function(jsonStr) {
     // Tasks
     const icons = ['star', 'pencil', 'bookmark', 'check'];
     for (let i = 1; i <= count; i++) {
+      // Retrieve task payload from data.tasks or use placeholder
+      const taskPayload = (data.tasks && data.tasks[i - 1]) || { id: 'placeholder', params: {}, template: '' };
+      const renderer = renderers[taskPayload.id] || renderers['placeholder'];
+      const taskContent = renderer(taskPayload);
       const iconKey = icons[(i - 1) % icons.length];
       const taskSvg = iconMap[iconKey] || iconMap['star'];
-
       docDefinition.content.push({
         margin: [0, 6, 0, 8],
         table: {
@@ -152,39 +218,7 @@ window.createWorksheetPdf = function(jsonStr) {
                 border: [false, false, false, false]
               },
               {
-                stack: [
-                  { text: `Задание ${i}`, style: 'taskNumber' },
-                  {
-                    text: `Внимательно прочитайте условие и выполните упражнение по теме «${mainTitle}». Напишите ваш ответ в отведённом поле.`,
-                    style: 'taskBody',
-                    margin: [0, 2, 0, 8]
-                  },
-                  // Answer space placeholder
-                  {
-                    canvas: [
-                      {
-                        type: 'line',
-                        x1: 0,
-                        y1: 0,
-                        x2: 480,
-                        y2: 0,
-                        lineWidth: 0.5,
-                        dash: { length: 3, space: 3 },
-                        lineColor: '#CBD5E1'
-                      },
-                      {
-                        type: 'line',
-                        x1: 0,
-                        y1: 14,
-                        x2: 480,
-                        y2: 14,
-                        lineWidth: 0.5,
-                        dash: { length: 3, space: 3 },
-                        lineColor: '#CBD5E1'
-                      }
-                    ]
-                  }
-                ],
+                stack: taskContent,
                 border: [false, false, false, false]
               }
             ]
