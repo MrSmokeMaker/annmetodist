@@ -5,6 +5,7 @@ import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/printable_card.dart';
 import '../models/prompt_version.dart';
+import '../models/recent_pdf.dart';
 import '../models/method_prompt.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
@@ -21,6 +22,7 @@ class AppProvider with ChangeNotifier {
   bool _isGenerating = false;
   String? _errorMessage;
   List<Conspect> _conspects = [];
+  final List<RecentPdf> _recentPdfs = [];
   bool _isDarkMode = true;
 
   AppProvider({
@@ -36,6 +38,7 @@ class AppProvider with ChangeNotifier {
   bool get isGenerating => _isGenerating;
   String? get errorMessage => _errorMessage;
   List<Conspect> get conspects => _conspects;
+  List<RecentPdf> get recentPdfs => List.unmodifiable(_recentPdfs);
   bool get isDarkMode => _isDarkMode;
   List<MethodPrompt> get methods => _methodRepository.methods;
   List<Topic> get topics => _methodRepository.topics;
@@ -370,6 +373,17 @@ class AppProvider with ChangeNotifier {
       _isGenerating = false;
       notifyListeners();
     }
+  }
+
+  // Recent PDFs
+  void addRecentPdf(String name) {
+    if (name.trim().isEmpty) return;
+    _recentPdfs.removeWhere((item) => item.name == name);
+    _recentPdfs.insert(0, RecentPdf(name: name, createdAt: DateTime.now()));
+    if (_recentPdfs.length > 3) {
+      _recentPdfs.removeRange(3, _recentPdfs.length);
+    }
+    notifyListeners();
   }
 
   // Library / Conspects CRUD

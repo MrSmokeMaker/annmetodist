@@ -1,3 +1,4 @@
+import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,8 @@ import 'services/storage_service.dart';
 import 'theme.dart';
 import 'widgets/ambient_background.dart';
 import 'widgets/glass_card.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +36,21 @@ void main() async {
       child: const MetodistApp(),
     ),
   );
+
+  // JS Bridge for PDF generation callback (window.onPdfGenerated)
+  try {
+    js.context['onPdfGenerated'] = (dynamic fileName) {
+      if (fileName != null) {
+        final ctx = navigatorKey.currentContext;
+        if (ctx != null) {
+          Provider.of<AppProvider>(ctx, listen: false)
+              .addRecentPdf(fileName.toString());
+        }
+      }
+    };
+  } catch (e) {
+    debugPrint('JS bridge onPdfGenerated setup error: $e');
+  }
 }
 
 class MetodistApp extends StatelessWidget {
@@ -43,6 +61,7 @@ class MetodistApp extends StatelessWidget {
     final appProvider = context.watch<AppProvider>();
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Методист',
       debugShowCheckedModeBanner: false,
       themeMode: appProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

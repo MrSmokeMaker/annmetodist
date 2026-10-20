@@ -9,8 +9,14 @@ import '../theme.dart';
 import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
 import 'conspect_view_screen.dart';
-import 'new_conspect_screen.dart';
 import 'settings_screen.dart';
+import '../models/recent_pdf.dart';
+
+import 'new_conspect_screen.dart';
+import '../constants.dart';
+import '../screens/worksheet_screen.dart';
+import '../screens/homework_screen.dart';
+import '../widgets/generation_type_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +33,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showGenerationTypeSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const GenerationTypeSheet(),
+    );
   }
 
   List<Conspect> _filterConspects(List<Conspect> conspects) {
@@ -147,11 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: GlassCard(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   borderRadius: AppRadii.lg,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      FadeSlidePageRoute(page: const NewConspectScreen()),
-                    );
-                  },
+                    onTap: () => _showGenerationTypeSheet(context),
                   child: Row(
                     children: [
                       Container(
@@ -379,6 +390,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               const SizedBox(height: AppSpacing.sm),
+
+              // Недавние сгенерированные PDF (Лист заданий / Домашнее задание)
+              if (provider.recentPdfs.isNotEmpty)
+                _buildRecentPdfsSection(context, provider, isDark),
 
               // Унифицированный переключатель «Возрастная группа»
               Padding(
@@ -798,6 +813,125 @@ class _HomeScreenState extends State<HomeScreen> {
                 : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecentPdfsSection(BuildContext context, AppProvider provider, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 15,
+                    color: Color(0xFFE11D48),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Недавние PDF',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${provider.recentPdfs.length}/3',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryIndigo,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...provider.recentPdfs.map((pdf) {
+            final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(pdf.createdAt);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                borderRadius: AppRadii.md,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE11D48).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                      child: const Icon(
+                        Icons.picture_as_pdf_outlined,
+                        color: Color(0xFFE11D48),
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            pdf.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            formattedDate,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_rounded, size: 12, color: AppColors.success),
+                          SizedBox(width: 3),
+                          Text(
+                            'Скачан',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+          const SizedBox(height: AppSpacing.xs),
+        ],
       ),
     );
   }
