@@ -122,7 +122,7 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
     // Call JS to generate PDF (pdfmake helper expected on window)
     try {
       final jsonStr = jsonEncode(payload);
-      js.context.callMethod('createWorksheetPdf', [jsonStr]);
+      js_util.callMethod(html.window, 'createWorksheetPdf', [jsonStr]);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Лист заданий формируется и скачивается в PDF...'),
