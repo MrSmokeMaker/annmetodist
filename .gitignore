@@ -48,6 +48,10 @@ app.*.map.json
 .widget_preview/
 
 # Generated plugin registrants (Flutter) for desktop platforms
+
+# Private keys and sensitive files
+id_ed25519
+id_ed25519.pub
 linux/flutter/
 macos/Flutter/
 windows/flutter/
