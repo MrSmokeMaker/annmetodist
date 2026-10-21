@@ -69,10 +69,10 @@
   </script>
 
   <!-- Flutter bootstrap -->
+  <script src="pdfmake.min.js"></script>
+  <script src="custom_vfs_fonts.js"></script>
+  <script src="pdfmake_helper.js"></script>
   <script src="flutter_bootstrap.js" async></script>
-    <script src="pdfmake.min.js"></script>
-    <script src="custom_vfs_fonts.js"></script>
-    <script src="pdfmake_helper.js"></script>
 
   <!-- ── Премиальный UI — вся JS-логика ───────────────── -->
   <script>
@@ -248,19 +248,6 @@
             }
           });
         };
-        document.querySelectorAll('.btn-primary[data-generate]').forEach(function (btn) {
-          if (loading) {
-            btn.classList.add('loading');
-            btn.disabled = true;
-            btn.dataset.originalText = btn.dataset.originalText || btn.textContent.trim();
-            btn.textContent = 'Генерирую…';
-          } else {
-            btn.classList.remove('loading');
-            btn.disabled = false;
-            if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
-          }
-        });
-      };
 
     })();
   </script>

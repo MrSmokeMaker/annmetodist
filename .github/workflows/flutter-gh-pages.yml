@@ -33,6 +33,11 @@ jobs:
       - name: Build web release
         run: flutter build web --release --base-href / --no-tree-shake-icons
 
+      - name: Validate JavaScript bundles
+        run: |
+          node --check web/pdfmake_helper.js
+          node --check build/web/main.dart.js
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

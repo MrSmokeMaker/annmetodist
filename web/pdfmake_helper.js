@@ -181,11 +181,22 @@ window.createWorksheetPdf = function(jsonStr) {
     }
 
     // Tasks
+    const renderers = {
+      placeholder(taskPayload) {
+        const taskText = typeof taskPayload.template === 'string' && taskPayload.template.trim()
+          ? taskPayload.template.trim()
+          : 'Выполните задание по теме занятия.';
+        return [
+          { text: taskText, style: 'taskBody', margin: [0, 0, 0, 4] },
+          { text: 'Ответ: _______________________________________________', color: '#64748B', fontSize: 10 }
+        ];
+      }
+    };
     const icons = ['star', 'pencil', 'bookmark', 'check'];
     for (let i = 1; i <= count; i++) {
       // Retrieve task payload from data.tasks or use placeholder
       const taskPayload = (data.tasks && data.tasks[i - 1]) || { id: 'placeholder', params: {}, template: '' };
-      const renderer = renderers[taskPayload.id] || renderers['placeholder'];
+      const renderer = renderers[taskPayload.id] || renderers.placeholder;
       const taskContent = renderer(taskPayload);
       const iconKey = icons[(i - 1) % icons.length];
       const taskSvg = iconMap[iconKey] || iconMap['star'];

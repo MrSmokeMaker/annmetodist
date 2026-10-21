@@ -25,6 +25,10 @@ jobs:
         run: flutter pub get
       - name: Build web
         run: flutter build web --release
+      - name: Validate JavaScript bundles
+        run: |
+          node --check web/pdfmake_helper.js
+          node --check build/web/main.dart.js
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
