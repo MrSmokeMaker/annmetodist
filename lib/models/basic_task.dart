@@ -33,13 +33,11 @@ class BasicTask {
 }
 
 // ---------------------------------------------------------------------------
-// Список всех базовых задач. Для простоты здесь указаны только шаблоны и
-// заглушки схем/рендереров. При дальнейшем развитии их можно вынести в отдельные
-// JSON‑файлы в `assets/tasks/basic_schemas/` и реализовать рендереры в
-// `web/pdfmake_helper.js`.
+// Список всех базовых задач. Расширенный список с новыми типами заданий
 // ---------------------------------------------------------------------------
 
 const List<BasicTask> BASIC_TASKS = [
+  // Русский язык - базовые задания
   BasicTask(
     id: 'dictation_short',
     title: 'Слуховой мини‑диктант',
@@ -79,7 +77,6 @@ const List<BasicTask> BASIC_TASKS = [
       '2nd': {},
     },
   ),
-  // --- остальные 25 задач (сокращено для примера) ---
   BasicTask(
     id: 'capital_letter',
     title: 'Большая буква',
@@ -106,8 +103,274 @@ const List<BasicTask> BASIC_TASKS = [
       '2nd': {},
     },
   ),
-  // Здесь следует добавить оставшиеся типы: underline_vowels, soft_sign, letter_y,
-  // unscramble, make_word_from_syllables, missing_syllable, make_sentence,
-  // count_sounds_letters, find_mistake, one_many, finish_sentence, vocabulary_word,
-  // и все математические, чтения и графические задачи, перечисленные в запросе.
+  
+  // Новые задания по русскому языку
+  BasicTask(
+    id: 'underline_vowels',
+    title: 'Подчеркни гласные буквы',
+    template: 'В словах или предложениях ученик подчёркивает все гласные буквы.',
+    schema: '{"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}',
+    rendererId: 'renderUnderlineVowels',
+    iconId: 'icon-vowel',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'soft_sign',
+    title: 'Мягкий знак',
+    template: 'Вставь мягкий знак в нужное место слова.',
+    schema: '{"type":"object","properties":{"words":{"type":"array","items":{"type":"string"}}},"required":["words"]}',
+    rendererId: 'renderSoftSign',
+    iconId: 'icon-soft-sign',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'unscramble',
+    title: 'Составь слово из букв',
+    template: 'Составь правильное слово из перемешанных букв.',
+    schema: '{"type":"object","properties":{"scrambledWord":{"type":"string"},"hint":{"type":"string"}},"required":["scrambledWord"]}',
+    rendererId: 'renderUnscramble',
+    iconId: 'icon-puzzle',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Математические задания
+  BasicTask(
+    id: 'addition_problems',
+    title: 'Задачи на сложение',
+    template: 'Реши задачи на сложение с наглядными примерами.',
+    schema: '{"type":"object","properties":{"problems":{"type":"array","items":{"type":"string"}}},"required":["problems"]}',
+    rendererId: 'renderAdditionProblems',
+    iconId: 'icon-plus',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'subtraction_problems',
+    title: 'Задачи на вычитание',
+    template: 'Реши задачи на вычитание с наглядными примерами.',
+    schema: '{"type":"object","properties":{"problems":{"type":"array","items":{"type":"string"}}},"required":["problems"]}',
+    rendererId: 'renderSubtractionProblems',
+    iconId: 'icon-minus',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'number_comparison',
+    title: 'Сравнение чисел',
+    template: 'Сравни числа и поставь знаки >, < или =.',
+    schema: '{"type":"object","properties":{"pairs":{"type":"array","items":{"type":"string"}}},"required":["pairs"]}',
+    rendererId: 'renderNumberComparison',
+    iconId: 'icon-compare',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'counting_objects',
+    title: 'Счёт предметов',
+    template: 'Посчитай предметы на картинке и запиши ответ.',
+    schema: '{"type":"object","properties":{"imageDescription":{"type":"string"},"questions":{"type":"array","items":{"type":"string"}}},"required":["questions"]}',
+    rendererId: 'renderCountingObjects',
+    iconId: 'icon-count',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Задания на чтение
+  BasicTask(
+    id: 'read_and_answer',
+    title: 'Прочитай и ответь',
+    template: 'Прочитай короткий текст и ответь на вопросы.',
+    schema: '{"type":"object","properties":{"text":{"type":"string"},"questions":{"type":"array","items":{"type":"string"}}},"required":["text","questions"]}',
+    rendererId: 'renderReadAndAnswer',
+    iconId: 'icon-read',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'find_word_in_text',
+    title: 'Найди слово в тексте',
+    template: 'Найди и подчеркни в тексте указанные слова.',
+    schema: '{"type":"object","properties":{"text":{"type":"string"},"wordsToFind":{"type":"array","items":{"type":"string"}}},"required":["text","wordsToFind"]}',
+    rendererId: 'renderFindWordInText',
+    iconId: 'icon-find',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'sequencing',
+    title: 'Восстанови последовательность',
+    template: 'Расставь предложения или картинки в правильном порядке.',
+    schema: '{"type":"object","properties":{"items":{"type":"array","items":{"type":"string"}}},"required":["items"]}',
+    rendererId: 'renderSequencing',
+    iconId: 'icon-sequence',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Творческие и развивающие задания
+  BasicTask(
+    id: 'draw_and_label',
+    title: 'Нарисуй и подпиши',
+    template: 'Нарисуй предмет и подпиши его название.',
+    schema: '{"type":"object","properties":{"items":{"type":"array","items":{"type":"string"}}},"required":["items"]}',
+    rendererId: 'renderDrawAndLabel',
+    iconId: 'icon-draw',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'match_pairs',
+    title: 'Соедини пары',
+    template: 'Соедини линией связанные между собой предметы или слова.',
+    schema: '{"type":"object","properties":{"pairs":{"type":"array","items":{"type":"string"}}},"required":["pairs"]}',
+    rendererId: 'renderMatchPairs',
+    iconId: 'icon-match',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'word_search',
+    title: 'Поиск слов',
+    template: 'Найди слова в буквенной сетке.',
+    schema: '{"type":"object","properties":{"gridSize":{"type":"integer"},"words":{"type":"array","items":{"type":"string"}}},"required":["gridSize","words"]}',
+    rendererId: 'renderWordSearch',
+    iconId: 'icon-search',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Графические и моторные задания
+  BasicTask(
+    id: 'trace_lines',
+    title: 'Обведи линии',
+    template: 'Обведи пунктирные линии, развивая мелкую моторику.',
+    schema: '{"type":"object","properties":{"paths":{"type":"array","items":{"type":"string"}}},"required":["paths"]}',
+    rendererId: 'renderTraceLines',
+    iconId: 'icon-trace',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+    },
+  ),
+  BasicTask(
+    id: 'connect_dots',
+    title: 'Соедини точки',
+    template: 'Соедини точки по порядку, чтобы получилась картинка.',
+    schema: '{"type":"object","properties":{"points":{"type":"array","items":{"type":"integer"}},"imageName":{"type":"string"}},"required":["points"]}',
+    rendererId: 'renderConnectDots',
+    iconId: 'icon-dots',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+    },
+  ),
+  
+  // Игровые задания
+  BasicTask(
+    id: 'crossword_simple',
+    title: 'Простой кроссворд',
+    template: 'Заполни кроссворд по изученной теме.',
+    schema: '{"type":"object","properties":{"clues":{"type":"array","items":{"type":"string"}},"answers":{"type":"array","items":{"type":"string"}}},"required":["clues","answers"]}',
+    rendererId: 'renderCrosswordSimple',
+    iconId: 'icon-crossword',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  BasicTask(
+    id: 'riddles',
+    title: 'Загадки',
+    template: 'Разгадай загадки и запиши ответы.',
+    schema: '{"type":"object","properties":{"riddles":{"type":"array","items":{"type":"string"}}},"required":["riddles"]}',
+    rendererId: 'renderRiddles',
+    iconId: 'icon-riddle',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Задания на развитие речи
+  BasicTask(
+    id: 'describe_picture',
+    title: 'Опиши картинку',
+    template: 'Рассмотри картинку и составь по ней рассказ.',
+    schema: '{"type":"object","properties":{"imageDescription":{"type":"string"},"promptQuestions":{"type":"array","items":{"type":"string"}}},"required":["imageDescription"]}',
+    rendererId: 'renderDescribePicture',
+    iconId: 'icon-describe',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Задания на логику
+  BasicTask(
+    id: 'patterns',
+    title: 'Продолжи узор',
+    template: 'Продолжи логический узор или последовательность.',
+    schema: '{"type":"object","properties":{"pattern":{"type":"string"},"options":{"type":"array","items":{"type":"string"}}},"required":["pattern","options"]}',
+    rendererId: 'renderPatterns',
+    iconId: 'icon-pattern',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
+  
+  // Задания на память
+  BasicTask(
+    id: 'memory_game',
+    title: 'Игра на память',
+    template: 'Запомни и воспроизведи последовательность.',
+    schema: '{"type":"object","properties":{"items":{"type":"array","items":{"type":"string"}}},"required":["items"]}',
+    rendererId: 'renderMemoryGame',
+    iconId: 'icon-memory',
+    difficultyVariants: {
+      'kindergarten': {},
+      '1st': {},
+      '2nd': {},
+    },
+  ),
 ];

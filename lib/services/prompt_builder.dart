@@ -1,5 +1,7 @@
 import 'dart:convert';
 import '../models/printable_card.dart';
+import 'child_interaction_service.dart';
+import 'topic_explanation_service.dart';
 
 class PromptBuilder {
   /// Базовый шаблон (каркас) промпта.
@@ -36,13 +38,37 @@ class PromptBuilder {
     "type": "letter|syllable|word|task"
   }
 ]
-```
 ).
+
+ВАЖНЫЕ ОБНОВЛЕНИЯ ДЛЯ УЛУЧШЕНИЯ КАЧЕСТВА КОНСПЕКТОВ:
+
+8. # Блок дополнительных заданий для домашней работы (5-7 разнообразных заданий):
+   - 2-3 творческих задания для закрепления темы
+   - 2-3 практических упражнения на применение знаний
+   - 1-2 игровых задания для мотивации ребенка
+
+9. # Секция "Как объяснить ребенку" (простое объяснение темы словами ребенка):
+   - Объяснение ключевых понятий на языке, понятном ребенку
+   - Примеры из жизни ребенка для лучшего понимания
+   - Ответы на вероятные вопросы ребенка по теме
+
+10. # Диалоговые сценарии для учителя и ученика:
+    - Типичные вопросы, которые может задать ребенок
+    - Примерные ответы учителя на эти вопросы
+    - Стимулирующие вопросы для развития мышления ребенка
+
+11. # Варианты взаимодействия с ребенком:
+    - 3-4 способа поддержать ребенка, если он не понял тему
+    - 2-3 способа усложнить задание для одаренных детей
+    - Игровые приемы для вовлечения в учебный процесс
 
 Специальные правила:
 - Если возрастная группа — дошкольники (4–6 лет), занятие должно проводиться в игровой сюжетной форме, длительность не более 15–25 минут, обязательна динамическая пауза / логоритмика.
 - Если блок повторения не указан — этап повторения в ходе занятия пропустить и сразу перейти к теме.
 - Все формулировки должны точно соответствовать духу и принципам выбранной методики.
+- Обеспечить БОЛЬШЕ ЗАДАНИЙ и упражнений разного уровня сложности.
+- Добавить ЭМОЦИОНАЛЬНУЮ СОСТАВЛЯЮЩУЮ в общение с ребенком (похвалу, поддержку, мотивацию).
+- Предусмотреть ПРАКТИЧЕСКИЕ ПРИМЕРЫ из повседневной жизни ребенка.
 ''';
 
   static String buildSystemPrompt({
@@ -96,7 +122,13 @@ class PromptBuilder {
         rules.add('- Правило адаптации: ребенку было трудно на прошлом уроке. Упрости объяснения, снизь темп и добавь больше пошаговых примеров и наглядных опор.');
       }
       if (historicalFeedbackTags.contains('Справился легко')) {
-        rules.add('- Правило адаптации: ребенок легко справился с предыдущим материалом. Предложи более вариативные задания с элементами эвристики и повышенной сложности.');
+        rules.add('- Правило адаптация: ребенок легко справился с предыдущим материалом. Предложи более вариативные задания с элементами эвристики и повышенной сложности.');
+      }
+      if (historicalFeedbackTags.contains('Скучно было')) {
+        rules.add('- Правило адаптация: ребенку было скучно на предыдущем занятии. Добавь больше игровых элементов, загадок, интерактивных заданий и соревновательных моментов.');
+      }
+      if (historicalFeedbackTags.contains('Нужно больше практики')) {
+        rules.add('- Правило адаптация: ребенку требуется больше практических упражнений. Увеличь количество практических заданий на 40% и добавь дополнительные тренировочные упражнения.');
       }
       if (rules.isNotEmpty) {
         adaptationBlock = rules.join('\n');
@@ -136,7 +168,7 @@ class PromptBuilder {
     final variantPart = (variantIndex != null && variantIndex > 1)
         ? ' (Вариант $variantIndex)'
         : '';
-    return 'Составь подробный конспект занятия$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".';
+    return 'Составь подробный конспект занятия$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName". Включи больше заданий разного уровня сложности, диалоговые сценарии и простое объяснение темы для ребенка.';
   }
 
   /// Шаг 3: Извлечение аудио-подсказки для родителя из текста конспекта
@@ -208,6 +240,126 @@ class PromptBuilder {
 $conspectContent
 
 Верни СТРОГО один JSON-массив из 6 карточек.
+''';
+
+    return {
+      'systemPrompt': systemPrompt,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Создать расширенный промпт с использованием новых сервисов
+  static Map<String, String> buildEnhancedPrompt({
+    required String methodBlock,
+    required String topic,
+    required String ageGroup,
+    required String duration,
+    required String subject,
+    String? review,
+    String? notes,
+    String? situationRules,
+    List<String>? activitySamples,
+    List<String>? historicalFeedbackTags,
+    int? variantIndex,
+    int? totalVariants,
+  }) {
+    final baseSystemPrompt = buildSystemPrompt(
+      methodBlock: methodBlock,
+      topic: topic,
+      ageGroup: ageGroup,
+      duration: duration,
+      review: review,
+      notes: notes,
+      situationRules: situationRules,
+      activitySamples: activitySamples,
+      historicalFeedbackTags: historicalFeedbackTags,
+      variantIndex: variantIndex,
+      totalVariants: totalVariants,
+    );
+
+    // Добавляем рекомендации из новых сервисов
+    final enhancedGuidelines = '''
+
+ДОПОЛНИТЕЛЬНЫЕ РЕКОМЕНДАЦИИ ДЛЯ КАЧЕСТВЕННОГО КОНСПЕКТА:
+
+${ChildInteractionService.getExplanationGuidelines(ageGroup)}
+
+Популярные темы для объяснения: ${TopicExplanationService.getPopularTopics(subject, ageGroup).join(', ')}
+
+Пример диалогового сценария:
+${ChildInteractionService.createDialogueScenario(topic, ageGroup, false)}
+
+Простое объяснение темы:
+${ChildInteractionService.createSimpleExplanation(topic, subject, ageGroup)}
+
+Дополнительные задания для домашней работы:
+${ChildInteractionService.createHomeworkAssignments(topic, subject, ageGroup, 7).map((a) => '- $a').join('\n')}
+
+ИГРОВЫЕ ПРИЕМЫ ДЛЯ ВОВЛЕЧЕНИЯ:
+- ${ChildInteractionService.getGameTechnique(ageGroup)}
+- ${ChildInteractionService.getGameTechnique(ageGroup)}
+
+ВОПРОСЫ ДЛЯ АКТИВАЦИИ МЫШЛЕНИЯ:
+- ${ChildInteractionService.getRandomThinkingQuestion()}
+- ${ChildInteractionService.getRandomThinkingQuestion()}
+''';
+
+    final userPrompt = buildUserPrompt(
+      methodName: methodBlock.split('\n').first.replaceAll('Методический подход ', '').replaceAll(':', ''),
+      topic: topic,
+      ageGroup: ageGroup,
+      duration: duration,
+      situationTitle: situationRules,
+      variantIndex: variantIndex,
+    );
+
+    return {
+      'systemPrompt': baseSystemPrompt + enhancedGuidelines,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Создать промпт специально для объяснения темы ребенку
+  static Map<String, String> buildChildExplanationPrompt({
+    required String topic,
+    required String subject,
+    required String ageGroup,
+    required String methodName,
+  }) {
+    final systemPrompt = '''
+Ты — опытный педагог, который умеет объяснять сложные темы простым языком детям.
+Твоя задача — создать понятное, интересное объяснение темы "$topic" по предмету "$subject" для $ageGroup.
+
+Используй следующие принципы:
+${ChildInteractionService.getExplanationGuidelines(ageGroup)}
+
+Будь креативным, используй аналогии, примеры из жизни ребенка, игровые элементы.
+Объяснение должно быть эмоционально окрашенным, поддерживающим и мотивирующим.
+
+Структура объяснения:
+1. Введение: заинтересовать ребенка
+2. Основное объяснение: просто и понятно
+3. Примеры из жизни: показать практическую пользу
+4. Игровой элемент: вовлечь в процесс
+5. Закрепление: вопросы и практическое задание
+''';
+
+    final explanationTemplate = TopicExplanationService.getExplanation(subject, topic, ageGroup) ?? 
+        'Объясни тему "$topic" так, чтобы было интересно и понятно ребенку.';
+
+    final userPrompt = '''
+Создай объяснение темы "$topic" ($subject) для $ageGroup по методике "$methodName".
+
+Используй этот шаблон как основу:
+$explanationTemplate
+
+Добавь:
+- 2-3 ярких примера из жизни ребенка
+- 1 игровой элемент для закрепления
+- 3 вопроса для проверки понимания
+- Поддерживающие и мотивирующие фразы
+
+Объяснение должно быть на 1-2 минуты чтения вслух.
 ''';
 
     return {

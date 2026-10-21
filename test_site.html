@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест сайта Методист</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .test {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            color: orange;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тестирование сайта "Методист"</h1>
+    
+    <div class="test">
+        <h3>Тест 1: Проверка файлов</h3>
+        <div id="test1">Проверяем наличие основных файлов...</div>
+    </div>
+    
+    <div class="test">
+        <h3>Тест 2: Загрузка скриптов</h3>
+        <div id="test2">Проверяем загрузку JavaScript...</div>
+    </div>
+    
+    <div class="test">
+        <h3>Тест 3: Flutter загрузка</h3>
+        <div id="test3">Проверяем инициализацию Flutter...</div>
+    </div>
+    
+    <script>
+        // Тест 1: Проверка файлов
+        const filesToCheck = [
+            'index.html',
+            'main.dart.js',
+            'flutter_bootstrap.js',
+            'manifest.json'
+        ];
+        
+        let test1Results = [];
+        
+        filesToCheck.forEach(file => {
+            fetch(file)
+                .then(response => {
+                    if (response.ok) {
+                        test1Results.push(`✓ ${file} - OK (${response.status})`);
+                    } else {
+                        test1Results.push(`✗ ${file} - Ошибка: ${response.status}`);
+                    }
+                })
+                .catch(error => {
+                    test1Results.push(`✗ ${file} - Ошибка загрузки: ${error.message}`);
+                })
+                .finally(() => {
+                    if (test1Results.length === filesToCheck.length) {
+                        document.getElementById('test1').innerHTML = test1Results.join('<br>');
+                    }
+                });
+        });
+        
+        // Тест 2: Проверка скриптов
+        const test2Div = document.getElementById('test2');
+        
+        // Проверяем, загружается ли main.dart.js
+        const scriptTest = document.createElement('script');
+        scriptTest.src = 'main.dart.js';
+        scriptTest.onload = () => {
+            test2Div.innerHTML = '<span class="success">✓ main.dart.js загружен успешно</span>';
+        };
+        scriptTest.onerror = () => {
+            test2Div.innerHTML = '<span class="error">✗ Ошибка загрузки main.dart.js</span>';
+        };
+        document.head.appendChild(scriptTest);
+        
+        // Тест 3: Проверка Flutter
+        const test3Div = document.getElementById('test3');
+        
+        // Проверяем наличие Flutter объектов
+        setTimeout(() => {
+            if (window._flutter) {
+                test3Div.innerHTML = '<span class="success">✓ Flutter объекты обнаружены</span>';
+                if (window._flutter.loader) {
+                    test3Div.innerHTML += '<br><span class="success">✓ Flutter loader доступен</span>';
+                }
+            } else {
+                test3Div.innerHTML = '<span class="error">✗ Flutter объекты не найдены</span>';
+                
+                // Пробуем загрузить flutter_bootstrap.js
+                const flutterScript = document.createElement('script');
+                flutterScript.src = 'flutter_bootstrap.js?v=test';
+                flutterScript.onload = () => {
+                    setTimeout(() => {
+                        if (window._flutter) {
+                            test3Div.innerHTML += '<br><span class="success">✓ flutter_bootstrap.js загружен, Flutter обнаружен</span>';
+                        } else {
+                            test3Div.innerHTML += '<br><span class="error">✗ flutter_bootstrap.js загружен, но Flutter не инициализирован</span>';
+                        }
+                    }, 100);
+                };
+                flutterScript.onerror = () => {
+                    test3Div.innerHTML += '<br><span class="error">✗ Ошибка загрузки flutter_bootstrap.js</span>';
+                };
+                document.head.appendChild(flutterScript);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
