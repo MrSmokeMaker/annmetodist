@@ -23,14 +23,34 @@
   <title>Методист — Генератор конспектов</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Nunito Font -->
+  <style>
+    @font-face {
+      font-family: 'Nunito';
+      src: url('fonts/Nunito-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Nunito';
+      src: url('fonts/Nunito-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+
   <style>
     body {
       margin: 0;
       padding: 0;
       background-color: #0D0F14;
       color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .loading-container {
       position: fixed;
@@ -49,11 +69,11 @@
       transition: opacity 0.4s ease;
     }
     .orb {
-      width: 64px;
-      height: 64px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
-      box-shadow: 0 0 32px rgba(99, 102, 241, 0.6);
+      background: linear-gradient(135deg, #7C5CFF, #6366F1);
+      box-shadow: 0 0 36px rgba(124, 92, 255, 0.65);
       animation: pulse 1.6s infinite ease-in-out;
       margin-bottom: 24px;
     }
@@ -66,12 +86,32 @@
     .subtitle {
       font-size: 14px;
       color: #94A3B8;
+      animation: pulse-text 2s ease-in-out infinite;
     }
     @keyframes pulse {
       0%, 100% { transform: scale(0.92); opacity: 0.8; }
       50% { transform: scale(1.08); opacity: 1; }
     }
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
   </style>
+
+  <!-- Flutter Renderer Detection -->
+  <script>
+    window.flutterWebRenderer = (function() {
+      try {
+        var canvas = document.createElement('canvas');
+        return !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+        );
+      } catch (e) {
+        return false;
+      }
+    })() ? 'canvaskit' : 'html';
+  </script>
 </head>
 <body>
   <div id="loading" class="loading-container">
@@ -98,7 +138,9 @@
 
     // Mutation observer fallback
     var observer = new MutationObserver(function() {
-      if (document.querySelector('flutter-view') || document.querySelector('flt-glass-pane')) {
+      if (document.querySelector('flutter-view') || 
+          document.querySelector('flt-glass-pane') ||
+          document.querySelector('canvas')?.getAttribute('data-flutter-view')) {
         setTimeout(removeLoader, 300);
         observer.disconnect();
       }
@@ -106,7 +148,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
 
     // Safety timeout
-    setTimeout(removeLoader, 6000);
+    setTimeout(removeLoader, 8000);
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
