@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <base href="$FLUTTER_BASE_HREF">
+  <base href="/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -16,8 +16,8 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <!-- Theme & Viewport -->
-  <meta name="theme-color" content="#0B0D12">
+  <!-- Theme color matching dark theme -->
+  <meta name="theme-color" content="#0D0F14">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <title>Методист — Генератор конспектов</title>
@@ -27,26 +27,79 @@
   <style>
     @font-face {
       font-family: 'Nunito';
-      src: url('Nunito-Regular.ttf') format('truetype');
+      src: url('fonts/Nunito-Regular.ttf') format('truetype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
     }
     @font-face {
       font-family: 'Nunito';
-      src: url('Nunito-Bold.ttf') format('truetype');
+      src: url('fonts/Nunito-Bold.ttf') format('truetype');
       font-weight: 700;
       font-style: normal;
       font-display: swap;
     }
   </style>
 
-  <!-- Premium UI Design System -->
-  <link rel="stylesheet" href="custom.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0D0F14;
+      color: #F8FAFC;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
+                  radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.2) 0%, transparent 60%),
+                  #0D0F14;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+    .orb {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7C5CFF, #6366F1);
+      box-shadow: 0 0 36px rgba(124, 92, 255, 0.65);
+      animation: pulse 1.6s infinite ease-in-out;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #94A3B8;
+      animation: pulse-text 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.92); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+  </style>
 
-  <!-- Flutter Bootstrap -->
+  <!-- Flutter Renderer Detection -->
   <script>
-    // Определяем, поддерживает ли устройство WebGL
     window.flutterWebRenderer = (function() {
       try {
         var canvas = document.createElement('canvas');
@@ -60,602 +113,43 @@
     })() ? 'canvaskit' : 'html';
   </script>
 </head>
-<body class="page-enter">
-
-  <!-- ── Загрузочный экран ─────────────────────────────── -->
+<body>
   <div id="loading" class="loading-container">
     <div class="orb"></div>
     <div class="title">Методист</div>
-    <div class="subtitle">Загрузка приложения…</div>
+    <div class="subtitle">Загрузка приложения...</div>
   </div>
 
-  <!-- ── Логика загрузочного экрана ───────────────────── -->
   <script>
-    (function () {
-      function removeLoader() {
-        var loader = document.getElementById('loading');
-        if (!loader || loader.dataset.removed) return;
-        loader.dataset.removed = '1';
+    function removeLoader() {
+      const loader = document.getElementById('loading');
+      if (loader && loader.style.opacity !== '0') {
         loader.style.opacity = '0';
-        setTimeout(function () {
-          if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
-        }, 450);
-      }
-
-      // Современный Flutter-событие первого кадра
-      window.addEventListener('flutter-first-frame', removeLoader);
-
-      // MutationObserver — fallback для старых сборок
-      var obs = new MutationObserver(function () {
-        if (
-          document.querySelector('flutter-view') ||
-          document.querySelector('flt-glass-pane') ||
-          document.querySelector('canvas')?.getAttribute('data-flutter-view')
-        ) {
-          setTimeout(removeLoader, 300);
-          obs.disconnect();
-        }
-      });
-      obs.observe(document.body, { childList: true, subtree: true });
-
-      // Safety timeout — если что-то пошло не так
-      setTimeout(removeLoader, 8000);
-    })();
-  </script>
-
-  <!-- ── Премьерный UI — вся JS-логика ───────────────── -->
-  <script>
-    (function () {
-
-      /* ─ Каскадный вход (page-enter → loaded) ─ */
-      function triggerPageEnter() {
-        document.body.classList.add('loaded');
-      }
-      window.addEventListener('flutter-first-frame', triggerPageEnter);
-      document.addEventListener('DOMContentLoaded', function () {
-        // Fallback: если Flutter-событие уже случилось раньше
-        if (!document.body.classList.contains('loaded')) {
-          requestAnimationFrame(function () {
-            requestAnimationFrame(triggerPageEnter);
-          });
-        }
-      });
-
-
-      /* ─ Чипы: переключение data-active ─ */
-      document.addEventListener('click', function (e) {
-        var chip = e.target.closest('.chip');
-        if (!chip) return;
-        // Если чипы — radio-группа (один активный)
-        var group = chip.closest('[data-chip-group]');
-        if (group) {
-          group.querySelectorAll('.chip').forEach(function (c) {
-            c.dataset.active = 'false';
-          });
-        }
-        chip.dataset.active = chip.dataset.active === 'true' ? 'false' : 'true';
-      });
-
-
-      /* ─ Toggle-group: скользящий thumb ─ */
-      document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.toggle-group').forEach(initToggle);
-      });
-      function initToggle(group) {
-        var thumb = group.querySelector('.toggle-thumb');
-        var options = group.querySelectorAll('.toggle-option');
-        if (!thumb || !options.length) return;
-
-        function updateThumb(selected) {
-          var rect = selected.getBoundingClientRect();
-          var gRect = group.getBoundingClientRect();
-          thumb.style.left  = (rect.left  - gRect.left)  + 'px';
-          thumb.style.width = rect.width  + 'px';
-          thumb.style.top   = (rect.top   - gRect.top)   + 'px';
-          thumb.style.height= rect.height + 'px';
-        }
-
-        options.forEach(function (opt) {
-          if (opt.dataset.selected === 'true') updateThumb(opt);
-          opt.addEventListener('click', function () {
-            options.forEach(function (o) { o.dataset.selected = 'false'; });
-            opt.dataset.selected = 'true';
-            updateThumb(opt);
-          });
-        });
-      }
-
-
-      /* ─ Dropdown: data-open ─ */
-      document.addEventListener('click', function (e) {
-        // Открыть/закрыть по триггеру
-        var trigger = e.target.closest('[data-dropdown-trigger]');
-        if (trigger) {
-          var dd = trigger.closest('.dropdown');
-          if (dd) dd.dataset.open = dd.dataset.open === 'true' ? 'false' : 'true';
-          e.stopPropagation();
-          return;
-        }
-        // Закрыть при клике вне
-        document.querySelectorAll('.dropdown[data-open="true"]').forEach(function (dd) {
-          dd.dataset.open = 'false';
-        });
-      });
-
-
-      /* ─ Sticky-кнопка генерации ─ */
-      document.addEventListener('DOMContentLoaded', function () {
-        var sticky = document.querySelector('.generate-sticky');
-        if (sticky) {
-          setTimeout(function () { sticky.classList.add('visible'); }, 400);
-        }
-      });
-
-
-      /* ─ Логика генерации материалов ─ */
-      function generateMaterial(type) {
-        // Эмуляция API запроса
-        window.metodist.setButtonLoading(true);
-        window.metodist.startLoading();
-        
-        // Симуляция задержки генерации
         setTimeout(function() {
-          // Генерируем примерный контент в зависимости от типа
-          var generatedContent = getGeneratedContent(type);
-          
-          // Обновляем карточку результата
-          var card = document.querySelector('.result-card');
-          if (card) {
-            card.innerHTML = generatedContent;
-            card.classList.remove('skeleton');
-            
-            // Показываем с анимацией
-            setTimeout(function() {
-              card.classList.add('visible');
-              
-              // Активируем кнопку поделиться
-              var shareButton = document.getElementById('share-button');
-              if (shareButton) {
-                shareButton.disabled = false;
-              }
-              
-              // Обновляем статистику
-              var statNumber = document.querySelector('.stat-number');
-              if (statNumber) {
-                var current = parseInt(statNumber.dataset.target) || 147;
-                statNumber.dataset.target = current + 1;
-                animateCount(statNumber);
-              }
-            }, 50);
+          if (loader && loader.parentNode) {
+            loader.parentNode.removeChild(loader);
           }
-          
-          window.metodist.setButtonLoading(false);
-        }, 2000); // 2 секунды симуляции
+        }, 400);
       }
+    }
 
-      function getGeneratedContent(type) {
-        var contents = {
-          'summary': `
-            <div class="card-title">Конспект урока: "Клеточное строение организмов"</div>
-            <div class="result-block">
-              <h4>Цели урока:</h4>
-              <p>1. Изучить строение клетки растений и животных</p>
-              <p>2. Понять функции основных органоидов</p>
-              <p>3. Научиться различать растительные и животные клетки</p>
-            </div>
-            <div class="result-block">
-              <h4>Ход урока:</h4>
-              <p>1. Организационный момент (5 мин)</p>
-              <p>2. Изучение нового материала (25 мин)</p>
-              <p>3. Практическая работа (10 мин)</p>
-              <p>4. Рефлексия и домашнее задание (5 мин)</p>
-            </div>
-            <div class="result-block">
-              <h4>Материалы:</h4>
-              <p>• Микроскопы, готовые микропрепараты</p>
-              <p>• Схемы строения клетки</p>
-              <p>• Раздаточный материал</p>
-            </div>
-          `,
-          'tasks': `
-            <div class="card-title">Лист заданий по теме "Клеточное строение"</div>
-            <div class="result-block">
-              <h4>Задание 1: Теоретическое (10 баллов)</h4>
-              <p>Перечислите 5 основных отличий растительной клетки от животной.</p>
-            </div>
-            <div class="result-block">
-              <h4>Задание 2: Практическое (15 баллов)</h4>
-              <p>Подпишите на схеме органоиды клетки и укажите их функции.</p>
-            </div>
-            <div class="result-block">
-              <h4>Задание 3: Творческое (10 баллов)</h4>
-              <p>Создайте модель клетки из подручных материалов.</p>
-            </div>
-            <div class="result-block">
-              <h4>Критерии оценки:</h4>
-              <p>• Полнота ответа (0-5 баллов)</p>
-              <p>• Точность определений (0-5 баллов)</p>
-              <p>• Оригинальность выполнения (0-5 баллов)</p>
-            </div>
-          `,
-          'homework': `
-            <div class="card-title">Домашнее задание по теме "Клетка"</div>
-            <div class="result-block">
-              <h4>Задание:</h4>
-              <p>1. Изучить параграф 5 учебника "Биология 5 класс"</p>
-              <p>2. Ответить на вопросы 1-5 в конце параграфа</p>
-              <p>3. Подготовить сообщение об одном из ученых-цитологов</p>
-            </div>
-            <div class="result-block">
-              <h4>Цель задания:</h4>
-              <p>Закрепить знания о строении клетки и развить навыки самостоятельной работы.</p>
-            </div>
-            <div class="result-block">
-              <h4>Инструкция:</h4>
-              <p>1. Внимательно прочитайте материал</p>
-              <p>2. Выполните задания письменно в тетради</p>
-              <p>3. Подготовьтесь к обсуждению на следующем уроке</p>
-            </div>
-            <div class="result-block">
-              <h4>Срок сдачи:</h4>
-              <p>До следующего урока (четверг, 15:00)</p>
-            </div>
-          `
-        };
-        
-        return contents[type] || contents.summary;
+    // Modern Flutter first-frame event
+    window.addEventListener('flutter-first-frame', removeLoader);
+
+    // Mutation observer fallback
+    var observer = new MutationObserver(function() {
+      if (document.querySelector('flutter-view') || 
+          document.querySelector('flt-glass-pane') ||
+          document.querySelector('canvas')?.getAttribute('data-flutter-view')) {
+        setTimeout(removeLoader, 300);
+        observer.disconnect();
       }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
-      // Обработчик кнопки генерации
-      document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-primary[data-generate]')) {
-          generateMaterial(currentGenerationType);
-        }
-        
-        // Обработчик кнопки поделиться
-        if (e.target.closest('#share-button')) {
-          shareGeneratedMaterial();
-        }
-      });
-
-      // Функция поделиться
-      function shareGeneratedMaterial() {
-        var card = document.querySelector('.result-card');
-        if (!card || card.classList.contains('skeleton')) {
-          alert('Сначала сгенерируйте материал!');
-          return;
-        }
-        
-        var title = card.querySelector('.card-title')?.textContent || 'Материал от Методист';
-        var text = card.textContent.substring(0, 200) + '...';
-        
-        if (navigator.share) {
-          navigator.share({
-            title: title,
-            text: text,
-            url: window.location.href
-          }).catch(console.error);
-        } else {
-          // Fallback для браузеров без поддержки Web Share API
-          var shareText = title + '\n\n' + text + '\n\nСгенерировано в "Методист"';
-          navigator.clipboard.writeText(shareText).then(function() {
-            alert('Материал скопирован в буфер обмена!');
-          }).catch(function() {
-            prompt('Скопируйте текст для отправки:', shareText);
-          });
-        }
-      }
-
-      /* ─ Count-up анимация статистики ─ */
-      function animateCount(el) {
-        var target   = parseFloat(el.dataset.target) || 0;
-        var suffix   = el.dataset.suffix || '';
-        var duration = 900;
-        var start    = performance.now();
-
-        function step(now) {
-          var p = Math.min((now - start) / duration, 1);
-          // Easing: ease-out cubic
-          p = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(p * target) + suffix;
-          if (p < 1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-      }
-
-      // Запускаем, как только элементы попадают во вьюпорт
-      function observeStats() {
-        var stats = document.querySelectorAll('.stat-number[data-target]');
-        if (!stats.length) return;
-
-        if ('IntersectionObserver' in window) {
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-              if (entry.isIntersecting) {
-                animateCount(entry.target);
-                io.unobserve(entry.target);
-              }
-            });
-          }, { threshold: 0.5 });
-          stats.forEach(function (el) { io.observe(el); });
-        } else {
-          stats.forEach(animateCount); // fallback
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', observeStats);
-      // Также запускаем после Flutter-рендера (карточки могут появиться позже)
-      window.addEventListener('flutter-first-frame', function () {
-        setTimeout(observeStats, 500);
-      });
-
-
-      /* ─ Появление карточки результата ─ */
-      // Чтобы вызвать из Flutter: window.metodist.showResult()
-      window.metodist = window.metodist || {};
-      window.metodist.showResult = function (selector) {
-        selector = selector || '.result-card';
-        var card = document.querySelector(selector);
-        if (!card) return;
-        // Сначала убираем skeleton, затем показываем карточку
-        card.classList.remove('skeleton');
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            card.classList.add('visible');
-          });
-        });
-      };
-
-      /* Скелетон для генерации — вызвать перед запросом к API */
-      window.metodist.startLoading = function (selector) {
-        selector = selector || '.result-card';
-        var card = document.querySelector(selector);
-        if (!card) return;
-        card.classList.remove('visible');
-        card.classList.add('skeleton');
-      };
-
-      /* Кнопка «Сгенерировать» — управление состоянием loading */
-      window.metodist.setButtonLoading = function (loading) {
-          document.querySelectorAll('.btn-primary[data-generate]').forEach(function (btn) {
-            if (loading) {
-              btn.classList.add('loading');
-              btn.disabled = true;
-              // сохраняем оригинальное содержимое
-              btn.dataset.originalHTML = btn.dataset.originalHTML || btn.innerHTML.trim();
-              btn.innerHTML = '<svg class="icon icon-spinner" aria-hidden="true"></svg> Генерирую…';
-            } else {
-              btn.classList.remove('loading');
-              btn.disabled = false;
-              if (btn.dataset.originalHTML) btn.innerHTML = btn.dataset.originalHTML;
-            }
-          });
-        };
-
-      /* ── Управление типами генерации ───────────────────── */
-      var currentGenerationType = 'summary'; // По умолчанию конспект
-      
-      // Обработка кликов по типам генерации
-      document.addEventListener('click', function(e) {
-        var typeOption = e.target.closest('.type-option');
-        if (typeOption) {
-          // Сбрасываем все опции
-          document.querySelectorAll('.type-option').forEach(function(opt) {
-            opt.dataset.active = 'false';
-          });
-          
-          // Активируем выбранную опцию
-          typeOption.dataset.active = 'true';
-          currentGenerationType = typeOption.dataset.type;
-          
-          // Обновляем текст кнопки генерации
-          updateGenerateButtonText();
-          updateResultCardTemplate();
-          
-          // Активируем кнопку поделиться, если есть результат
-          activateShareButtonIfResultExists();
-        }
-      });
-
-      // Обновление текста кнопки генерации
-      function updateGenerateButtonText() {
-        var buttonTexts = {
-          'summary': 'Сгенерировать конспект',
-          'tasks': 'Сгенерировать задания',
-          'homework': 'Сгенерировать домашнее задание'
-        };
-        
-        document.querySelectorAll('.btn-primary[data-generate] span').forEach(function(span) {
-          span.textContent = buttonTexts[currentGenerationType] || 'Сгенерировать';
-        });
-      }
-
-      // Обновление шаблона карточки результата
-      function updateResultCardTemplate() {
-        var card = document.querySelector('.result-card');
-        if (!card) return;
-        
-        var templates = {
-          'summary': ['Тема урока', 'Цели и задачи', 'Ход урока', 'Используемые материалы', 'Рефлексия'],
-          'tasks': ['Задание 1: Теоретическое', 'Задание 2: Практическое', 'Задание 3: Творческое', 'Критерии оценки', 'Время выполнения'],
-          'homework': ['Домашнее задание', 'Цель задания', 'Инструкция выполнения', 'Материалы для подготовки', 'Срок сдачи']
-        };
-        
-        var currentTemplate = templates[currentGenerationType] || templates.summary;
-        
-        // Очищаем карточку
-        card.innerHTML = '';
-        
-        // Добавляем заголовок
-        var title = document.createElement('div');
-        title.className = 'card-title';
-        title.textContent = getTypeTitle(currentGenerationType);
-        card.appendChild(title);
-        
-        // Добавляем элементы шаблона
-        currentTemplate.forEach(function(item, index) {
-          var line = document.createElement('div');
-          line.className = 'skeleton-line ' + getLineClass(index, currentTemplate.length);
-          card.appendChild(line);
-        });
-        
-        // Сбрасываем состояние
-        card.classList.remove('visible');
-        card.classList.add('skeleton');
-      }
-
-      function getTypeTitle(type) {
-        var titles = {
-          'summary': 'Конспект урока',
-          'tasks': 'Лист заданий',
-          'homework': 'Домашнее задание'
-        };
-        return titles[type] || 'Результат';
-      }
-
-      function getLineClass(index, total) {
-        if (index === 0) return 'skeleton-line--short';
-        if (index === total - 1) return 'skeleton-line--medium';
-        return 'skeleton-line--full';
-      }
-
-      // Активация кнопки поделиться
-      function activateShareButtonIfResultExists() {
-        var shareButton = document.getElementById('share-button');
-        var resultCard = document.querySelector('.result-card');
-        
-        if (shareButton && resultCard && !resultCard.classList.contains('skeleton')) {
-          shareButton.disabled = false;
-        }
-      }
-
-      // Инициализация при загрузке
-      document.addEventListener('DOMContentLoaded', function() {
-        updateGenerateButtonText();
-        updateResultCardTemplate();
-      });
-
-    })();
+    // Safety timeout
+    setTimeout(removeLoader, 8000);
   </script>
-
-<!-- SVG Sprite -->
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <symbol id="icon-plus" viewBox="0 0 24 24">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="icon-spinner" viewBox="0 0 24 24">
-    <path d="M12 2v4m6.36 2.64l-2.83 2.83M20 12h-4m-2.64 6.36l-2.83-2.83M12 18v4m-6.36-2.64l2.83-2.83M4 12h4m2.64-6.36l2.83 2.83" 
-          stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="icon-doc" viewBox="0 0 24 24">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" fill="none"/>
-  </symbol>
-  <symbol id="icon-task" viewBox="0 0 24 24">
-    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2H9V5z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="icon-homework" viewBox="0 0 24 24">
-    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M12 7v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M9 10h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="icon-generate" viewBox="0 0 24 24">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M10 9H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="icon-share" viewBox="0 0 24 24">
-    <path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2" fill="none"/>
-    <path d="m8.59 13.51 6.83 3.98" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="m15.41 6.51-6.82 3.98" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </symbol>
-</svg>
-
-<!-- Main UI -->
-<div class="app-content">
-  <div class="card new-note">
-    <svg class="icon icon-plus"><use xlink:href="#icon-plus"/></svg>
-    <span class="title">Новый конспект</span>
-  </div>
-
-  <div class="chip-group" data-chip-group>
-    <div class="chip" data-active="false">Класс 1</div>
-    <div class="chip" data-active="false">Класс 2</div>
-    <div class="chip" data-active="false">Класс 3</div>
-  </div>
-
-  <div class="toggle-group">
-    <div class="toggle-option" data-selected="true">1 вариант</div>
-    <div class="toggle-option" data-selected="false">3 варианта</div>
-    <div class="toggle-thumb"></div>
-  </div>
-
-  <!-- Селектор типа генерации -->
-  <div class="generation-type-selector">
-    <h3>Тип материала:</h3>
-    <div class="type-options">
-      <div class="type-option" data-type="summary" data-active="true">
-        <svg class="icon"><use xlink:href="#icon-doc"/></svg>
-        <span>Конспект</span>
-      </div>
-      <div class="type-option" data-type="tasks" data-active="false">
-        <svg class="icon"><use xlink:href="#icon-task"/></svg>
-        <span>Задания</span>
-      </div>
-      <div class="type-option" data-type="homework" data-active="false">
-        <svg class="icon"><use xlink:href="#icon-homework"/></svg>
-        <span>Домашнее задание</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="dropdown">
-    <button data-dropdown-trigger>Выбрать тему</button>
-    <div class="dropdown__menu">
-      <div class="dropdown__item">Тема 1</div>
-      <div class="dropdown__item">Тема 2</div>
-      <div class="dropdown__item">Тема 3</div>
-    </div>
-  </div>
-
-  <div class="action-buttons">
-    <button class="btn-primary" data-generate>
-      <svg class="icon"><use xlink:href="#icon-generate"/></svg>
-      <span>Сгенерировать</span>
-    </button>
-    
-    <button class="btn-secondary" id="share-button" disabled>
-      <svg class="icon"><use xlink:href="#icon-share"/></svg>
-      <span>Поделиться</span>
-    </button>
-  </div>
-
-  <div class="card result-card skeleton">
-    <div class="skeleton-line skeleton-line--short"></div>
-    <div class="skeleton-line skeleton-line--medium"></div>
-    <div class="skeleton-line skeleton-line--full"></div>
-    <div class="skeleton-line skeleton-line--full"></div>
-    <div class="skeleton-line skeleton-line--medium"></div>
-  </div>
-
-  <div class="stats">
-    <div class="stat-number" data-target="147">0</div>
-    <div class="stat-label">конспектов создано</div>
-  </div>
-</div>
-
-<div class="generate-sticky">
-  <button class="btn-primary" data-generate>Сгенерировать</button>
-</div>
-
-<!-- Flutter Bootstrap Script -->
-<script src="flutter_bootstrap.js" async></script>
-
+  <script src="flutter_bootstrap.js?v=20261022" async></script>
 </body>
 </html>
