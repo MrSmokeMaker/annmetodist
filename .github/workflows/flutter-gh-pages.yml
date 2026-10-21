@@ -24,11 +24,14 @@ jobs:
       - name: Enable Web support
         run: flutter config --enable-web
 
+      - name: Clean Flutter
+        run: flutter clean
+
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build web release
-        run: flutter build web --release --base-href ./
+        run: flutter build web --release --base-href ./ --no-tree-shake-icons
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -16,7 +16,7 @@ dependencies:
   # Local Database & Secure Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.2.2  # Replaced flutter_secure_storage for web compatibility
 
   # Document Generation & Sharing
   pdf: ^3.11.1
