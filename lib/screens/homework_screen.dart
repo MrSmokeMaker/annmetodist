@@ -117,7 +117,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
 
     try {
       final jsonStr = jsonEncode(payload);
-      js_util.callMethod(html.window, 'createWorksheetPdf', [jsonStr]);
+      js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Домашнее задание формируется и скачивается в PDF...'),

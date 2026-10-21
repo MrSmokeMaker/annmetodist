@@ -1,6 +1,7 @@
 
 
-import 'dart:html' as html;
+import 'dart:js_util' as js_util;
+import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'data/method_repository.dart';
@@ -44,7 +45,7 @@ void main() async {
   try {
     // Use js_util to set a global property on the window object.
     // ignore: avoid_dynamic_calls
-    js_util.setProperty(html.window, 'onPdfGenerated', (dynamic fileName) {
+    js_util.setProperty(js_util.globalThis, 'onPdfGenerated', (dynamic fileName) {
       if (fileName != null) {
         final ctx = navigatorKey.currentContext;
         if (ctx != null) {

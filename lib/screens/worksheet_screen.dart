@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:js_util' as js_util;
-import 'dart:html' as html;
+
 
 import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
@@ -122,7 +122,7 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
     // Call JS to generate PDF (pdfmake helper expected on window)
     try {
       final jsonStr = jsonEncode(payload);
-      js_util.callMethod(html.window, 'createWorksheetPdf', [jsonStr]);
+      js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Лист заданий формируется и скачивается в PDF...'),
