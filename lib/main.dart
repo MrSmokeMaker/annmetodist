@@ -1,6 +1,7 @@
 
 
 import 'dart:js_util' as js_util;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -41,20 +42,22 @@ void main() async {
     ),
   );
 
-  // JS Bridge for PDF generation callback (window.onPdfGenerated)
-  try {
-    // Use js_util to set a global property on the window object.
-    // ignore: avoid_dynamic_calls
-    js_util.setProperty(js_util.globalThis, 'onPdfGenerated', (dynamic fileName) {
-      if (fileName != null) {
-        final ctx = navigatorKey.currentContext;
-        if (ctx != null) {
-          Provider.of<AppProvider>(ctx, listen: false).addRecentPdf(fileName.toString());
+  // JS Bridge for PDF generation callback (window.onPdfGenerated) - only for web
+  if (kIsWeb) {
+    try {
+      // Use js_util to set a global property on the window object.
+      // ignore: avoid_dynamic_calls
+      js_util.setProperty(js_util.globalThis, 'onPdfGenerated', (dynamic fileName) {
+        if (fileName != null) {
+          final ctx = navigatorKey.currentContext;
+          if (ctx != null) {
+            Provider.of<AppProvider>(ctx, listen: false).addRecentPdf(fileName.toString());
+          }
         }
-      }
-    });
-  } catch (e) {
-    debugPrint('JS bridge onPdfGenerated setup error: $e');
+      });
+    } catch (e) {
+      debugPrint('JS bridge onPdfGenerated setup error: $e');
+    }
   }
 }
 

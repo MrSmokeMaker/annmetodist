@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/conspect.dart';
 import '../models/prompt_version.dart';
@@ -20,7 +20,7 @@ class StorageService {
   static const String defaultFolderId = 'REMOVED_FOLDER_ID';
   static const String defaultProxyUrl = 'https://functions.yandexcloud.net/d4eq8r2ueghpmbl5oj3c';
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  late SharedPreferences _sharedPreferences;
   late Box _conspectsBox;
   late Box _settingsBox;
   late Box _promptVersionsBox;
@@ -35,22 +35,23 @@ class StorageService {
       _conspectsBox = await Hive.openBox(_conspectBoxName);
       _settingsBox = await Hive.openBox(_settingsBoxName);
       _promptVersionsBox = await Hive.openBox(_promptVersionsBoxName);
+      _sharedPreferences = await SharedPreferences.getInstance();
 
       _isInitialized = true;
 
       // Seed defaults if empty
       try {
-        final existingKey = await _secureStorage.read(key: _apiKeyStorageKey);
+        final existingKey = _sharedPreferences.getString(_apiKeyStorageKey);
         if (existingKey == null || existingKey.isEmpty) {
-          await _secureStorage.write(key: _apiKeyStorageKey, value: defaultApiKey);
+          await _sharedPreferences.setString(_apiKeyStorageKey, defaultApiKey);
         }
-        final existingFolder = await _secureStorage.read(key: _folderIdStorageKey);
+        final existingFolder = _sharedPreferences.getString(_folderIdStorageKey);
         if (existingFolder == null || existingFolder.isEmpty) {
-          await _secureStorage.write(key: _folderIdStorageKey, value: defaultFolderId);
+          await _sharedPreferences.setString(_folderIdStorageKey, defaultFolderId);
         }
-        final existingProxy = await _secureStorage.read(key: _proxyUrlStorageKey);
+        final existingProxy = _sharedPreferences.getString(_proxyUrlStorageKey);
         if (existingProxy == null || existingProxy.isEmpty) {
-          await _secureStorage.write(key: _proxyUrlStorageKey, value: defaultProxyUrl);
+          await _sharedPreferences.setString(_proxyUrlStorageKey, defaultProxyUrl);
         }
       } catch (_) {
         // Fallback to Hive _settingsBox on web when secureStorage is restricted
@@ -74,7 +75,7 @@ class StorageService {
 
   Future<String?> getApiKey() async {
     try {
-      final key = await _secureStorage.read(key: _apiKeyStorageKey);
+      final key = _sharedPreferences.getString(_apiKeyStorageKey);
       if (key != null && key.isNotEmpty) return key;
     } catch (_) {}
     if (_isInitialized) {
@@ -86,7 +87,7 @@ class StorageService {
 
   Future<void> saveApiKey(String apiKey) async {
     try {
-      await _secureStorage.write(key: _apiKeyStorageKey, value: apiKey.trim());
+      await _sharedPreferences.setString(_apiKeyStorageKey, apiKey.trim());
     } catch (_) {}
     if (_isInitialized) {
       await _settingsBox.put(_apiKeyStorageKey, apiKey.trim());
@@ -95,7 +96,7 @@ class StorageService {
 
   Future<String?> getFolderId() async {
     try {
-      final folder = await _secureStorage.read(key: _folderIdStorageKey);
+      final folder = _sharedPreferences.getString(_folderIdStorageKey);
       if (folder != null && folder.isNotEmpty) return folder;
     } catch (_) {}
     if (_isInitialized) {
@@ -107,7 +108,7 @@ class StorageService {
 
   Future<void> saveFolderId(String folderId) async {
     try {
-      await _secureStorage.write(key: _folderIdStorageKey, value: folderId.trim());
+      await _sharedPreferences.setString(_folderIdStorageKey, folderId.trim());
     } catch (_) {}
     if (_isInitialized) {
       await _settingsBox.put(_folderIdStorageKey, folderId.trim());
@@ -116,8 +117,8 @@ class StorageService {
 
   Future<void> deleteCredentials() async {
     try {
-      await _secureStorage.delete(key: _apiKeyStorageKey);
-      await _secureStorage.delete(key: _folderIdStorageKey);
+      await _sharedPreferences.remove(_apiKeyStorageKey);
+      await _sharedPreferences.remove(_folderIdStorageKey);
     } catch (_) {}
     if (_isInitialized) {
       await _settingsBox.delete(_apiKeyStorageKey);
@@ -173,7 +174,7 @@ class StorageService {
 
   Future<String?> getProxyUrl() async {
     try {
-      final url = await _secureStorage.read(key: _proxyUrlStorageKey);
+      final url = _sharedPreferences.getString(_proxyUrlStorageKey);
       if (url != null && url.isNotEmpty) return url;
     } catch (_) {}
     if (_isInitialized) {
@@ -185,7 +186,7 @@ class StorageService {
 
   Future<void> saveProxyUrl(String url) async {
     try {
-      await _secureStorage.write(key: _proxyUrlStorageKey, value: url.trim());
+      await _sharedPreferences.setString(_proxyUrlStorageKey, url.trim());
     } catch (_) {}
     if (_isInitialized) {
       await _settingsBox.put(_proxyUrlStorageKey, url.trim());

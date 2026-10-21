@@ -1,4 +1,5 @@
 // Homework generation screen (based on WorksheetScreen)
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -117,7 +118,9 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
 
     try {
       final jsonStr = jsonEncode(payload);
-      js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
+      if (kIsWeb) {
+        js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Домашнее задание формируется и скачивается в PDF...'),
