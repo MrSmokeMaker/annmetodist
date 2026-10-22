@@ -31,7 +31,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web release
-        run: flutter build web --release --base-href / --no-tree-shake-icons
+        run: flutter build web --release --base-href /annmetodist/ --no-tree-shake-icons
 
       - name: Validate JavaScript bundles
         run: |
