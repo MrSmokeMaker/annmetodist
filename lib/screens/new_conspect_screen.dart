@@ -15,7 +15,12 @@ import 'conspect_view_screen.dart';
 import 'settings_screen.dart';
 
 class NewConspectScreen extends StatefulWidget {
-  const NewConspectScreen({super.key});
+  final Set<GenerationType> selectedMaterials;
+
+  const NewConspectScreen({
+    super.key,
+    this.selectedMaterials = const {GenerationType.conspect},
+  });
 
   @override
   State<NewConspectScreen> createState() => _NewConspectScreenState();
@@ -39,7 +44,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   int _variantsCount = 1; // 1 или 3
 
   // Шаг 3: Выбор генерируемых материалов
-  final Set<GenerationType> _selectedMaterials = {GenerationType.conspect};
+  late Set<GenerationType> _selectedMaterials;
 
   final TextEditingController _reviewController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -124,6 +129,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedMaterials = Set<GenerationType>.from(widget.selectedMaterials);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppProvider>();
       if (provider.methods.isNotEmpty) {

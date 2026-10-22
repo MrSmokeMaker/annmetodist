@@ -170,6 +170,22 @@ class AppProvider with ChangeNotifier {
     return tags.toList();
   }
 
+  /// Преобразует Set<GenerationType> в List<String> для поля generatedMaterials
+  List<String>? _mapGenerationTypesToStrings(Set<GenerationType>? types) {
+    if (types == null || types.isEmpty) return null;
+    
+    return types.map((type) {
+      switch (type) {
+        case GenerationType.conspect:
+          return 'conspect';
+        case GenerationType.worksheet:
+          return 'worksheet';
+        case GenerationType.homework:
+          return 'homework';
+      }
+    }).toList();
+  }
+
   // Шаг 2: Одиночная или пакетная генерация
   Future<Conspect> generateConspect({
     required MethodPrompt method,
@@ -252,7 +268,7 @@ class AppProvider with ChangeNotifier {
         variantIndex: variantIndex,
         batchGroupId: batchGroupId,
         cards: cards.isNotEmpty ? cards : null,
-        generatedMaterials: materials?.map((t) => t.name).toList() ?? const ['conspect'],
+        generatedMaterials: _mapGenerationTypesToStrings(materials) ?? const ['conspect'],
         parentAudioScript: parentAudio,
         promptVersionId: promptVersion.id,
         createdAt: DateTime.now(),
