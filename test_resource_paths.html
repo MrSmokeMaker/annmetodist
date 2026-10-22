@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка путей ресурсов для GitHub Pages</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .resource { padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Проверка доступности ресурсов для GitHub Pages</h1>
+    <p>Проверяем, доступны ли ресурсы по пути /annmetodist/</p>
+    
+    <div id="results">
+        <div class="resource loading" id="manifest">Проверяем manifest.json...</div>
+        <div class="resource loading" id="bootstrap">Проверяем flutter_bootstrap.js...</div>
+        <div class="resource loading" id="font-regular">Проверяем Nunito-Regular.ttf...</div>
+        <div class="resource loading" id="font-bold">Проверяем Nunito-Bold.ttf...</div>
+        <div class="resource loading" id="favicon">Проверяем favicon.png...</div>
+        <div class="resource loading" id="icon-192">Проверяем icons/Icon-192.png...</div>
+    </div>
+    
+    <button onclick="testAllResources()">Запустить проверку</button>
+    
+    <script>
+        async function testResource(url, elementId) {
+            const element = document.getElementById(elementId);
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                if (response.ok) {
+                    element.textContent = `✅ ${url} - доступен (${response.status})`;
+                    element.className = 'resource success';
+                } else {
+                    element.textContent = `❌ ${url} - ошибка (${response.status})`;
+                    element.className = 'resource error';
+                }
+            } catch (error) {
+                element.textContent = `❌ ${url} - ошибка сети: ${error.message}`;
+                element.className = 'resource error';
+            }
+        }
+        
+        function testAllResources() {
+            const base = '/annmetodist/';
+            testResource(base + 'manifest.json', 'manifest');
+            testResource(base + 'flutter_bootstrap.js', 'bootstrap');
+            testResource(base + 'Nunito-Regular.ttf', 'font-regular');
+            testResource(base + 'Nunito-Bold.ttf', 'font-bold');
+            testResource(base + 'favicon.png', 'favicon');
+            testResource(base + 'icons/Icon-192.png', 'icon-192');
+        }
+        
+        // Автоматически запускаем проверку при загрузке
+        window.onload = testAllResources;
+    </script>
+    
+    <hr>
+    <h2>Текущие пути в index.html:</h2>
+    <pre>
+manifest.json: /annmetodist/manifest.json
+flutter_bootstrap.js: /annmetodist/flutter_bootstrap.js
+Nunito-Regular.ttf: /annmetodist/Nunito-Regular.ttf
+Nunito-Bold.ttf: /annmetodist/Nunito-Bold.ttf
+favicon.png: /annmetodist/favicon.png
+apple-touch-icon: /annmetodist/icons/Icon-192.png
+    </pre>
+</body>
+</html>

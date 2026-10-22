@@ -4,13 +4,16 @@ import 'package:printing/printing.dart';
 import '../models/conspect.dart';
 import '../models/printable_card.dart';
 
+/// Типы материалов для генерации
+enum MaterialType {
+  conspect,    // Основной конспект занятия
+  worksheet,   // Лист заданий для печати
+  homework     // Домашняя работа
+}
+
 class PdfExportService {
-  /// Типы материалов для генерации
-  enum MaterialType {
-    conspect,    // Основной конспект занятия
-    worksheet,   // Лист заданий для печати
-    homework     // Домашняя работа
-  }
+  static PdfColor _withOpacity(PdfColor baseColor, double opacity) =>
+      PdfColor(baseColor.red, baseColor.green, baseColor.blue, opacity);
   /// Exports conspect to formatted PDF document and opens print/share dialog
   static Future<void> exportAndSharePdf(Conspect conspect) async {
     // Если выбран только один материал, используем старый метод для обратной совместимости
@@ -49,7 +52,7 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        theme: pw.Typography.roboto.copyWith(
+        theme: pw.ThemeData.withFont(
           base: fontRegular,
           bold: fontBold,
           italic: fontItalic,
@@ -321,9 +324,9 @@ class PdfExportService {
                 width: 36,
                 height: 36,
                 decoration: pw.BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: _withOpacity(color, 0.1),
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border.all(color: color.withOpacity(0.3), width: 1),
+                  border: pw.Border.all(color: _withOpacity(color, 0.3), width: 1),
                 ),
                 child: pw.Center(
                   child: pw.Text(
@@ -347,7 +350,7 @@ class PdfExportService {
                       style: pw.TextStyle(
                         fontSize: 22,
                         fontWeight: pw.FontWeight.bold,
-                        color: color.withOpacity(0.9),
+                        color: _withOpacity(color, 0.9),
                       ),
                     ),
                   ],
@@ -363,9 +366,9 @@ class PdfExportService {
               begin: pw.Alignment.centerLeft,
               end: pw.Alignment.centerRight,
               colors: [
-                color.withOpacity(0.7),
-                color.withOpacity(0.4),
-                PdfColors.grey300.withOpacity(0.2),
+                _withOpacity(color, 0.7),
+                _withOpacity(color, 0.4),
+                _withOpacity(PdfColors.grey300, 0.2),
               ],
             ),
             borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
@@ -388,18 +391,18 @@ class PdfExportService {
           begin: pw.Alignment.topLeft,
           end: pw.Alignment.bottomRight,
           colors: [
-            color.withOpacity(0.15),
-            color.withOpacity(0.08),
-            color.withOpacity(0.03),
+            _withOpacity(color, 0.15),
+            _withOpacity(color, 0.08),
+            _withOpacity(color, 0.03),
           ],
         ),
         borderRadius: pw.BorderRadius.circular(12),
-        border: pw.Border.all(color: color.withOpacity(0.2), width: 1),
+        border: pw.Border.all(color: _withOpacity(color, 0.2), width: 1),
         boxShadow: [
           pw.BoxShadow(
-            color: PdfColors.grey300.withOpacity(0.5),
+            color: _withOpacity(PdfColors.grey300, 0.5),
             blurRadius: 6,
-            offset: const pw.Offset(0, 2),
+            offset: const PdfPoint(0, 2),
           ),
         ],
       ),
@@ -420,7 +423,7 @@ class PdfExportService {
                   style: pw.TextStyle(
                     fontSize: 12,
                     fontWeight: pw.FontWeight.bold,
-                    color: color.withOpacity(0.9),
+                    color: _withOpacity(color, 0.9),
                   ),
                 ),
               ),
@@ -429,7 +432,7 @@ class PdfExportService {
           pw.SizedBox(height: 14),
           pw.Container(
             height: 1,
-            color: color.withOpacity(0.2),
+            color: _withOpacity(color, 0.2),
             margin: const pw.EdgeInsets.symmetric(vertical: 4),
           ),
           pw.SizedBox(height: 8),
@@ -469,12 +472,12 @@ class PdfExportService {
         pw.SizedBox(width: 4),
         pw.Text(
           label,
-          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.w600, color: PdfColors.grey700),
+          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
         ),
         pw.SizedBox(width: 4),
         pw.Text(
           value,
-          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.w500, color: PdfColors.grey800),
+          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800),
         ),
       ],
     );
@@ -596,17 +599,17 @@ class PdfExportService {
                 end: pw.Alignment.centerRight,
                 colors: [
                   PdfColors.blue50,
-                  PdfColors.indigo50.withOpacity(0.8),
-                  PdfColors.grey100.withOpacity(0.4),
+                  PdfColors.indigo50,
+                  PdfColors.grey100,
                 ],
               ),
               borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: PdfColors.indigo200.withOpacity(0.5), width: 1.2),
+              border: pw.Border.all(color: PdfColors.indigo200, width: 1.2),
               boxShadow: [
                 pw.BoxShadow(
-                  color: PdfColors.grey400.withOpacity(0.2),
+                  color: PdfColors.grey400,
                   blurRadius: 4,
-                  offset: const pw.Offset(0, 2),
+                  offset: const PdfPoint(0, 2),
                 ),
               ],
             ),
@@ -623,9 +626,9 @@ class PdfExportService {
                     borderRadius: pw.BorderRadius.circular(14),
                     boxShadow: [
                       pw.BoxShadow(
-                        color: PdfColors.indigo300.withOpacity(0.4),
+                        color: _withOpacity(PdfColors.indigo300, 0.4),
                         blurRadius: 3,
-                        offset: const pw.Offset(0, 1),
+                        offset: const PdfPoint(0, 1),
                       ),
                     ],
                   ),
@@ -678,7 +681,7 @@ class PdfExportService {
                   trimmed.substring(3).trim(),
                   style: pw.TextStyle(
                     fontSize: 14,
-                    fontWeight: pw.FontWeight.w600,
+                    fontWeight: pw.FontWeight.bold,
                     color: PdfColors.blue900,
                   ),
                 ),
