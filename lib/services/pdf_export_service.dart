@@ -5,11 +5,90 @@ import '../models/conspect.dart';
 import '../models/printable_card.dart';
 
 class PdfExportService {
+  /// Типы материалов для генерации
+  enum MaterialType {
+    conspect,    // Основной конспект занятия
+    worksheet,   // Лист заданий для печати
+    homework     // Домашняя работа
+  }
   /// Exports conspect to formatted PDF document and opens print/share dialog
   static Future<void> exportAndSharePdf(Conspect conspect) async {
+    // Если выбран только один материал, используем старый метод для обратной совместимости
+    if (conspect.generatedMaterials.length == 1 && conspect.generatedMaterials.contains('conspect')) {
+      await _exportSinglePdf(conspect, MaterialType.conspect);
+      return;
+    }
+    
+    // Генерация нескольких PDF по выбранным материалам
+    for (final material in conspect.generatedMaterials) {
+      final materialType = _mapMaterialToType(material);
+      if (materialType != null) {
+        await _exportSinglePdf(conspect, materialType);
+      }
+    }
+  }
+
+  /// Экспорт отдельного PDF по типу материала
+  static Future<void> _exportSinglePdf(Conspect conspect, MaterialType type) async {
     final pdf = pw.Document();
 
     // Load Cyrillic-compatible Google Font (Roboto)
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontItalic = await PdfGoogleFonts.robotoItalic();
+
+    // Извлекаем только нужную часть контента в зависимости от типа
+    final filteredContent = _extractMaterialContent(conspect.content, type);
+    if (filteredContent.isEmpty) {
+      // Если контент не найден, используем весь контент
+      await _exportLegacyPdf(conspect);
+      return;
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: pw.Typography.roboto.copyWith(
+          base: fontRegular,
+          bold: fontBold,
+          italic: fontItalic,
+        ),
+        header: (context) => _buildPdfHeader(conspect, type),
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 12),
+          child: pw.Text(
+            'Страница ${context.pageNumber} из ${context.pagesCount}',
+            style: const pw.TextStyle(color: PdfColors.grey500, fontSize: 9),
+          ),
+        ),
+        build: (context) => [
+          // Заголовок с иконкой
+          _buildPdfTitle(conspect, type),
+          pw.SizedBox(height: 12),
+
+          // Информация о материале
+          _buildMaterialInfo(conspect, type),
+          pw.SizedBox(height: 16),
+
+          // Основной контент
+          ..._buildContentWidgets(filteredContent, fontRegular, fontBold),
+        ],
+      ),
+    );
+
+    // Share/print the generated PDF
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: _getPdfFilename(conspect.title, type),
+    );
+  }
+
+  /// Старый метод для обратной совместимости
+  static Future<void> _exportLegacyPdf(Conspect conspect) async {
+    final pdf = pw.Document();
+
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
     final fontItalic = await PdfGoogleFonts.robotoItalic();
@@ -105,6 +184,387 @@ class PdfExportService {
     );
   }
 
+  /// Преобразует строковый идентификатор материала в MaterialType
+  static MaterialType? _mapMaterialToType(String material) {
+    switch (material) {
+      case 'conspect':
+        return MaterialType.conspect;
+      case 'worksheet':
+        return MaterialType.worksheet;
+      case 'homework':
+        return MaterialType.homework;
+      default:
+        return null;
+    }
+  }
+
+  /// Извлекает контент для определенного типа материала
+  static String _extractMaterialContent(String content, MaterialType type) {
+    // Удаляем все JSON блоки и карточки из контента
+    final cleanedContent = _removeCardsAndJson(content);
+    
+    // Разделяем контент по заголовкам
+    final sections = _splitContentBySections(cleanedContent);
+    
+    switch (type) {
+      case MaterialType.conspect:
+        // Берем все секции кроме листа заданий и домашней работы
+        return sections.entries
+            .where((entry) => !entry.key.toLowerCase().contains('лист заданий') &&
+                           !entry.key.toLowerCase().contains('домашняя работа') &&
+                           !entry.key.toLowerCase().contains('блок дополнительных заданий'))
+            .map((entry) => '# ${entry.key}\n${entry.value}')
+            .join('\n\n');
+        
+      case MaterialType.worksheet:
+        // Находим секцию "Лист заданий"
+        final worksheetSection = sections.entries
+            .firstWhere((entry) => entry.key.toLowerCase().contains('лист заданий'), 
+                       orElse: () => MapEntry('', ''));
+        return worksheetSection.value.isNotEmpty ? 
+               '# Лист заданий для печати\n${worksheetSection.value}' : '';
+        
+      case MaterialType.homework:
+        // Находим секцию "Домашняя работа"
+        final homeworkSection = sections.entries
+            .firstWhere((entry) => entry.key.toLowerCase().contains('домашняя работа') ||
+                                 entry.key.toLowerCase().contains('блок дополнительных заданий'), 
+                       orElse: () => MapEntry('', ''));
+        return homeworkSection.value.isNotEmpty ? 
+               '# Домашняя работа\n${homeworkSection.value}' : '';
+        
+      default:
+        return cleanedContent;
+    }
+  }
+
+  /// Удаляет карточки и JSON блоки из контента
+  static String _removeCardsAndJson(String content) {
+    // Удаляем блоки с карточками (JSON массивы)
+    final jsonRegex = RegExp(r'```(?:json)?\s*(\[\s*\{[\s\S]*?\}\s*\])\s*```');
+    var cleaned = content.replaceAllMapped(jsonRegex, (match) => '');
+    
+    // Удаляем простые JSON массивы
+    final rawJsonRegex = RegExp(r'(\[\s*\{[\s\S]*?\}\s*\])');
+    cleaned = cleaned.replaceAllMapped(rawJsonRegex, (match) => '');
+    
+    // Удаляем описание формата карточек
+    cleaned = cleaned.replaceAll('Карточки для занятия', '');
+    cleaned = cleaned.replaceAll('раздаточные карточки', '');
+    
+    return cleaned.trim();
+  }
+
+  /// Разделяет контент на секции по заголовкам Markdown
+  static Map<String, String> _splitContentBySections(String content) {
+    final sections = <String, String>{};
+    final lines = content.split('\n');
+    String? currentSection;
+    final sectionContent = StringBuffer();
+    
+    for (final line in lines) {
+      if (line.startsWith('# ')) {
+        // Сохраняем предыдущую секцию
+        if (currentSection != null && sectionContent.isNotEmpty) {
+          sections[currentSection] = sectionContent.toString().trim();
+          sectionContent.clear();
+        }
+        // Начинаем новую секцию
+        currentSection = line.substring(2).trim();
+      } else if (currentSection != null) {
+        sectionContent.writeln(line);
+      }
+    }
+    
+    // Сохраняем последнюю секцию
+    if (currentSection != null && sectionContent.isNotEmpty) {
+      sections[currentSection] = sectionContent.toString().trim();
+    }
+    
+    return sections;
+  }
+
+  /// Создает заголовок PDF файла
+  static pw.Widget _buildPdfHeader(Conspect conspect, MaterialType type) {
+    final headerText = _getMaterialHeaderText(type);
+    return pw.Container(
+      alignment: pw.Alignment.centerRight,
+      margin: const pw.EdgeInsets.only(bottom: 12),
+      padding: const pw.EdgeInsets.only(bottom: 6),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.8),
+        ),
+      ),
+      child: pw.Text(
+        '$headerText: ${conspect.methodName} — ${conspect.subject}',
+        style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9),
+      ),
+    );
+  }
+
+  /// Создает заголовок PDF с иконкой
+  static pw.Widget _buildPdfTitle(Conspect conspect, MaterialType type) {
+    final icon = _getMaterialIcon(type);
+    final title = _getMaterialTitle(conspect.title, type);
+    final color = _getMaterialColor(type);
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 8),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Container(
+                width: 36,
+                height: 36,
+                decoration: pw.BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: color.withOpacity(0.3), width: 1),
+                ),
+                child: pw.Center(
+                  child: pw.Text(
+                    icon,
+                    style: const pw.TextStyle(fontSize: 20, color: PdfColors.grey800),
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 16),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      _getMaterialHeaderText(type).replaceFirst('Методист • ', ''),
+                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey600),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      title,
+                      style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                        color: color.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        pw.Container(
+          height: 4,
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              begin: pw.Alignment.centerLeft,
+              end: pw.Alignment.centerRight,
+              colors: [
+                color.withOpacity(0.7),
+                color.withOpacity(0.4),
+                PdfColors.grey300.withOpacity(0.2),
+              ],
+            ),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
+          ),
+        ),
+        pw.SizedBox(height: 8),
+      ],
+    );
+  }
+
+  /// Создает информационный блок материала
+  static pw.Widget _buildMaterialInfo(Conspect conspect, MaterialType type) {
+    final description = _getMaterialDescription(type);
+    final color = _getMaterialColor(type);
+    
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        gradient: pw.LinearGradient(
+          begin: pw.Alignment.topLeft,
+          end: pw.Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.15),
+            color.withOpacity(0.08),
+            color.withOpacity(0.03),
+          ],
+        ),
+        borderRadius: pw.BorderRadius.circular(12),
+        border: pw.Border.all(color: color.withOpacity(0.2), width: 1),
+        boxShadow: [
+          pw.BoxShadow(
+            color: PdfColors.grey300.withOpacity(0.5),
+            blurRadius: 6,
+            offset: const pw.Offset(0, 2),
+          ),
+        ],
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text(
+                _getMaterialIcon(type),
+                style: const pw.TextStyle(fontSize: 18, color: PdfColors.grey700),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: pw.Text(
+                  description,
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                    color: color.withOpacity(0.9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 14),
+          pw.Container(
+            height: 1,
+            color: color.withOpacity(0.2),
+            margin: const pw.EdgeInsets.symmetric(vertical: 4),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _buildInfoItem('📘', 'Методика:', conspect.methodName),
+                  _buildInfoItem('📚', 'Предмет:', conspect.subject),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  _buildInfoItem('👶', 'Возраст:', conspect.ageGroup),
+                  _buildInfoItem('⏱', 'Длительность:', conspect.duration),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Создает элемент информации
+  static pw.Widget _buildInfoItem(String icon, String label, String value) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Text(
+          icon,
+          style: const pw.TextStyle(fontSize: 10),
+        ),
+        pw.SizedBox(width: 4),
+        pw.Text(
+          label,
+          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.w600, color: PdfColors.grey700),
+        ),
+        pw.SizedBox(width: 4),
+        pw.Text(
+          value,
+          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.w500, color: PdfColors.grey800),
+        ),
+      ],
+    );
+  }
+
+  /// Получает заголовок для шапки PDF
+  static String _getMaterialHeaderText(MaterialType type) {
+    switch (type) {
+      case MaterialType.conspect:
+        return 'Методист • Конспект занятия';
+      case MaterialType.worksheet:
+        return 'Методист • Лист заданий';
+      case MaterialType.homework:
+        return 'Методист • Домашняя работа';
+      default:
+        return 'Методист';
+    }
+  }
+
+  /// Получает иконку для типа материала
+  static String _getMaterialIcon(MaterialType type) {
+    switch (type) {
+      case MaterialType.conspect:
+        return '📋';
+      case MaterialType.worksheet:
+        return '📄';
+      case MaterialType.homework:
+        return '🏠';
+      default:
+        return '📝';
+    }
+  }
+
+  /// Получает заголовок PDF
+  static String _getMaterialTitle(String baseTitle, MaterialType type) {
+    switch (type) {
+      case MaterialType.conspect:
+        return 'Конспект занятия: $baseTitle';
+      case MaterialType.worksheet:
+        return 'Лист заданий: $baseTitle';
+      case MaterialType.homework:
+        return 'Домашняя работа: $baseTitle';
+      default:
+        return baseTitle;
+    }
+  }
+
+  /// Получает описание материала
+  static String _getMaterialDescription(MaterialType type) {
+    switch (type) {
+      case MaterialType.conspect:
+        return 'Подробный конспект занятия с пошаговым сценарием, целями и задачами';
+      case MaterialType.worksheet:
+        return 'Раздаточный материал для печати с упражнениями и заданиями';
+      case MaterialType.homework:
+        return 'Задания для домашней работы с творческими и практическими упражнениями';
+      default:
+        return 'Учебный материал';
+    }
+  }
+
+  /// Получает цвет для типа материала
+  static PdfColor _getMaterialColor(MaterialType type) {
+    switch (type) {
+      case MaterialType.conspect:
+        return PdfColors.indigo500;
+      case MaterialType.worksheet:
+        return PdfColors.blue500;
+      case MaterialType.homework:
+        return PdfColors.green500;
+      default:
+        return PdfColors.grey500;
+    }
+  }
+
+  /// Получает имя файла для PDF
+  static String _getPdfFilename(String title, MaterialType type) {
+    final cleanTitle = title.replaceAll(' ', '_');
+    switch (type) {
+      case MaterialType.conspect:
+        return 'Конспект_$cleanTitle.pdf';
+      case MaterialType.worksheet:
+        return 'Лист_заданий_$cleanTitle.pdf';
+      case MaterialType.homework:
+        return 'Домашняя_работа_$cleanTitle.pdf';
+      default:
+        return 'Материал_$cleanTitle.pdf';
+    }
+  }
+
   static List<pw.Widget> _buildContentWidgets(
     String content,
     pw.Font regular,
@@ -112,77 +572,223 @@ class PdfExportService {
   ) {
     final lines = content.split('\n');
     final List<pw.Widget> widgets = [];
+    int sectionCounter = 0;
+    bool inList = false;
 
     for (final line in lines) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) {
-        widgets.add(pw.SizedBox(height: 6));
+        widgets.add(pw.SizedBox(height: 10));
+        inList = false;
         continue;
       }
 
       if (trimmed.startsWith('# ')) {
+        sectionCounter++;
+        final sectionTitle = trimmed.substring(2).trim();
         widgets.add(
           pw.Container(
-            margin: const pw.EdgeInsets.only(top: 14, bottom: 6),
-            padding: const pw.EdgeInsets.only(bottom: 4),
-            decoration: const pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.indigo400, width: 1.5),
+            margin: const pw.EdgeInsets.only(top: 24, bottom: 12),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: pw.BoxDecoration(
+              gradient: pw.LinearGradient(
+                begin: pw.Alignment.centerLeft,
+                end: pw.Alignment.centerRight,
+                colors: [
+                  PdfColors.blue50,
+                  PdfColors.indigo50.withOpacity(0.8),
+                  PdfColors.grey100.withOpacity(0.4),
+                ],
               ),
+              borderRadius: pw.BorderRadius.circular(10),
+              border: pw.Border.all(color: PdfColors.indigo200.withOpacity(0.5), width: 1.2),
+              boxShadow: [
+                pw.BoxShadow(
+                  color: PdfColors.grey400.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const pw.Offset(0, 2),
+                ),
+              ],
             ),
-            child: pw.Text(
-              trimmed.substring(2).trim(),
-              style: pw.TextStyle(
-                fontSize: 14,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.indigo900,
-              ),
-            ),
-          ),
-        );
-      } else if (trimmed.startsWith('## ')) {
-        widgets.add(
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 10, bottom: 4),
-            child: pw.Text(
-              trimmed.substring(3).trim(),
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey800,
-              ),
-            ),
-          ),
-        );
-      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        widgets.add(
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 12, bottom: 3),
             child: pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text('• ',
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Container(
+                  width: 28,
+                  height: 28,
+                  decoration: pw.BoxDecoration(
+                    gradient: const pw.LinearGradient(
+                      colors: [PdfColors.blue400, PdfColors.indigo500],
+                    ),
+                    borderRadius: pw.BorderRadius.circular(14),
+                    boxShadow: [
+                      pw.BoxShadow(
+                        color: PdfColors.indigo300.withOpacity(0.4),
+                        blurRadius: 3,
+                        offset: const pw.Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: pw.Center(
+                    child: pw.Text(
+                      '$sectionCounter',
+                      style: const pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 14),
                 pw.Expanded(
                   child: pw.Text(
-                    trimmed.substring(2).trim(),
-                    style: const pw.TextStyle(fontSize: 10, lineSpacing: 1.3),
+                    sectionTitle,
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.indigo900,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         );
-      } else {
+        inList = false;
+      } else if (trimmed.startsWith('## ')) {
         widgets.add(
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 4),
-            child: pw.Text(
-              trimmed,
-              style: const pw.TextStyle(fontSize: 10, lineSpacing: 1.4),
+          pw.Container(
+            margin: const pw.EdgeInsets.only(top: 16, bottom: 8),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Container(
+                  width: 8,
+                  height: 8,
+                  decoration: pw.BoxDecoration(
+                    gradient: const pw.LinearGradient(
+                      colors: [PdfColors.blue400, PdfColors.indigo400],
+                    ),
+                    shape: pw.BoxShape.circle,
+                  ),
+                ),
+                pw.SizedBox(width: 10),
+                pw.Text(
+                  trimmed.substring(3).trim(),
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.w600,
+                    color: PdfColors.blue900,
+                  ),
+                ),
+              ],
             ),
           ),
         );
+        inList = false;
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 16, bottom: 6),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 6,
+                  height: 6,
+                  margin: const pw.EdgeInsets.only(top: 6),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.indigo500,
+                    shape: pw.BoxShape.circle,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                    child: pw.Text(
+                      trimmed.substring(2).trim(),
+                      style: const pw.TextStyle(
+                        fontSize: 11,
+                        lineSpacing: 1.5,
+                        color: PdfColors.grey800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        inList = true;
+      } else if (trimmed.startsWith('1. ') || trimmed.startsWith('2. ') || trimmed.startsWith('3. ') ||
+                 trimmed.startsWith('4. ') || trimmed.startsWith('5. ') || trimmed.startsWith('6. ') ||
+                 trimmed.startsWith('7. ') || trimmed.startsWith('8. ') || trimmed.startsWith('9. ')) {
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 16, bottom: 6),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 20,
+                  height: 20,
+                  margin: const pw.EdgeInsets.only(top: 2),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.indigo100,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: PdfColors.indigo300, width: 0.8),
+                  ),
+                  child: pw.Center(
+                    child: pw.Text(
+                      trimmed.substring(0, 2).trim(),
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.indigo700,
+                      ),
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 10),
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                    child: pw.Text(
+                      trimmed.substring(2).trim(),
+                      style: const pw.TextStyle(
+                        fontSize: 11,
+                        lineSpacing: 1.5,
+                        color: PdfColors.grey800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        inList = true;
+      } else {
+        // Обычный текст
+        widgets.add(
+          pw.Container(
+            margin: pw.EdgeInsets.only(
+              bottom: 6,
+              left: inList ? 16 : 0,
+            ),
+            child: pw.Text(
+              trimmed,
+              style: pw.TextStyle(
+                fontSize: 11,
+                lineSpacing: 1.6,
+                color: PdfColors.grey800,
+              ),
+            ),
+          ),
+        );
+        inList = false;
       }
     }
 
