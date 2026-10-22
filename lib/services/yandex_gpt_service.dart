@@ -46,7 +46,7 @@ class YandexGptService {
               ],
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       // Detailed console diagnostics
       print('YandexGptService testConnection -> URL: $proxyUrl, status: ${response.statusCode}');
@@ -90,10 +90,10 @@ class YandexGptService {
         'message': 'Прокси недоступен или ошибка сервера (${response.statusCode}): ${response.body}',
       };
     } on TimeoutException {
-      print('YandexGptService testConnection -> Таймаут запроса (30 секунд). URL: $proxyUrl');
+      print('YandexGptService testConnection -> Таймаут запроса (60 секунд). URL: $proxyUrl');
       return {
         'success': false,
-        'message': 'Превышено время ожидания ответа (30 секунд). Проверьте интернет-соединение и повторите.',
+        'message': 'Превышено время ожидания ответа (60 секунд). Проверьте интернет-соединение и повторите.',
       };
     } catch (e) {
       print('YandexGptService testConnection -> URL: $proxyUrl');
@@ -138,7 +138,7 @@ class YandexGptService {
             headers: {'Content-Type': 'application/json'},
             body: body,
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       // Diagnostic logging.
       print('generateConspect -> URL: $proxyUrl, status: ${response.statusCode}');
@@ -179,8 +179,8 @@ class YandexGptService {
           throw YandexGptException('Ошибка генерации (${response.statusCode}): ${response.body}', response.statusCode);
       }
     } on TimeoutException {
-      print('generateConspect -> Таймаут 30 секунд. URL: $proxyUrl');
-      throw YandexGptException('Превышено время ожидания ответа (30 секунд). Проверьте интернет-соединение и повторите.');
+      print('generateConspect -> Таймаут 60 секунд. URL: $proxyUrl');
+      throw YandexGptException('Превышено время ожидания ответа (60 секунд). Проверьте интернет-соединение и повторите.');
     } catch (e) {
       if (e is YandexGptException) rethrow;
       print('generateConspect -> URL: $proxyUrl, ошибка: $e');

@@ -16,6 +16,7 @@ class Conspect {
   final int variantIndex;
   final String? batchGroupId;
   final List<PrintableCard>? cards;
+  final List<String> generatedMaterials;
   final String? parentAudioScript;
   final String? promptVersionId;
   final String parentNotes;
@@ -38,6 +39,7 @@ class Conspect {
     this.variantIndex = 1,
     this.batchGroupId,
     this.cards,
+    this.generatedMaterials = const ['conspect'],
     this.parentAudioScript,
     this.promptVersionId,
     this.parentNotes = '',
@@ -46,108 +48,69 @@ class Conspect {
   });
 
   Conspect copyWith({
-    String? id,
-    String? title,
-    String? methodId,
-    String? methodName,
-    String? subject,
-    String? ageGroup,
-    String? topic,
-    String? duration,
-    String? review,
-    String? notes,
-    String? content,
-    List<String>? feedbackTags,
-    int? variantIndex,
-    String? batchGroupId,
-    List<PrintableCard>? cards,
-    String? parentAudioScript,
-    String? promptVersionId,
-    String? parentNotes,
-    DateTime? createdAt,
+    String? id, String? title, String? methodId, String? methodName,
+    String? subject, String? ageGroup, String? topic, String? duration,
+    String? review, String? notes, String? content, List<String>? feedbackTags,
+    int? variantIndex, String? batchGroupId, List<PrintableCard>? cards,
+    List<String>? generatedMaterials, String? parentAudioScript,
+    String? promptVersionId, String? parentNotes, DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Conspect(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      methodId: methodId ?? this.methodId,
-      methodName: methodName ?? this.methodName,
-      subject: subject ?? this.subject,
-      ageGroup: ageGroup ?? this.ageGroup,
-      topic: topic ?? this.topic,
-      duration: duration ?? this.duration,
-      review: review ?? this.review,
-      notes: notes ?? this.notes,
-      content: content ?? this.content,
-      feedbackTags: feedbackTags ?? this.feedbackTags,
-      variantIndex: variantIndex ?? this.variantIndex,
-      batchGroupId: batchGroupId ?? this.batchGroupId,
-      cards: cards ?? this.cards,
+      id: id ?? this.id, title: title ?? this.title,
+      methodId: methodId ?? this.methodId, methodName: methodName ?? this.methodName,
+      subject: subject ?? this.subject, ageGroup: ageGroup ?? this.ageGroup,
+      topic: topic ?? this.topic, duration: duration ?? this.duration,
+      review: review ?? this.review, notes: notes ?? this.notes,
+      content: content ?? this.content, feedbackTags: feedbackTags ?? this.feedbackTags,
+      variantIndex: variantIndex ?? this.variantIndex, batchGroupId: batchGroupId ?? this.batchGroupId,
+      cards: cards ?? this.cards, generatedMaterials: generatedMaterials ?? this.generatedMaterials,
       parentAudioScript: parentAudioScript ?? this.parentAudioScript,
       promptVersionId: promptVersionId ?? this.promptVersionId,
-      parentNotes: parentNotes ?? this.parentNotes,
-      createdAt: createdAt ?? this.createdAt,
+      parentNotes: parentNotes ?? this.parentNotes, createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'title': title,
-      'methodId': methodId,
-      'methodName': methodName,
-      'subject': subject,
-      'ageGroup': ageGroup,
-      'topic': topic,
-      'duration': duration,
-      'review': review,
-      'notes': notes,
-      'content': content,
-      'feedbackTags': feedbackTags,
-      'variantIndex': variantIndex,
-      'batchGroupId': batchGroupId,
-      'cards': cards?.map((c) => c.toJson()).toList(),
-      'parentAudioScript': parentAudioScript,
-      'promptVersionId': promptVersionId,
-      'parentNotes': parentNotes,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-    };
-  }
+  Map<String, dynamic> toMap() => {
+    'id': id, 'title': title, 'methodId': methodId, 'methodName': methodName,
+    'subject': subject, 'ageGroup': ageGroup, 'topic': topic, 'duration': duration,
+    'review': review, 'notes': notes, 'content': content, 'feedbackTags': feedbackTags,
+    'variantIndex': variantIndex, 'batchGroupId': batchGroupId,
+    'cards': cards?.map((c) => c.toJson()).toList(),
+    'generatedMaterials': generatedMaterials, 'parentAudioScript': parentAudioScript,
+    'promptVersionId': promptVersionId, 'parentNotes': parentNotes,
+    'createdAt': createdAt.toIso8601String(), 'updatedAt': updatedAt?.toIso8601String(),
+  };
 
-  factory Conspect.fromMap(Map<dynamic, dynamic> map) {
-    return Conspect(
-      id: map['id'] as String? ?? '',
-      title: map['title'] as String? ?? '',
-      methodId: map['methodId'] as String? ?? '',
-      methodName: map['methodName'] as String? ?? '',
-      subject: map['subject'] as String? ?? '',
-      ageGroup: map['ageGroup'] as String? ?? '',
-      topic: map['topic'] as String? ?? '',
-      duration: map['duration'] as String? ?? '',
-      review: map['review'] as String? ?? '',
-      notes: map['notes'] as String? ?? '',
-      content: map['content'] as String? ?? '',
-      feedbackTags: (map['feedbackTags'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
-      variantIndex: (map['variantIndex'] as num?)?.toInt() ?? 1,
-      batchGroupId: map['batchGroupId'] as String?,
-      cards: (map['cards'] as List<dynamic>?)
-          ?.map((c) => PrintableCard.fromJson(Map<String, dynamic>.from(c as Map)))
-          .toList(),
-      parentAudioScript: map['parentAudioScript'] as String?,
-      promptVersionId: map['promptVersionId'] as String?,
-      parentNotes: map['parentNotes'] as String? ?? '',
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.tryParse(map['updatedAt'].toString())
-          : null,
-    );
+  factory Conspect.fromMap(Map<dynamic, dynamic> map) => Conspect(
+    id: map['id'] as String? ?? '', title: map['title'] as String? ?? '',
+    methodId: map['methodId'] as String? ?? '', methodName: map['methodName'] as String? ?? '',
+    subject: map['subject'] as String? ?? '', ageGroup: map['ageGroup'] as String? ?? '',
+    topic: map['topic'] as String? ?? '', duration: map['duration'] as String? ?? '',
+    review: map['review'] as String? ?? '', notes: map['notes'] as String? ?? '',
+    content: map['content'] as String? ?? '',
+    feedbackTags: (map['feedbackTags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+    variantIndex: (map['variantIndex'] as num?)?.toInt() ?? 1,
+    batchGroupId: map['batchGroupId'] as String?, cards: _readCards(map['cards']),
+    generatedMaterials: (map['generatedMaterials'] as List<dynamic>?)?.map((e) => e.toString()).where((e) => e.isNotEmpty).toList() ?? const ['conspect'],
+    parentAudioScript: map['parentAudioScript'] as String?, promptVersionId: map['promptVersionId'] as String?,
+    parentNotes: map['parentNotes'] as String? ?? '',
+    createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
+    updatedAt: map['updatedAt'] != null ? DateTime.tryParse(map['updatedAt'].toString()) : null,
+  );
+
+  static List<PrintableCard>? _readCards(dynamic rawCards) {
+    if (rawCards is! List) return null;
+    final cards = <PrintableCard>[];
+    for (final item in rawCards) {
+      if (item is! Map) continue;
+      try {
+        final card = PrintableCard.fromJson(Map<String, dynamic>.from(item));
+        if (card.frontText.isNotEmpty || card.backText.isNotEmpty) cards.add(card);
+      } catch (_) {}
+    }
+    return cards.isEmpty ? null : cards;
   }
 
   Map<String, dynamic> toJson() => toMap();

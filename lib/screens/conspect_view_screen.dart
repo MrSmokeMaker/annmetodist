@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../constants.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
 import '../models/method_prompt.dart';
@@ -34,6 +35,7 @@ class ConspectViewScreen extends StatefulWidget {
   final List<ActivityTechnique>? activities;
   final bool isNewGeneration;
   final int variantsCount;
+  final Set<GenerationType>? materials;
 
   const ConspectViewScreen({
     super.key,
@@ -48,6 +50,7 @@ class ConspectViewScreen extends StatefulWidget {
     this.activities,
     this.isNewGeneration = false,
     this.variantsCount = 1,
+    this.materials,
   });
 
   @override
@@ -154,6 +157,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           situation: widget.situation,
           activities: widget.activities,
           variantsCount: widget.variantsCount,
+          materials: widget.materials,
         );
 
         setState(() {
@@ -174,6 +178,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           notes: widget.notes,
           situation: widget.situation,
           activities: widget.activities,
+          materials: widget.materials,
         );
 
         setState(() {
@@ -1172,8 +1177,24 @@ ${_currentConspect!.content}
   Widget _buildPrintableCardsSection(bool isDark) {
     if (_currentConspect == null) return const SizedBox.shrink();
 
-    final List<PrintableCard> cards = _currentConspect!.cards ??
-        PromptBuilder.extractPrintableCards(_currentConspect!.content);
+    // Безопасно извлекаем карточки
+    List<PrintableCard> cards = [];
+    try {
+      final rawCards = _currentConspect!.cards;
+      if (rawCards != null && rawCards.isNotEmpty) {
+        cards = rawCards;
+      } else {
+        // Попробуем извлечь из контента
+        final extracted = PromptBuilder.extractPrintableCards(_currentConspect!.content);
+        if (extracted.isNotEmpty) {
+          cards = extracted;
+        }
+      }
+    } catch (e) {
+      // Если возникла ошибка при разборе карточек, покажем заглушку
+      print('Ошибка при разборе карточек: $e');
+      cards = [];
+    }
 
     return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -1255,14 +1276,16 @@ ${_currentConspect!.content}
               itemCount: cards.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.35,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.1,
               ),
               itemBuilder: (context, idx) {
                 final card = cards[idx];
+                final hasImage = card.imageUrl != null && card.imageUrl!.isNotEmpty;
+                
                 return Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withOpacity(0.04)
@@ -1282,46 +1305,78 @@ ${_currentConspect!.content}
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: AppColors.primaryIndigo.withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
                               PrintableCard.getTypeLabel(card.type).toUpperCase(),
                               style: const TextStyle(
-                                fontSize: 9,
+                                fontSize: 8,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primaryIndigo,
                               ),
                             ),
                           ),
-                          const Text('✂', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const Text('✂', style: TextStyle(fontSize: 9, color: Colors.grey)),
                         ],
                       ),
-                      Center(
-                        child: Text(
-                          card.frontText,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: card.frontText.length <= 4 ? 22 : 15,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      
+                      // Изображение или текст
+                      Expanded(
+                        child: Center(
+                          child: hasImage
+                              ? Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isDark 
+                                        ? Colors.white.withOpacity(0.05) 
+                                        : Colors.black.withOpacity(0.04),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isDark 
+                                          ? Colors.white.withOpacity(0.1) 
+                                          : Colors.black.withOpacity(0.08),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.image_outlined,
+                                    size: 20,
+                                    color: isDark ? Colors.white70 : Colors.black54,
+                                  ),
+                                )
+                              : Text(
+                                  card.frontText,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: card.frontText.length <= 4 ? 18 : 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                         ),
                       ),
-                      Text(
-                        card.imageHint != null && card.imageHint!.isNotEmpty
-                            ? '💡 ${card.imageHint}'
-                            : card.backText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      
+                      // Подсказка или текст на обороте
+                      Container(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          card.imageHint != null && card.imageHint!.isNotEmpty
+                              ? '💡 ${card.imageHint}'
+                              : (card.backText.isNotEmpty 
+                                  ? card.backText 
+                                  : (hasImage ? 'Изображение' : '')),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

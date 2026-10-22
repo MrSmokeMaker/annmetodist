@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../constants.dart';
 import '../data/method_repository.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
@@ -182,6 +183,7 @@ class AppProvider with ChangeNotifier {
     int variantIndex = 1,
     int totalVariants = 1,
     String? batchGroupId,
+    Set<GenerationType>? materials,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
@@ -250,6 +252,7 @@ class AppProvider with ChangeNotifier {
         variantIndex: variantIndex,
         batchGroupId: batchGroupId,
         cards: cards.isNotEmpty ? cards : null,
+        generatedMaterials: materials?.map((t) => t.name).toList() ?? const ['conspect'],
         parentAudioScript: parentAudio,
         promptVersionId: promptVersion.id,
         createdAt: DateTime.now(),
@@ -276,6 +279,7 @@ class AppProvider with ChangeNotifier {
     SituationTemplate? situation,
     List<ActivityTechnique>? activities,
     int variantsCount = 3,
+    Set<GenerationType>? materials,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
@@ -298,6 +302,7 @@ class AppProvider with ChangeNotifier {
           variantIndex: i,
           totalVariants: variantsCount,
           batchGroupId: batchGroupId,
+          materials: materials,
         );
         variants.add(variant);
         await saveConspect(variant);

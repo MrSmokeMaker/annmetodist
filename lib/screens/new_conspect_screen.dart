@@ -4,6 +4,7 @@ import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
+import '../constants.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
 import '../widgets/ambient_background.dart';
@@ -37,6 +38,9 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   // Шаг 2: Пакетная генерация вариантов
   int _variantsCount = 1; // 1 или 3
 
+  // Шаг 3: Выбор генерируемых материалов
+  final Set<GenerationType> _selectedMaterials = {GenerationType.conspect};
+
   final TextEditingController _reviewController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _customTopicController = TextEditingController();
@@ -57,6 +61,31 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
         _selectedTopic != null ||
         _selectedSituation != null ||
         _selectedActivities.isNotEmpty;
+  }
+
+  String _getGenerateButtonText() {
+    final variantText = _variantsCount == 3 ? '3 варианта' : 'материалы';
+    
+    // Считаем количество выбранных материалов
+    final selectedCount = _selectedMaterials.length;
+    
+    if (selectedCount == 1) {
+      // Только один тип материала
+      final material = _selectedMaterials.first;
+      final materialText = _variantsCount == 3 ? '3 варианта' : 'материалы';
+      return 'Сгенерировать ${material.label}';
+    } else if (selectedCount == GenerationType.values.length) {
+      // Все материалы выбраны
+      return _variantsCount == 3 
+          ? 'Сгенерировать 3 варианта (все материалы)'
+          : 'Сгенерировать все материалы';
+    } else {
+      // Несколько материалов
+      final materialsText = _selectedMaterials.map((m) => m.label).join(', ');
+      return _variantsCount == 3
+          ? 'Сгенерировать 3 варианта ($materialsText)'
+          : 'Сгенерировать $materialsText';
+    }
   }
 
   Future<bool> _showDiscardConfirmDialog() async {
@@ -200,6 +229,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           situation: _selectedSituation,
           activities: selectedTechniques,
           variantsCount: _variantsCount,
+          materials: _selectedMaterials,
           isNewGeneration: true,
         ),
       ),
@@ -868,9 +898,9 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                         itemCount: provider.activityLibrary.length,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          crossAxisSpacing: isDesktop ? 6.0 : 8.0,
-                          mainAxisSpacing: isDesktop ? 6.0 : 8.0,
-                          childAspectRatio: isDesktop ? 1.0 : 1.25,
+                          crossAxisSpacing: isDesktop ? 4.0 : 6.0,
+                          mainAxisSpacing: isDesktop ? 4.0 : 6.0,
+                          childAspectRatio: isDesktop ? 0.9 : 1.0,
                         ),
                         itemBuilder: (context, index) {
                           final activity = provider.activityLibrary[index];
@@ -886,17 +916,17 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                                 }
                               });
                             },
-                            borderRadius: BorderRadius.circular(AppRadii.md),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
-                              padding: EdgeInsets.all(cardPadding),
+                              padding: EdgeInsets.all(cardPadding * 0.7),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.primaryIndigo.withOpacity(isDark ? 0.22 : 0.12)
                                     : (isDark
                                         ? Colors.white.withOpacity(0.04)
                                         : Colors.white.withOpacity(0.65)),
-                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primaryIndigo
@@ -914,29 +944,30 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.all(5),
+                                        padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
                                           color: isSelected
                                               ? AppColors.primaryIndigo
                                               : (isDark
                                                   ? Colors.white.withOpacity(0.08)
                                                   : Colors.black.withOpacity(0.06)),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(5),
                                         ),
                                         child: Icon(
                                           _getActivityIcon(activity.category),
-                                          size: 15,
+                                          size: 12,
                                           color: isSelected ? Colors.white : AppColors.cyan,
                                         ),
                                       ),
                                       if (isSelected)
                                         const Icon(
                                           Icons.check_circle_rounded,
-                                          size: 16,
+                                          size: 14,
                                           color: AppColors.primaryIndigo,
                                         ),
                                     ],
                                   ),
+                                  const SizedBox(height: 2),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -946,7 +977,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                                         softWrap: true,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          fontSize: 12.5,
+                                          fontSize: 11,
                                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                                           height: 1.2,
                                           color: isDark
@@ -954,14 +985,14 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                                               : AppColors.textPrimaryLight,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 1),
                                       Text(
                                         activity.shortDescription,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          fontSize: 10.5,
-                                          height: 1.25,
+                                          fontSize: 9,
+                                          height: 1.2,
                                           color: isDark
                                               ? AppColors.textMutedDark
                                               : AppColors.textMutedLight,
@@ -1115,9 +1146,58 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
 
                 const SizedBox(height: AppSpacing.lg),
 
+                // Выбор генерируемых материалов
+                GlassCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.layers_outlined,
+                              size: 16,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Что генерировать:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Чипы для выбора материалов
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 2,
+                          children: GenerationType.values.map((type) => FilterChip(
+                            label: Text(type.label),
+                            selected: _selectedMaterials.contains(type),
+                            onSelected: (selected) => setState(() {
+                              if (selected) {
+                                _selectedMaterials.add(type);
+                              } else if (_selectedMaterials.length > 1) {
+                                _selectedMaterials.remove(type);
+                              }
+                            }),
+                          )).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.lg),
+
                 // Главный CTA «Сгенерировать»
                 GradientButton(
-                  text: _variantsCount == 3 ? 'Сгенерировать 3 варианта' : 'Сгенерировать конспект',
+                  text: _getGenerateButtonText(),
                   icon: Icons.auto_awesome,
                   onPressed: _onGeneratePressed,
                 ),
