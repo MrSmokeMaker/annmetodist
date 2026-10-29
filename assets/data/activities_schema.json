@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ActivitiesLibrarySchema",
+  "description": "Схема для библиотеки практических заданий и педагогических приёмов приложения Методист",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/ActivityTechnique"
+  },
+  "definitions": {
+    "ActivityStep": {
+      "type": "object",
+      "required": ["order", "title", "description"],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Порядковый номер шага"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Краткое название шага"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Подробное руководство к выполнению шага"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ссылки на изображения или медиа-ресурсы"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ActivityAssessment": {
+      "type": "object",
+      "required": ["type", "criteria"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["observation", "test", "verbal", "practical", "rubric"],
+          "description": "Тип оценивания выполнения приёма"
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Критерии успешного освоения"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ActivityMetadata": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "Дата создания записи (YYYY-MM-DD)"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Дата последнего обновления (YYYY-MM-DD)"
+        },
+        "author": {
+          "type": "string",
+          "description": "Автор или методист-составитель"
+        },
+        "source": {
+          "type": "string",
+          "description": "Методический первоисточник"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ActivityTechnique": {
+      "type": "object",
+      "required": ["id", "category", "title", "short_description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^act_[a-z0-9_]+$",
+          "description": "Уникальный идентификатор с префиксом act_"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Категория приёма/задания"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Название приёма"
+        },
+        "short_description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Краткое описание сущности приёма"
+        },
+        "sample_text": {
+          "type": "string",
+          "description": "Текстовое описание хода выполнения (для обратной совместимости)"
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "description": "Рекомендуемое время выполнения в минутах"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["easy", "medium", "hard"],
+          "description": "Уровень сложности: easy, medium или hard"
+        },
+        "learning_objectives": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Образовательные и развивающие цели"
+        },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Необходимый дидактический материал и инвентарь"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivityStep"
+          },
+          "description": "Последовательные шаги алгоритма выполнения"
+        },
+        "assessment": {
+          "$ref": "#/definitions/ActivityAssessment"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Теги для поиска и фильтрации"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ActivityMetadata"
+        },
+        "localizations": {
+          "type": "object",
+          "description": "Локализованные варианты названия, описания и шагов",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "short_description": { "type": "string" },
+              "sample_text": { "type": "string" }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

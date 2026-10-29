@@ -1,0 +1,603 @@
+import 'dart:convert';
+import '../models/printable_card.dart';
+import '../models/conspect.dart';
+import 'child_interaction_service.dart';
+import 'topic_explanation_service.dart';
+import 'content_structure_service.dart';
+
+class PromptBuilder {
+  /// Базовый шаблон (каркас) промпта с улучшениями для PDF.
+  static const String defaultTemplate = '''
+Ты — ведущий методист-практик начального образования и дошкольной педагогики высшей квалификационной категории.
+Твоя задача — составить максимально подробный, глубокий, практически применимый и педагогически выверенный методический комплекс strictly по указанным параметрам.
+
+🎨 ОСОБЕННОСТИ ГЕНЕРАЦИИ ДЛЯ УЛУЧШЕННОГО PDF:
+- Используй эмодзи в заголовках (📋, 📄, 🏠, 🎯, 💡) - они автоматически заменятся на красивые символы
+- Строго соблюдай иерархию заголовков: # H1, ## H2, ### H3 (для автоматических иконок)
+- Для важных блоков используй ключевые фразы: "Главное правило урока:", "Ловушка для внимательных:", "Памятка для родителей:"
+- Для интерактивных элементов: "Линии для ответа: _______________________", "⭐⭐⭐ Оцени свои успехи"
+- Уровни сложности: "Уровень 1 • Старт", "Уровень 2 • Практик", "Уровень 3 • Детектив Pro"
+
+Параметры занятия:
+- Методика и подход: {БЛОК_МЕТОДИКИ}
+- Тема: {ТЕМА}
+- Возрастная группа / класс: {КЛАСС}
+- Планируемая длительность: {ДЛИТЕЛЬНОСТЬ}
+- Повторение предыдущего материала: {ПОВТОРЕНИЕ}
+- Особые замечания и пожелания учителя: {ЗАМЕЧАНИЯ}
+{СИТУАЦИЯ_БЛОК}
+{ПРИЕМЫ_БЛОК}
+{АДАПТАЦИЯ_БЛОК}
+{ВАРИАНТ_БЛОК}
+
+ВАЖНЕЙШИЕ ПЕДАГОГИЧЕСКИЕ ТРЕБОВАНИЯ:
+1. КАТЕГОРИЧЕСКИЙ ЗАПРЕТ НА КРАТКОСТЬ И ОБЩИЕ ФРАЗЫ:
+   - Не пиши поверхностные тезисы вроде «учитель задает вопросы, дети отвечают».
+   - Пиши детальный, живой пошаговый сценарий: дословная прямая речь учителя («Учитель: "..."»), ожидаемые ответы и рассуждения учеников («Дети: "..."»).
+   - Каждая игра должна содержать полные правила, сюжетную канву, роли, интригу и пошаговый ход.
+   - Обязательно опиши конкретные движения физкультминутки / логоритмики со словами и моторными действиями.
+
+2. ГЛУБОКОЕ ОБЪЯСНЕНИЕ СУТИ ТЕМЫ:
+   - Объясняй суть понятий через 2-3 яркие осязаемые детские аналогии (из повседневного быта, игр, мультфильмов, природы).
+   - Обязательно вскрой типичную детскую ошибку (ловушку мышления) и дай наглядный способ ее преодоления.
+   - Сформулируй главное мнемоническое правило или рифмованную запоминалку.
+
+3. ОБШИРНЫЙ И ВАРИАТИВНЫЙ РАЗДАТОЧНЫЙ ЛИСТ (НЕ МЕНЕЕ 6-8 УПРАЖНЕНИЙ):
+   - Полноценный рабочий лист для печати, готовый к выдаче ученику.
+   - Задания должны быть разноформатными: работа с таблицами, заполнение пропусков, соединение стрелками, шифры, исправление ошибок.
+   - Уровень 1 (Старт): 2-3 базовых задания по образцу с графическими подсказками и местом для ответа («Линии для ответа: _______________________»).
+   - Уровень 2 (Практик): 3-4 прикладных задания с самостоятельным выбором и анализом.
+   - Уровень 3 (Детектив Pro): 2 задачи повышенной сложности (олимпиадные, ТРИЗ, поиск спрятанной ошибки в решении сказочного персонажа).
+   - Блок самооценки и настроения ученика.
+
+4. РАЗВЕРНУТАЯ ДОМАШНЯЯ РАБОТА:
+   - Детальная памятка для родителей: как поддержать ребенка, какие вопросы задать, как проверить без критики и давления.
+   - Минимум 3 разнообразных смысловых блока заданий (тренировка, практика в быту/наблюдение, творческий вызов).
+
+Структура конспекта (строго соблюдай названия разделов #):
+1. # Цель и задачи занятия (обучающие, развивающие, воспитательные с критериями достижения).
+2. # Теоретическое обоснование и глубокое объяснение темы (суть понятий, детские метафоры, анти-заблуждение, наглядные примеры).
+3. # Ход занятия (пошаговый развернутый сценарий с таймингом, дословной речью учителя, диалогами учеников, сюжетными играми и двигательной паузой).
+4. # Дифференциация и индивидуальный маршрут (стратегия помощи отстающим и развивающие задания для опережающих).
+5. # Лист заданий для печати (полноценный раздаточный лист из 6-8 упражнений):
+   - ## Главное правило урока: (мнемоника и наглядный алгоритм)
+   - ## Ловушка для внимательных: (разбор типичной ошибки)
+   - ### Уровень 1: Старт (2-3 базовых упражнения)
+   - ### Уровень 2: Практик (3-4 тренировочных задания с линиями для ответов)
+   - ### Уровень 3: Детектив Pro (2 логические/олимпиадные задачи)
+   - ## Самооценка и рефлексия (шкала успеха)
+6. # Подсказка для родителя (скрипт спокойного объяснения темы ребенку за 1 минуту дома).
+7. # Домашняя работа:
+   - ## Памятка для родителей (как мягко помочь и проконтролировать)
+   - ### Блок 1: Тренировка (2-3 упражнения на закрепление)
+   - ### Блок 2: Исследование в жизни (наблюдение или мини-эксперимент дома)
+   - ### Блок 3: Творческий вызов (нестандартная творческая задача)
+   - ## Оценка ребенка и подпись родителя
+
+Специальные правила:
+- Раздел "Необходимые материалы и наглядные пособия" опускается (по умолчанию используются печатные листы заданий и карточки).
+- Если возрастная группа — дошкольники (4–6 лет), занятие строится как непрерывное сюжетно-игровое путешествие с частой сменой деятельности.
+- Если блок повторения не указан — этап повторения в ходе занятия пропустить и сразу перейти к теме.
+- Все формулировки должны точно соответствовать духу и принципам выбранной методики.
+''';
+
+  static String buildSystemPrompt({
+    required String methodBlock,
+    required String topic,
+    required String ageGroup,
+    required String duration,
+    String? review,
+    String? notes,
+    String? situationRules,
+    List<String>? activitySamples,
+    List<String>? historicalFeedbackTags,
+    int? variantIndex,
+    int? totalVariants,
+    String? customTemplate,
+  }) {
+    final template = customTemplate ?? defaultTemplate;
+
+    final effectiveTopic = topic.trim().isEmpty ? 'не указано' : topic.trim();
+    final effectiveAge = ageGroup.trim().isEmpty ? 'не указано' : ageGroup.trim();
+    final effectiveDuration = duration.trim().isEmpty ? 'не указано' : duration.trim();
+    final effectiveNotes = (notes == null || notes.trim().isEmpty) ? 'не указано' : notes.trim();
+
+    final effectiveReview = (review == null || review.trim().isEmpty)
+        ? 'не указано (блок повторения пропустить)'
+        : review.trim();
+
+    String situationBlock = '';
+    if (situationRules != null && situationRules.trim().isNotEmpty) {
+      situationBlock = '- Особая ситуация урока: ${situationRules.trim()}';
+    }
+
+    String activitiesBlock = '';
+    if (activitySamples != null && activitySamples.isNotEmpty) {
+      final buffer = StringBuffer();
+      buffer.writeln('\nОбязательно включи в ход занятия следующие приёмы:');
+      for (final sample in activitySamples) {
+        buffer.writeln(sample.trim());
+      }
+      activitiesBlock = buffer.toString().trim();
+    }
+
+    // Шаг 2: Адаптация по обратной связи из истории
+    String adaptationBlock = '';
+    if (historicalFeedbackTags != null && historicalFeedbackTags.isNotEmpty) {
+      final List<String> rules = [];
+      if (historicalFeedbackTags.contains('Слишком много письма')) {
+        rules.add('- Правило адаптации: в предыдущих занятиях было слишком много письма. Сократи объём письменных заданий на 30%, переведя закрепление в устную или игровую форму.');
+      }
+      if (historicalFeedbackTags.contains('Было трудно')) {
+        rules.add('- Правило адаптации: ребенку было трудно на прошлом уроке. Упрости объяснения, снизь темп и добавь больше пошаговых примеров и наглядных опор.');
+      }
+      if (historicalFeedbackTags.contains('Справился легко')) {
+        rules.add('- Правило адаптация: ребенок легко справился с предыдущим материалом. Предложи более вариативные задания с элементами эвристики и повышенной сложности.');
+      }
+      if (historicalFeedbackTags.contains('Скучно было')) {
+        rules.add('- Правило адаптация: ребенку было скучно на предыдущем занятии. Добавь больше игровых элементов, загадок, интерактивных заданий и соревновательных моментов.');
+      }
+      if (historicalFeedbackTags.contains('Нужно больше практики')) {
+        rules.add('- Правило адаптация: ребенку требуется больше практических упражнений. Увеличь количество практических заданий на 40% и добавь дополнительные тренировочные упражнения.');
+      }
+      if (rules.isNotEmpty) {
+        adaptationBlock = rules.join('\n');
+      }
+    }
+
+    // Шаг 2: Вариант при пакетной генерации
+    String variantBlock = '';
+    if (variantIndex != null && totalVariants != null && totalVariants > 1) {
+      variantBlock = '- Инструкция по варианту: это вариант $variantIndex из $totalVariants. Сделай его заметно отличным от остальных (предложи другую сюжетную линию, другие игровые упражнения и примеры).';
+    }
+
+    return template
+        .replaceAll('{БЛОК_МЕТОДИКИ}', methodBlock.trim())
+        .replaceAll('{ТЕМА}', effectiveTopic)
+        .replaceAll('{КЛАСС}', effectiveAge)
+        .replaceAll('{ДЛИТЕЛЬНОСТЬ}', effectiveDuration)
+        .replaceAll('{ПОВТОРЕНИЕ}', effectiveReview)
+        .replaceAll('{ЗАМЕЧАНИЯ}', effectiveNotes)
+        .replaceAll('{СИТУАЦИЯ_БЛОК}', situationBlock)
+        .replaceAll('{ПРИЕМЫ_БЛОК}', activitiesBlock)
+        .replaceAll('{АДАПТАЦИЯ_БЛОК}', adaptationBlock)
+        .replaceAll('{ВАРИАНТ_БЛОК}', variantBlock);
+  }
+
+  static String buildUserPrompt({
+    required String methodName,
+    required String topic,
+    required String ageGroup,
+    required String duration,
+    String? situationTitle,
+    int? variantIndex,
+  }) {
+    final situationPart = (situationTitle != null && situationTitle.isNotEmpty)
+        ? ' (ситуация: $situationTitle)'
+        : '';
+    final variantPart = (variantIndex != null && variantIndex > 1)
+        ? ' (Вариант $variantIndex)'
+        : '';
+    
+    // Определяем рекомендуемые эмодзи для заголовков
+    final recommendedEmojis = _getRecommendedEmojisForTopic(topic);
+    
+    return '''
+Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".
+
+🎨 ДЛЯ УЛУЧШЕННОГО ВИЗУАЛЬНОГО ФОРМАТА ИСПОЛЬЗУЙ:
+
+${recommendedEmojis}
+
+📐 СТРУКТУРА КОНТЕНТА (оптимизирована для автоматического PDF):
+
+# Основы [$topic] (H1 - получит номер и иконку в PDF)
+
+## 🎯 Цели и задачи урока
+- Формулируй конкретные измеримые цели
+- Используй глаголы действия: "научиться", "понимать", "применять"
+
+## 📋 Объяснение нового материала
+- 2-3 яркие аналогии из жизни ребенка
+- Разбор типичной ошибки: "Ловушка для внимательных: ..."
+- Главное правило урока: сформулируй простое запоминающееся правило
+
+## 📝 Практические задания (6-8 упражнений)
+### Уровень 1 • Старт (2-3 задания)
+- Базовые упражнения с образцами
+- Линии для ответа: _______________________
+
+### Уровень 2 • Практик (3-4 задания)
+- Задания для самостоятельного выполнения
+- Включи таблицы, соединения стрелками, исправление ошибок
+
+### Уровень 3 • Детектив Pro (1-2 задания)
+- Задачи повышенной сложности
+- Творческие и исследовательские задания
+
+## 🏠 Домашняя работа
+### Памятка для родителей: (получит цветное выделение в PDF)
+- Конкретные советы как помочь без давления
+- Игровые форматы для закрепления
+
+### Задания для дома:
+1. Тренировочные упражнения
+2. Практика в быту (как применить в жизни)
+3. Творческий вызов (проект, исследование)
+
+## 💭 Рефлексия и самооценка
+⭐⭐⭐ Оцени свои успехи на занятии (создаст интерактивный блок в PDF)
+
+Ключевые обязательные акценты генерации:
+1. Максимальная конкретика сценария: подробные реплики учителя («...») и ответы детей, полные правила игр, пошаговые движения физкультминутки.
+2. Глубокое понятийное объяснение: 2-3 осязаемые детские аналогии, разбор частой детской ошибки-ловушки и мнемоническое правило.
+3. Полноценный рабочий лист для печати: не менее 6-8 упражнений, разбитых на 3 уровня сложности (Старт, Практик, Детектив Pro) с пунктирными полями ("Линии для ответа: _______________________") и самооценкой.
+4. Домашняя работа: детальная памятка для родителей (как бережно помочь) и 3 блока заданий (тренировка, практика в быту, творческий вызов).''';
+  }
+
+  /// Получает рекомендуемые эмодзи для темы
+  static String _getRecommendedEmojisForTopic(String topic) {
+    final lowerTopic = topic.toLowerCase();
+    
+    if (lowerTopic.contains('математик') || lowerTopic.contains('числ') || lowerTopic.contains('счет')) {
+      return '''🔢 РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ МАТЕМАТИКИ:
+  🎯 Цели, 🔢 Числа, ➕ Сложение, ➖ Вычитание, ✖️ Умножение, ➗ Деление, 📏 Измерения, ⚖️ Весы, 🧮 Счеты, 🎲 Игры с числами''';
+    } else if (lowerTopic.contains('язык') || lowerTopic.contains('чтение') || lowerTopic.contains('письм')) {
+      return '''📚 РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ ЯЗЫКА И ЧТЕНИЯ:
+  📖 Книга, ✍️ Письмо, 🔤 Буквы, 🔡 Алфавит, 💬 Диалог, 📝 Заметки, 🎭 Сказки, 📖 Рассказы, ✏️ Ручка, 📄 Текст''';
+    } else if (lowerTopic.contains('природ') || lowerTopic.contains('окружающ') || lowerTopic.contains('животн')) {
+      return '''🌿 РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ ПРИРОДОВЕДЕНИЯ:
+  🌳 Деревья, 🐾 Животные, 🌺 Растения, 🌍 Планета, 🌤️ Погода, 💧 Вода, 🌱 Рост, 🔬 Наблюдение, 🐛 Насекомые, 🐦 Птицы''';
+    } else if (lowerTopic.contains('творчеств') || lowerTopic.contains('рисован') || lowerTopic.contains('музык')) {
+      return '''🎨 РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ ТВОРЧЕСТВА:
+  🎨 Краски, 🎭 Театр, 🎵 Музыка, 💃 Танцы, 🎭 Куклы, 🖼️ Картины, 🧶 Рукоделие, 🎪 Цирк, 🎭 Маски, 🎤 Пение''';
+    } else if (lowerTopic.contains('истори') || lowerTopic.contains('времен') || lowerTopic.contains('прошл')) {
+      return '''🏛️ РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ ИСТОРИИ:
+  🏛️ Архитектура, ⏳ Время, 👑 Короли, 🛡️ Рыцари, 📜 Свитки, 🗺️ Карты, 💎 Сокровища, 🏰 Замки, ⚔️ Битвы, 👥 Народы''';
+    } else if (lowerTopic.contains('географи') || lowerTopic.contains('карт') || lowerTopic.contains('страны')) {
+      return '''🗺️ РЕКОМЕНДУЕМЫЕ ЭМОДЗИ ДЛЯ ГЕОГРАФИИ:
+  🗺️ Карты, 🌍 Глобус, 🏔️ Горы, 🌊 Океаны, 🏜️ Пустыни, 🌲 Леса, 🏙️ Города, 🌆 Столицы, 🚩 Флаги, 🧭 Компас''';
+    }
+    
+    return '''📋 ОБЩИЕ ЭМОДЗИ ДЛЯ УЧЕБНЫХ МАТЕРИАЛОВ:
+  🎯 Цели, 📋 Конспект, 📄 Лист заданий, 🏠 Домашка, 💡 Объяснение, 🧩 Задача, ✅ Проверка, 🤔 Вопрос, 💭 Мысль, 🏆 Успех''';
+  }
+
+  /// Шаг 3: Извлечение аудио-подсказки для родителя из текста конспекта
+  static String? extractParentAudioScript(String content) {
+    final regExp = RegExp(
+      r'#+\s*Подсказка для родителя[^\n]*\n([\s\S]*?)(?=(?:\n#+|\n```json|\Z))',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(content);
+    if (match != null) {
+      final text = match.group(1)?.trim();
+      if (text != null && text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  /// Извлечение структурированного JSON-блока с карточками
+  static List<PrintableCard> extractPrintableCards(String content) {
+    try {
+      final jsonBlockRegex = RegExp(r'```(?:json)?\s*(\[\s*\{[\s\S]*?\}\s*\])\s*```');
+      final match = jsonBlockRegex.firstMatch(content);
+      String rawJson = '';
+      if (match != null) {
+        rawJson = match.group(1) ?? '';
+      } else {
+        final start = content.indexOf('[');
+        final end = content.lastIndexOf(']');
+        if (start != -1 && end != -1 && end > start) {
+          rawJson = content.substring(start, end + 1);
+        }
+      }
+
+      if (rawJson.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(rawJson);
+        return list.map((item) => PrintableCard.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      print('Ошибка парсинга карточек: $e');
+    }
+    return [];
+  }
+
+  /// Промпт для генерации 6 двусторонних дидактических карточек к уроку для печати на А4
+  static Map<String, String> buildCardsOnlyPrompt({
+    required String topic,
+    required String ageGroup,
+    required String conspectContent,
+  }) {
+    final systemPrompt = '''
+Ты — профессиональный педагог и методист высшей категории.
+Твоя задача — составить ровно 6 наглядных двусторонних дидактических карточек к уроку для распечатки на листе А4 (сетка 2x3).
+
+Требования к карточкам:
+1. Количество: ровно 6 дидактических карточек.
+2. front_text: крупный лицевой элемент (слово, термин, ключевое понятие, математический пример, вопрос или формула).
+3. back_text: подсказка на обороте (краткое объяснение, определение, проверочный ответ или мнемоническое правило).
+4. image_hint: лаконичное описание визуального образа (например, "Весы с двумя чашами", "Яблоко разделенное пополам").
+5. type: тип карточки ('word', 'letter', 'syllable', 'task').
+
+Верни ответ ТОЛЬКО в формате валидного JSON массива из 6 объектов:
+```json
+[
+  {
+    "id": "1",
+    "front_text": "...",
+    "back_text": "...",
+    "image_hint": "...",
+    "type": "word"
+  }
+]
+```
+Не добавляй никакого вводного или заключительного текста кроме JSON блока.
+''';
+
+    final userPrompt = '''
+Тема занятия: "$topic"
+Возрастная группа: "$ageGroup"
+
+Контекст занятия для подбора карточек:
+${conspectContent.length > 1200 ? conspectContent.substring(0, 1200) : conspectContent}
+
+Создай ровно 6 содержательных дидактических карточек к уроку в формате JSON.
+''';
+
+    return {
+      'systemPrompt': systemPrompt,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Создать расширенный промпт с использованием новых сервисов и улучшенной структурой
+  static Map<String, String> buildEnhancedPrompt({
+    required String methodBlock,
+    required String topic,
+    required String ageGroup,
+    required String duration,
+    required String subject,
+    String? review,
+    String? notes,
+    String? situationRules,
+    List<String>? activitySamples,
+    List<String>? historicalFeedbackTags,
+    int? variantIndex,
+    int? totalVariants,
+  }) {
+    final baseSystemPrompt = buildSystemPrompt(
+      methodBlock: methodBlock,
+      topic: topic,
+      ageGroup: ageGroup,
+      duration: duration,
+      review: review,
+      notes: notes,
+      situationRules: situationRules,
+      activitySamples: activitySamples,
+      historicalFeedbackTags: historicalFeedbackTags,
+      variantIndex: variantIndex,
+      totalVariants: totalVariants,
+    );
+
+    // Получаем иконку для типа материала на основе метода
+    final materialIcon = _getMaterialIconByMethod(methodBlock);
+    
+    // Добавляем рекомендации из новых сервисов с улучшенной структурой
+    final enhancedGuidelines = '''
+
+ДОПОЛНИТЕЛЬНЫЕ РЕКОМЕНДАЦИИ ДЛЯ КАЧЕСТВЕННОГО КОНСПЕКТА:
+
+🎯 СТРУКТУРА И ФОРМАТИРОВАНИЕ ДЛЯ УЛУЧШЕННОГО PDF:
+
+1. ИЕРАРХИЯ ЗАГОЛОВКОВ (используй для автоматической иконки в PDF):
+   # Основная тема занятия (H1 - будет с номером и иконкой)
+   ## Цели и задачи урока (H2 - автоматически получит → иконку)
+   ## 📋 Объяснение нового материала (H2 с эмодзи - заменится на ⚡ в PDF)
+   ## 📝 Практические задания (H2 с эмодзи - заменится на ☑ в PDF)
+   ### Уровень 1 • Старт (H3 - получит • иконку)
+   ### Уровень 2 • Практик (H3 - получит ✓ иконку)
+   ### Уровень 3 • Детектив Pro (H3 - получит 🔍 иконку)
+
+2. ВИЗУАЛЬНЫЕ АКЦЕНТЫ ДЛЯ PDF:
+   - Правила урока: используй фразу "Главное правило урока:" (автоматически выделится)
+   - Ловушки внимания: используй "Ловушка для внимательных:" (автоматически выделится)
+   - Для родителей: "Памятка для родителей:" (автоматически выделится)
+   - Самооценка: "⭐⭐⭐ Оцени свои успехи на занятии" (создаст блок самооценки)
+
+3. ИНТЕРАКТИВНЫЕ ЭЛЕМЕНТЫ:
+   - Для полей ответов: "Линии для ответа: _______________________"
+   - Для чек-листов: "[ ] Отлично справился", "[ ] Нужна помощь"
+   - Для заметок: "Заметки учителя: ___________________________"
+
+${ChildInteractionService.getExplanationGuidelines(ageGroup)}
+
+Популярные темы для объяснения: ${TopicExplanationService.getPopularTopics(subject, ageGroup).join(', ')}
+
+Пример диалогового сценария:
+${ChildInteractionService.createDialogueScenario(topic, ageGroup, false)}
+
+Простое объяснение темы:
+${ChildInteractionService.createSimpleExplanation(topic, subject, ageGroup)}
+
+Дополнительные задания для домашней работы (с улучшенной структурой):
+${ChildInteractionService.createHomeworkAssignments(topic, subject, ageGroup, 7).map((a) => '- $a\n  Линии для ответа: _______\n').join('\n')}
+
+ИГРОВЫЕ ПРИЕМЫ ДЛЯ ВОВЛЕЧЕНИЯ (с эмодзи для наглядности):
+🎮 ${ChildInteractionService.getGameTechnique(ageGroup)}
+🎯 ${ChildInteractionService.getGameTechnique(ageGroup)}
+
+ВОПРОСЫ ДЛЯ АКТИВАЦИИ МЫШЛЕНИЯ (с поддержкой эмодзи):
+💭 ${ChildInteractionService.getRandomThinkingQuestion()}
+🤔 ${ChildInteractionService.getRandomThinkingQuestion()}
+
+${materialIcon} МАТЕРИАЛ БУДЕТ АВТОМАТИЧЕСКИ ПРЕОБРАЗОВАН В ПРОФЕССИОНАЛЬНЫЙ PDF:
+- Эмодзи заменятся на красивые символы (📋 → •, 📄 → ✱, 🏠 → ≡)
+- Заголовки получат цветные иконки и градиенты
+- Акцентные блоки будут выделены цветом
+- Поля для ответов станут удобными для заполнения
+''';
+
+    final userPrompt = buildUserPrompt(
+      methodName: methodBlock.split('\n').first.replaceAll('Методический подход ', '').replaceAll(':', ''),
+      topic: topic,
+      ageGroup: ageGroup,
+      duration: duration,
+      situationTitle: situationRules,
+      variantIndex: variantIndex,
+    );
+
+    return {
+      'systemPrompt': baseSystemPrompt + enhancedGuidelines,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Определяет иконку материала на основе метода
+  static String _getMaterialIconByMethod(String methodBlock) {
+    final method = methodBlock.toLowerCase();
+    
+    if (method.contains('конспект') || method.contains('объяснение') || method.contains('теория')) {
+      return '📋'; // Конспект
+    } else if (method.contains('задание') || method.contains('упражнение') || method.contains('практика')) {
+      return '📄'; // Лист заданий
+    } else if (method.contains('дом') || method.contains('самостоятельн')) {
+      return '🏠'; // Домашняя работа
+    } else if (method.contains('игра') || method.contains('игровой')) {
+      return '🎮'; // Игровой метод
+    } else if (method.contains('диалог') || method.contains('обсуждение')) {
+      return '💬'; // Диалоговый метод
+    } else if (method.contains('проект') || method.contains('исследование')) {
+      return '🔍'; // Исследовательский метод
+    }
+    
+    return '📋'; // Конспект по умолчанию
+  }
+
+  /// Создать промпт специально для объяснения темы ребенку
+  static Map<String, String> buildChildExplanationPrompt({
+    required String topic,
+    required String subject,
+    required String ageGroup,
+    required String methodName,
+  }) {
+    final systemPrompt = '''
+Ты — опытный педагог, который умеет объяснять сложные темы простым языком детям.
+Твоя задача — создать понятное, интересное объяснение темы "$topic" по предмету "$subject" для $ageGroup.
+
+Используй следующие принципы:
+${ChildInteractionService.getExplanationGuidelines(ageGroup)}
+
+Будь креативным, используй аналогии, примеры из жизни ребенка, игровые элементы.
+Объяснение должно быть эмоционально окрашенным, поддерживающим и мотивирующим.
+
+Структура объяснения:
+1. Введение: заинтересовать ребенка
+2. Основное объяснение: просто и понятно
+3. Примеры из жизни: показать практическую пользу
+4. Игровой элемент: вовлечь в процесс
+5. Закрепление: вопросы и практическое задание
+''';
+
+    final explanationTemplate = TopicExplanationService.getExplanation(subject, topic, ageGroup) ?? 
+        'Объясни тему "$topic" так, чтобы было интересно и понятно ребенку.';
+
+    final userPrompt = '''
+Создай объяснение темы "$topic" ($subject) для $ageGroup по методике "$methodName".
+
+Используй этот шаблон как основу:
+$explanationTemplate
+
+Добавь:
+- 2-3 ярких примера из жизни ребенка
+- 1 игровой элемент для закрепления
+- 3 вопроса для проверки понимания
+- Поддерживающие и мотивирующие фразы
+
+Объяснение должно быть на 1-2 минуты чтения вслух.
+''';
+
+    return {
+      'systemPrompt': systemPrompt,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Анализирует и улучшает структуру контента конспекта
+  static Map<String, dynamic> analyzeAndEnhanceContent(String content, Conspect conspect) {
+    final analysis = ContentStructureService.analyzeContentStructure(content);
+    
+    // Улучшаем структуру контента
+    final enhancedContent = ContentStructureService.enhanceContentStructure(
+      content,
+      conspect.topic,
+      conspect.subject,
+    );
+    
+    // Проверяем, нужны ли дополнительные улучшения
+    final needsImprovement = analysis['recommendations'] as List<String>;
+    final hasIssues = needsImprovement.isNotEmpty;
+    
+    return {
+      'originalContent': content,
+      'enhancedContent': enhancedContent,
+      'analysis': analysis,
+      'hasIssues': hasIssues,
+      'recommendations': needsImprovement,
+      'improvementScore': _calculateImprovementScore(analysis),
+      'pdfReady': _isPdfReady(analysis),
+    };
+  }
+  
+  /// Рассчитывает оценку улучшения структуры
+  static double _calculateImprovementScore(Map<String, dynamic> analysis) {
+    double score = 0.0;
+    
+    if (analysis['hasH1'] as bool) score += 20;
+    if (analysis['h2Count'] as int >= 3) score += 20;
+    if (analysis['h3Count'] as int >= 2) score += 15;
+    if (analysis['hasSpecialBlocks'] as bool) score += 15;
+    if (analysis['hasAnswerLines'] as bool) score += 10;
+    if (analysis['hasSelfAssessment'] as bool) score += 10;
+    if (analysis['hasEmojis'] as bool) score += 10;
+    
+    return score;
+  }
+  
+  /// Проверяет, готов ли контент к генерации PDF
+  static bool _isPdfReady(Map<String, dynamic> analysis) {
+    return (analysis['hasH1'] as bool) &&
+           (analysis['h2Count'] as int >= 2) &&
+           (analysis['hasAnswerLines'] as bool);
+  }
+  
+  /// Создает промпт для улучшения структуры контента
+  static String createStructureImprovementPrompt(String content, List<String> recommendations) {
+    return '''
+Ты — эксперт по структурированию учебных материалов.
+Твоя задача — улучшить структуру контента для оптимальной генерации PDF.
+
+ТЕКУЩИЙ КОНТЕНТ:
+```
+$content
+```
+
+АНАЛИЗ СТРУКТУРЫ:
+${recommendations.map((r) => '- $r').join('\n')}
+
+ЗАДАЧИ ПО УЛУЧШЕНИЮ:
+1. Добавь заголовок H1 (# Название темы)
+2. Организуй контент в разделы H2 (## Раздел) и H3 (### Подраздел)
+3. Добавь эмодзи в заголовки: 📋 для объяснений, 📝 для заданий, 🏠 для домашней работы
+4. Включи специальные блоки:
+   - "Главное правило урока:"
+   - "Ловушка для внимательных:"
+   - "Линии для ответа: _______________________"
+5. Добавь блок самооценки с ⭐⭐⭐
+
+Верни улучшенный контент с сохранением всего оригинального материала, но с лучшей структурой.
+''';
+  }
+}

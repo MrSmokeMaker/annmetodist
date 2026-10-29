@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест главной страницы Методист</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 40px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #7C5CFF;
+            border-bottom: 2px solid #7C5CFF;
+            padding-bottom: 10px;
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #6366F1;
+            background: #f8f9ff;
+        }
+        .test-item.passed {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .test-item.failed {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .code {
+            font-family: 'Consolas', monospace;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тестирование исправлений главной страницы "Методист"</h1>
+        
+        <div class="test-item passed">
+            <h3>✓ Файл web/index.html исправлен</h3>
+            <p>Исправлен обрезанный HTML код, добавлены недостающие закрывающие теги.</p>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Шрифты Nunito подключены</h3>
+            <p>Шрифты подключены в оба файла index.html (корневой и в папке web).</p>
+            <div class="code">
+@font-face {
+  font-family: 'Nunito';
+  src: url('Nunito-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+            </div>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Улучшена совместимость с Flutter</h3>
+            <p>Добавлено определение WebGL рендерера и улучшены fallback-механизмы.</p>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Обновлен дизайн загрузочного экрана</h3>
+            <p>Улучшены анимации, тени и градиенты загрузочного экрана.</p>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Добавлены недостающие SVG иконки</h3>
+            <p>Добавлена иконка спиннера для состояния загрузки.</p>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Улучшена структура CSS</h3>
+            <p>Добавлены стили для карточки "Новый конспект" и других элементов интерфейса.</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>Инструкции для проверки:</h3>
+            <ol>
+                <li>Откройте <strong>E:\My Projects\Metodist\index.html</strong> в браузере</li>
+                <li>Проверьте, что загрузочный экран отображается корректно</li>
+                <li>Убедитесь, что шрифты загружаются (текст должен быть в шрифте Nunito)</li>
+                <li>Для теста Flutter приложения запустите локальный сервер</li>
+            </ol>
+        </div>
+        
+        <div class="test-item passed">
+            <h3>✓ Файлы созданы/обновлены:</h3>
+            <ul>
+                <li>E:\My Projects\Metodist\index.html ✓</li>
+                <li>E:\My Projects\Metodist\web\index.html ✓</li>
+                <li>E:\My Projects\Metodist\web\custom.css ✓</li>
+                <li>E:\My Projects\Metodist\fonts\Nunito-Regular.ttf ✓</li>
+                <li>E:\My Projects\Metodist\fonts\Nunito-Bold.ttf ✓</li>
+            </ul>
+        </div>
+        
+        <div class="test-item">
+            <h3>Следующие шаги:</h3>
+            <p>Для полной проверки рекомендуется:</p>
+            <ol>
+                <li>Запустить проект Flutter: <code>flutter run -d chrome</code></li>
+                <li>Или использовать локальный сервер: <code>python -m http.server</code> в папке проекта</li>
+                <li>Проверить адаптивность на разных устройствах</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,27 +1,63 @@
 name: Deploy Metodist to GitHub Pages
+
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build-and-deploy:
-    runs-on: windows-latest
+  build_and_deploy:
+    runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: 3.16.0
-    - name: Get packages
-      run: flutter pub get
-    - name: Build web
-      run: flutter build web
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        flutter-build-dir: build/web
-        keep-history: false
-    - name: Success
-      run: echo Deployment successful!
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Activities & Templates Schema
+        run: node scripts/validate_activities.js
+
+      - name: Enable Web support
+        run: flutter config --enable-web
+
+      - name: Clean Flutter
+        run: flutter clean
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run Unit Tests
+        run: flutter test
+
+      - name: Build web release
+        run: flutter build web --release --base-href /annmetodist/ --no-tree-shake-icons
+
+      - name: Validate JavaScript bundles
+        run: |
+          node --check web/pdfmake_helper.js
+          node --check build/web/main.dart.js
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          force_orphan: true
+
+      - name: Success notice
+        run: echo "Metodist successfully deployed to GitHub Pages!"
