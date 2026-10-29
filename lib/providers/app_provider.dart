@@ -164,6 +164,7 @@ class AppProvider with ChangeNotifier {
 
   String get userTier => _storageService.getUserTier();
   bool get hasPackageBundleAccess => _storageService.hasPackageBundleAccess;
+  bool get isProUser => _storageService.hasProAccess;
 
   Future<void> setUserTier(String tier) async {
     await _storageService.saveUserTier(tier);

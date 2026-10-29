@@ -52,15 +52,15 @@ class PdfExportService {
 
 
   /// Экспорт отдельного материала (конспект, лист заданий или домашняя работа)
-  static Future<void> exportMaterialPdf(Conspect conspect, PdfMaterialType type) async {
-    await _exportSinglePdf(conspect, type);
+  static Future<void> exportMaterialPdf(Conspect conspect, PdfMaterialType type, {bool isPro = false}) async {
+    await _exportSinglePdf(conspect, type, isPro: isPro);
   }
 
   /// Exports conspect to formatted PDF document and opens print/share dialog
-  static Future<void> exportAndSharePdf(Conspect conspect) async {
+  static Future<void> exportAndSharePdf(Conspect conspect, {bool isPro = false}) async {
     // Если выбран только один материал, используем старый метод для обратной совместимости
     if (conspect.generatedMaterials.length == 1 && conspect.generatedMaterials.contains('conspect')) {
-      await _exportSinglePdf(conspect, PdfMaterialType.conspect);
+      await _exportSinglePdf(conspect, PdfMaterialType.conspect, isPro: isPro);
       return;
     }
     
@@ -68,13 +68,13 @@ class PdfExportService {
     for (final material in conspect.generatedMaterials) {
       final materialType = _mapMaterialToType(material);
       if (materialType != null) {
-        await _exportSinglePdf(conspect, materialType);
+        await _exportSinglePdf(conspect, materialType, isPro: isPro);
       }
     }
   }
 
   /// Экспорт отдельного PDF по типу материала
-  static Future<void> _exportSinglePdf(Conspect conspect, PdfMaterialType type) async {
+  static Future<void> _exportSinglePdf(Conspect conspect, PdfMaterialType type, {bool isPro = false}) async {
     final pdf = pw.Document();
 
     // Load Cyrillic-compatible Google Font (Roboto)
@@ -119,13 +119,25 @@ class PdfExportService {
           bold: fontBold,
           italic: fontItalic,
         ),
-        header: (context) => _buildPdfHeader(conspect, type),
+        header: (context) => _buildPdfHeader(conspect, type, isPro: isPro),
         footer: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(top: 12),
-          child: pw.Text(
-            'Страница ${context.pageNumber} из ${context.pagesCount}',
-            style: const pw.TextStyle(color: PdfColors.grey500, fontSize: 9),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              if (isPro)
+                pw.Text(
+                  '★ Премиум PDF • Методист Pro',
+                  style: const pw.TextStyle(color: PdfColors.indigo700, fontSize: 8),
+                )
+              else
+                pw.SizedBox(),
+              pw.Text(
+                'Страница ${context.pageNumber} из ${context.pagesCount}',
+                style: const pw.TextStyle(color: PdfColors.grey500, fontSize: 9),
+              ),
+            ],
           ),
         ),
         build: (context) => [
@@ -392,10 +404,9 @@ class PdfExportService {
     return sections;
   }
   /// Создает заголовок PDF файла
-  static pw.Widget _buildPdfHeader(Conspect conspect, PdfMaterialType type) {
+  static pw.Widget _buildPdfHeader(Conspect conspect, PdfMaterialType type, {bool isPro = false}) {
     final headerText = _getMaterialHeaderText(type);
     return pw.Container(
-      alignment: pw.Alignment.centerRight,
       margin: const pw.EdgeInsets.only(bottom: 12),
       padding: const pw.EdgeInsets.only(bottom: 6),
       decoration: const pw.BoxDecoration(
@@ -403,9 +414,29 @@ class PdfExportService {
           bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.8),
         ),
       ),
-      child: pw.Text(
-        '$headerText: ${conspect.methodName} — ${conspect.subject}',
-        style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          if (isPro)
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.indigo50,
+                borderRadius: pw.BorderRadius.circular(3),
+                border: pw.Border.all(color: PdfColors.indigo300, width: 0.5),
+              ),
+              child: pw.Text(
+                '★ МЕТОДИСТ PRO',
+                style: pw.TextStyle(color: PdfColors.indigo900, fontSize: 7, fontWeight: pw.FontWeight.bold),
+              ),
+            )
+          else
+            pw.SizedBox(),
+          pw.Text(
+            '$headerText: ${conspect.methodName} — ${conspect.subject}',
+            style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9),
+          ),
+        ],
       ),
     );
   }

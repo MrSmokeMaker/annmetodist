@@ -88,6 +88,11 @@ class StorageService {
     return tier == 'practice' || tier == 'pro';
   }
 
+  bool get hasProAccess {
+    final tier = getUserTier();
+    return tier == 'pro';
+  }
+
 
   // Defaults provided by user
   static const String defaultApiKey = 'REMOVED_API_KEY';

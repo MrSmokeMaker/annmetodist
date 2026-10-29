@@ -22,6 +22,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/thinking_indicator.dart';
 import 'lesson_run_screen.dart';
+import 'profile_screen.dart';
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -266,7 +267,8 @@ ${_currentConspect!.content}
   Future<void> _exportMaterial(PdfMaterialType type) async {
     if (_currentConspect == null) return;
     try {
-      await PdfExportService.exportMaterialPdf(_currentConspect!, type);
+      final isPro = context.read<AppProvider>().isProUser;
+      await PdfExportService.exportMaterialPdf(_currentConspect!, type, isPro: isPro);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -278,13 +280,115 @@ ${_currentConspect!.content}
   Future<void> _exportPdf() async {
     if (_currentConspect == null) return;
     try {
-      await PdfExportService.exportAndSharePdf(_currentConspect!);
+      final isPro = context.read<AppProvider>().isProUser;
+      await PdfExportService.exportAndSharePdf(_currentConspect!, isPro: isPro);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка экспорта в PDF: $e')),
       );
     }
+  }
+
+  void _showProFeatureDialog({
+    required BuildContext context,
+    required String title,
+    required String description,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF161922) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.amberOrange,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withOpacity(0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Позже'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF59E0B),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.stars_rounded, size: 20),
+                      label: const Text(
+                        'Перейти к тарифам',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).push(
+                          FadeSlidePageRoute(page: const ProfileScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Parses Markdown content into distinct sections by `# ` headers
@@ -1605,48 +1709,94 @@ ${_currentConspect!.content}
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    side: const BorderSide(color: AppColors.cyan),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                    ),
-                  ),
-                  icon: const Icon(Icons.auto_awesome, color: AppColors.cyan, size: 18),
-                  label: const Text(
-                    'Создать 6 карточек к уроку',
-                    style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w700),
-                  ),
-                  onPressed: () async {
-                    final provider = context.read<AppProvider>();
-                    try {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Генерируем карточки к уроку...')),
-                      );
-                      final newCards = await provider.generateCardsForConspect(_currentConspect!.id);
-                      if (mounted && newCards.isNotEmpty) {
-                        setState(() {
-                          _currentConspect = _currentConspect!.copyWith(cards: newCards);
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Карточки успешно созданы! Формируем PDF...')),
-                        );
-                        await PdfExportService.exportCardsPdf(
-                          cards: newCards,
-                          lessonTitle: _currentConspect!.title,
-                          methodName: _currentConspect!.methodName,
-                        );
-                      } else if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Не удалось сгенерировать карточки. Попробуйте еще раз.')),
-                        );
-                      }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ошибка генерации карточек: $e')),
-                      );
-                    }
+                child: Builder(
+                  builder: (btnCtx) {
+                    final provider = btnCtx.watch<AppProvider>();
+                    final isPro = provider.isProUser;
+
+                    return OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        side: BorderSide(color: isPro ? AppColors.cyan : const Color(0xFFF59E0B)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
+                      ),
+                      icon: Icon(
+                        isPro ? Icons.auto_awesome : Icons.workspace_premium_rounded,
+                        color: isPro ? AppColors.cyan : const Color(0xFFF59E0B),
+                        size: 18,
+                      ),
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isPro) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'PRO',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                          Text(
+                            'Создать 6 карточек к уроку',
+                            style: TextStyle(
+                              color: isPro ? AppColors.cyan : const Color(0xFFF59E0B),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onPressed: () async {
+                        if (!isPro) {
+                          _showProFeatureDialog(
+                            context: context,
+                            title: 'Дидактические карточки для вырезания',
+                            description:
+                                'Генерация комплекта двусторонних карточек к уроку для распечатки на формате А4 (сетка 2x3) доступна в тарифе «Методист Pro».',
+                          );
+                          return;
+                        }
+
+                        try {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Генерируем карточки к уроку...')),
+                          );
+                          final newCards = await provider.generateCardsForConspect(_currentConspect!.id);
+                          if (mounted && newCards.isNotEmpty) {
+                            setState(() {
+                              _currentConspect = _currentConspect!.copyWith(cards: newCards);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Карточки успешно созданы! Формируем PDF...')),
+                            );
+                            await PdfExportService.exportCardsPdf(
+                              cards: newCards,
+                              lessonTitle: _currentConspect!.title,
+                              methodName: _currentConspect!.methodName,
+                            );
+                          } else if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Не удалось сгенерировать карточки. Попробуйте еще раз.')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Ошибка генерации карточек: $e')),
+                          );
+                        }
+                      },
+                    );
                   },
                 ),
               ),
