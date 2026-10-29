@@ -33,8 +33,12 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
   String _selectedDuration = '45 мин';
 
   // New fields for worksheet
+    // New fields for worksheet
   int _tasksCount = 5; // default 5
   bool _withAnswers = false;
+  bool _includeWordBank = true;
+  bool _ecoPrint = false;
+  String _pageFormat = '1_page';
 
   final TextEditingController _customTopicController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -116,6 +120,9 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
       'duration': _selectedDuration,
       'tasksCount': _tasksCount,
       'withAnswers': _withAnswers,
+      'includeWordBank': _includeWordBank,
+      'ecoPrint': _ecoPrint,
+      'pageFormat': _pageFormat,
       'notes': _notesController.text.trim(),
     };
 
@@ -315,11 +322,47 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
                   }).toList(),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                                // Корзинка слов для справок
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.shopping_basket_outlined, size: 18, color: AppColors.primaryIndigo),
+                        const SizedBox(width: 8),
+                        Text('Корзинка слов для справок', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                      ],
+                    ),
+                    Switch(value: _includeWordBank, onChanged: (val) => setState(() => _includeWordBank = val)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                // Экономичный режим Eco-Print
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.print_outlined, size: 18, color: AppColors.cyan),
+                        const SizedBox(width: 8),
+                        Text('Режим Eco-Print (ч/б печать)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                      ],
+                    ),
+                    Switch(value: _ecoPrint, onChanged: (val) => setState(() => _ecoPrint = val)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 // С ответами для учителя
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('С ответами для учителя', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 18, color: AppColors.success),
+                        const SizedBox(width: 8),
+                        Text('С ответами для учителя', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                      ],
+                    ),
                     Switch(value: _withAnswers, onChanged: (val) => setState(() => _withAnswers = val)),
                   ],
                 ),

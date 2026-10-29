@@ -113,7 +113,7 @@ class PdfExportService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        margin: const pw.EdgeInsets.fromLTRB(44, 24, 24, 24),
         theme: pw.ThemeData.withFont(
           base: fontRegular,
           bold: fontBold,
@@ -614,6 +614,143 @@ class PdfExportService {
     cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
     
     return cleaned;
+  }
+
+  /// Блок самооценки и настроения
+  static pw.Widget _buildSelfAssessmentBlock() {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 12),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.indigo200, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'КАК Я СПРАВИЛСЯ С ЗАДАНИЯМИ:',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.indigo900,
+                ),
+              ),
+              pw.Text(
+                'Отметка / подпись учителя: ____________',
+                style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: [
+              pw.Row(children: [
+                pw.Container(
+                  width: 14,
+                  height: 14,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    border: pw.Border.all(color: PdfColors.green600, width: 1.2),
+                  ),
+                ),
+                pw.SizedBox(width: 4),
+                pw.Text('🙂 Отлично (всё сам)', style: const pw.TextStyle(fontSize: 9)),
+              ]),
+              pw.Row(children: [
+                pw.Container(
+                  width: 14,
+                  height: 14,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    border: pw.Border.all(color: PdfColors.amber600, width: 1.2),
+                  ),
+                ),
+                pw.SizedBox(width: 4),
+                pw.Text('😐 Нормально (были вопросы)', style: const pw.TextStyle(fontSize: 9)),
+              ]),
+              pw.Row(children: [
+                pw.Container(
+                  width: 14,
+                  height: 14,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    border: pw.Border.all(color: PdfColors.red600, width: 1.2),
+                  ),
+                ),
+                pw.SizedBox(width: 4),
+                pw.Text('🙁 Трудно (нужна помощь)', style: const pw.TextStyle(fontSize: 9)),
+              ]),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Линии для аккуратного письма от руки
+  static pw.Widget _buildAnswerLines({int count = 3, String? label}) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 6),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          if (label != null && label.isNotEmpty) ...[
+            pw.Text(label, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+            pw.SizedBox(height: 4),
+          ],
+          for (int i = 0; i < count; i++)
+            pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 12),
+              height: 1,
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                  bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.8),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Корзинка слов для справок
+  static pw.Widget _buildWordBank(String wordsText) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 8),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.amber50,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: PdfColors.amber300, width: 1),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Text(
+            'Слова для справок: ',
+            style: pw.TextStyle(
+              fontSize: 9.5,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.amber900,
+            ),
+          ),
+          pw.Expanded(
+            child: pw.Text(
+              wordsText,
+              style: const pw.TextStyle(
+                fontSize: 9.5,
+                color: PdfColors.grey900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static List<pw.Widget> _buildContentWidgets(

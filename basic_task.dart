@@ -506,6 +506,91 @@ const List<BasicTask> BASIC_TASKS = [
     },
   ),
 
+  // Соедини стрелками пары (Уровень 1: Старт)
+  BasicTask(
+    id: 'matching_pairs',
+    title: 'Соединялка: проведи стрелочки',
+    template: 'Соедини линией или стрелкой подходящие элементы из левого и правого столбца.',
+    schema: '{"type":"object","properties":{"leftCol":{"type":"array","items":{"type":"string"}},"rightCol":{"type":"array","items":{"type":"string"}}},"required":["leftCol","rightCol"]}',
+    rendererId: 'renderMatchingPairs',
+    iconId: 'icon-matching',
+    level: '1',
+    category: 'logic',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+      '3rd': {},
+    },
+  ),
+
+  // Ловушка Незнайки — найди и исправь ошибку (Уровень 2: Практик)
+  BasicTask(
+    id: 'bug_hunt',
+    title: 'Ловушка Незнайки: найди ошибки',
+    template: 'Сказочный персонаж решил задание, но сделал 2 хитрые ошибки. Найди и исправь их.',
+    schema: '{"type":"object","properties":{"character":{"type":"string"},"textWithErrors":{"type":"string"},"errorsCount":{"type":"integer"}},"required":["character","textWithErrors"]}',
+    rendererId: 'renderBugHunt',
+    iconId: 'icon-bug-hunt',
+    level: '2',
+    category: 'game',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+      '3rd': {},
+    },
+  ),
+
+  // Числовой домик состава числа (Уровень 1: Старт)
+  BasicTask(
+    id: 'number_house',
+    title: 'Числовой домик (состав числа)',
+    template: 'Заполни пустые окошки домика жильцами так, чтобы сумма на каждом этаже равнялась числу на крыше.',
+    schema: '{"type":"object","properties":{"targetNumber":{"type":"integer"},"floors":{"type":"array","items":{"type":"object"}}},"required":["targetNumber","floors"]}',
+    rendererId: 'renderNumberHouse',
+    iconId: 'icon-number-house',
+    level: '1',
+    category: 'math',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+      '3rd': {},
+    },
+  ),
+
+  // Секретный шифр (Уровень 3: Детектив Pro)
+  BasicTask(
+    id: 'cipher_code',
+    title: 'Секретный шифр детектива',
+    template: 'Расшифруй тайное послание или слово, сопоставив символы/числа с ключом шифра.',
+    schema: '{"type":"object","properties":{"keyTable":{"type":"object"},"codedMessage":{"type":"string"},"hint":{"type":"string"}},"required":["keyTable","codedMessage"]}',
+    rendererId: 'renderCipherCode',
+    iconId: 'icon-cipher',
+    level: '3',
+    category: 'logic',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+      '3rd': {},
+    },
+  ),
+
+  // Корзинка слов для справок (Уровень 2: Практик)
+  BasicTask(
+    id: 'word_bank_fill',
+    title: 'Вставь слова из корзинки справок',
+    template: 'Заполни пропуски в тексте, выбирая подходящие слова из корзинки подсказок.',
+    schema: '{"type":"object","properties":{"sentences":{"type":"array","items":{"type":"string"}},"wordBank":{"type":"array","items":{"type":"string"}}},"required":["sentences","wordBank"]}',
+    rendererId: 'renderWordBankFill',
+    iconId: 'icon-word-bank',
+    level: '2',
+    category: 'reading',
+    difficultyVariants: {
+      '1st': {},
+      '2nd': {},
+      '3rd': {},
+    },
+  ),
+
   // Задания с буквами и разлиновкой — Уровень 1: Старт
   BasicTask(
     id: 'letter_tracing',
