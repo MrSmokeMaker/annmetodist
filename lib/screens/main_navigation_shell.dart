@@ -269,7 +269,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
     // Mobile layout with Bottom Navigation & floating center button
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,

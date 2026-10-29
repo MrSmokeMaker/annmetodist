@@ -42,13 +42,25 @@
   </style>
 
   <style>
-    body {
+    html, body {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       margin: 0;
       padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
       background-color: #0D0F14;
       color: #F8FAFC;
       font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -149,7 +161,17 @@
 
     // Safety timeout
     setTimeout(removeLoader, 8000);
+
+    // Prevent mobile browser scroll/pinch drift causing tap offset
+    window.addEventListener('scroll', function() {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    }, { passive: true });
+    window.addEventListener('resize', function() {
+      window.scrollTo(0, 0);
+    });
   </script>
-  <script src="flutter_bootstrap.js?v=20261022" async></script>
+  <script src="flutter_bootstrap.js?v=20261029_1930" async></script>
 </body>
 </html>

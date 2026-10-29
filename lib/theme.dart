@@ -16,6 +16,8 @@ class AppColors {
   static const Color primaryViolet = Color(0xFF8B5CF6);
   static const Color cyan = Color(0xFF06B6D4);
   static const Color accentCyan = Color(0xFF06B6D4);
+  static const Color accentTeal = Color(0xFF14B8A6);
+  static const Color secondaryViolet = Color(0xFF8B5CF6);
   static const Color blue = Color(0xFF3B82F6);
 
   // Status & Utility Colors
