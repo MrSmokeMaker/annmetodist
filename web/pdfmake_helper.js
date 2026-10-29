@@ -4,8 +4,7 @@
 window.createWorksheetPdf = function(jsonStr) {
   try {
     const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-    const isWorksheet = data.generationType === 'worksheet';
-    const defaultTitle = isWorksheet ? 'Лист заданий' : 'Домашнее задание';
+        const defaultTitle = isWorksheet ? 'Лист заданий' : 'Домашнее задание';
     const mainTitle = (data.topic && data.topic.trim()) || data.title || defaultTitle;
     const fileName = `${defaultTitle.replace(/\s+/g, '_')}_${(data.topic || '').replace(/[^a-zA-Zа-яА-Я0-9_]/g, '_').slice(0, 20)}_${Date.now()}.pdf`;
 
@@ -70,20 +69,38 @@ window.createWorksheetPdf = function(jsonStr) {
     const ageGroupLabel = data.ageGroup === 'preschool' ? 'Дошкольники' : (data.ageGroup === 'grade_2' ? '2 класс' : '1 класс');
     const duration = data.duration || '45 мин';
 
+    const isWorksheet = data.generationType === 'worksheet';
+    const isHomework = !isWorksheet;
+    const isEcoPrint = data.ecoPrint === true;
+    const primaryColor = isEcoPrint ? '#1E293B' : (isHomework ? '#059669' : '#4F46E5');
+    const accentColor = isEcoPrint ? '#475569' : (isHomework ? '#10B981' : '#6366F1');
+    const baseFontSize = data.ageGroup === 'preschool' ? 12.5 : (data.ageGroup === 'grade_1' ? 11.5 : 11);
+    const baseLineHeight = data.ageGroup === 'preschool' ? 1.4 : 1.3;
+    const taskSpacing = count <= 4 ? [0, 8, 0, 14] : (count >= 6 ? [0, 4, 0, 8] : [0, 6, 0, 10]);
+
     const docDefinition = {
       pageSize: 'A4',
-      pageMargins: [48, 36, 30, 36],
+      pageMargins: [48, 32, 30, 32],
       defaultStyle: {
         font: 'Nunito',
-        fontSize: 11,
+        fontSize: baseFontSize,
         color: '#1E293B',
-        lineHeight: 1.3
+        lineHeight: baseLineHeight
+      },
+      footer: function(currentPage, pageCount) {
+        return {
+          margin: [48, 8, 30, 0],
+          columns: [
+            { text: `${defaultTitle} • «${mainTitle}» (${ageGroupLabel})`, fontSize: 8, color: '#94A3B8' },
+            { text: `Страница ${currentPage} из ${pageCount}`, alignment: 'right', fontSize: 8, color: '#94A3B8' }
+          ]
+        };
       },
       styles: {
         typeBadge: {
           fontSize: 10,
           bold: true,
-          color: '#6366F1'
+          color: primaryColor
         },
         docTitle: {
           fontSize: 20,
@@ -104,7 +121,7 @@ window.createWorksheetPdf = function(jsonStr) {
         taskNumber: {
           fontSize: 11,
           bold: true,
-          color: '#4F46E5'
+          color: primaryColor
         },
         taskBody: {
           fontSize: 11,
@@ -132,11 +149,26 @@ window.createWorksheetPdf = function(jsonStr) {
               ]
             },
             {
-              width: 120,
+              width: 175,
               alignment: 'right',
               stack: [
-                { text: 'Имя ученика: ________________', fontSize: 9, color: '#94A3B8', margin: [0, 8, 0, 6] },
-                { text: 'Дата: ______________', fontSize: 9, color: '#94A3B8' }
+                {
+                  table: {
+                    widths: ['*'],
+                    body: [
+                      [{
+                        fillColor: isEcoPrint ? undefined : '#F8FAFC',
+                        borderColor: ['#CBD5E1', '#CBD5E1', '#CBD5E1', '#CBD5E1'],
+                        border: [true, true, true, true],
+                        stack: [
+                          { text: 'Ученик: _______________________', fontSize: 8.5, color: '#334155', margin: [0, 2, 0, 4] },
+                          { text: 'Класс: ______     Дата: _________', fontSize: 8.5, color: '#64748B' }
+                        ],
+                        margin: [6, 4, 6, 4]
+                      }]
+                    ]
+                  }
+                }
               ]
             }
           ]
@@ -157,6 +189,42 @@ window.createWorksheetPdf = function(jsonStr) {
         }
       ]
     };
+
+    // Памятка для родителей для листа домашнего задания
+    if (isHomework && data.parentBriefing !== false) {
+      const briefingText = (data.parentBriefingText && data.parentBriefingText.trim()) ||
+        'Создайте спокойную обстановку без отвлекающих экранов. Обсудите задание устно перед записью. Поддержите самостоятельность: пусть сначала рассуждает вслух!';
+      docDefinition.content.push({
+        table: {
+          widths: ['*'],
+          body: [
+            [
+              {
+                fillColor: isEcoPrint ? undefined : '#ECFDF5',
+                border: [true, true, true, true],
+                borderColor: [isEcoPrint ? '#94A3B8' : '#A7F3D0', isEcoPrint ? '#94A3B8' : '#A7F3D0', isEcoPrint ? '#94A3B8' : '#A7F3D0', isEcoPrint ? '#94A3B8' : '#A7F3D0'],
+                stack: [
+                  {
+                    columns: [
+                      { width: '*', text: '👨‍👩‍👧 ПАМЯТКА ДЛЯ РОДИТЕЛЕЙ', bold: true, fontSize: 10, color: isEcoPrint ? '#1E293B' : '#065F46' },
+                      { width: 140, text: `Ориентир: ${duration}`, alignment: 'right', bold: true, fontSize: 9, color: isEcoPrint ? '#475569' : '#047857' }
+                    ]
+                  },
+                  {
+                    text: briefingText,
+                    fontSize: 9.5,
+                    color: isEcoPrint ? '#334155' : '#064E3B',
+                    margin: [0, 4, 0, 0]
+                  }
+                ],
+                margin: [8, 6, 8, 6]
+              }
+            ]
+          ]
+        },
+        margin: [0, 0, 0, 12]
+      });
+    }
 
 
     // Optional teacher notes in header
@@ -180,8 +248,63 @@ window.createWorksheetPdf = function(jsonStr) {
       });
     }
 
+        // School Canvas: тетрадная клетка 5х5 мм (14.17 pt)
+    const renderMathGridBox = function(rows = 4, cols = 18) {
+      const gridRows = [];
+      const cellSize = 14.17; // 5 mm in PDF points
+      for (let r = 0; r < rows; r++) {
+        const rowCells = [];
+        for (let c = 0; c < cols; c++) {
+          rowCells.push({
+            text: '',
+            height: cellSize,
+            border: [true, true, true, true],
+            borderColor: ['#CBD5E1', '#CBD5E1', '#CBD5E1', '#CBD5E1'],
+            margin: [0, 0, 0, 0]
+          });
+        }
+        gridRows.push(rowCells);
+      }
+      return {
+        margin: [0, 4, 0, 4],
+        table: {
+          widths: Array(cols).fill(cellSize),
+          body: gridRows
+        },
+        layout: {
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5,
+          hLineColor: () => '#CBD5E1',
+          vLineColor: () => '#CBD5E1'
+        }
+      };
+    };
+
     // Tasks
     const renderers = {
+      renderMathGrid(taskPayload) {
+        return [
+          { text: taskPayload.template || 'Запишите решение и ответ в клетках:', style: 'taskBody', margin: [0, 0, 0, 4] },
+          renderMathGridBox(4, 18)
+        ];
+      },
+
+      renderSlantedRuling(taskPayload) {
+        return [
+          { text: taskPayload.template || 'Пропишите по образцу:', style: 'taskBody', margin: [0, 0, 0, 4] },
+          {
+            margin: [0, 4, 0, 4],
+            canvas: [
+              { type: 'line', x1: 0, y1: 0, x2: 450, y2: 0, lineWidth: 0.8, lineColor: '#94A3B8' },
+              { type: 'line', x1: 0, y1: 12, x2: 450, y2: 12, lineWidth: 0.5, lineColor: '#CBD5E1', dash: { length: 3 } },
+              { type: 'line', x1: 0, y1: 24, x2: 450, y2: 24, lineWidth: 0.8, lineColor: '#94A3B8' },
+              { type: 'line', x1: 0, y1: 44, x2: 450, y2: 44, lineWidth: 0.8, lineColor: '#94A3B8' },
+              { type: 'line', x1: 0, y1: 56, x2: 450, y2: 56, lineWidth: 0.5, lineColor: '#CBD5E1', dash: { length: 3 } },
+              { type: 'line', x1: 0, y1: 68, x2: 450, y2: 68, lineWidth: 0.8, lineColor: '#94A3B8' }
+            ]
+          }
+        ];
+      },
       placeholder(taskPayload) {
         const taskText = typeof taskPayload.template === 'string' && taskPayload.template.trim()
           ? taskPayload.template.trim()
