@@ -20,6 +20,9 @@ class Conspect {
   final String? parentAudioScript;
   final String? promptVersionId;
   final String parentNotes;
+  final String? illustrationMascot;
+  final String? illustrationColoring;
+  final String? illustrationReward;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -43,6 +46,9 @@ class Conspect {
     this.parentAudioScript,
     this.promptVersionId,
     this.parentNotes = '',
+    this.illustrationMascot,
+    this.illustrationColoring,
+    this.illustrationReward,
     required this.createdAt,
     this.updatedAt,
   });
@@ -53,8 +59,9 @@ class Conspect {
     String? review, String? notes, String? content, List<String>? feedbackTags,
     int? variantIndex, String? batchGroupId, List<PrintableCard>? cards,
     List<String>? generatedMaterials, String? parentAudioScript,
-    String? promptVersionId, String? parentNotes, DateTime? createdAt,
-    DateTime? updatedAt,
+    String? promptVersionId, String? parentNotes,
+    String? illustrationMascot, String? illustrationColoring, String? illustrationReward,
+    DateTime? createdAt, DateTime? updatedAt,
   }) {
     return Conspect(
       id: id ?? this.id, title: title ?? this.title,
@@ -67,7 +74,11 @@ class Conspect {
       cards: cards ?? this.cards, generatedMaterials: generatedMaterials ?? this.generatedMaterials,
       parentAudioScript: parentAudioScript ?? this.parentAudioScript,
       promptVersionId: promptVersionId ?? this.promptVersionId,
-      parentNotes: parentNotes ?? this.parentNotes, createdAt: createdAt ?? this.createdAt,
+      parentNotes: parentNotes ?? this.parentNotes,
+      illustrationMascot: illustrationMascot ?? this.illustrationMascot,
+      illustrationColoring: illustrationColoring ?? this.illustrationColoring,
+      illustrationReward: illustrationReward ?? this.illustrationReward,
+      createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -80,6 +91,9 @@ class Conspect {
     'cards': cards?.map((c) => c.toJson()).toList(),
     'generatedMaterials': generatedMaterials, 'parentAudioScript': parentAudioScript,
     'promptVersionId': promptVersionId, 'parentNotes': parentNotes,
+    if (illustrationMascot != null) 'illustrationMascot': illustrationMascot,
+    if (illustrationColoring != null) 'illustrationColoring': illustrationColoring,
+    if (illustrationReward != null) 'illustrationReward': illustrationReward,
     'createdAt': createdAt.toIso8601String(), 'updatedAt': updatedAt?.toIso8601String(),
   };
 
@@ -96,6 +110,9 @@ class Conspect {
     generatedMaterials: (map['generatedMaterials'] as List<dynamic>?)?.map((e) => e.toString()).where((e) => e.isNotEmpty).toList() ?? const ['conspect'],
     parentAudioScript: map['parentAudioScript'] as String?, promptVersionId: map['promptVersionId'] as String?,
     parentNotes: map['parentNotes'] as String? ?? '',
+    illustrationMascot: map['illustrationMascot'] as String?,
+    illustrationColoring: map['illustrationColoring'] as String?,
+    illustrationReward: map['illustrationReward'] as String?,
     createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
     updatedAt: map['updatedAt'] != null ? DateTime.tryParse(map['updatedAt'].toString()) : null,
   );

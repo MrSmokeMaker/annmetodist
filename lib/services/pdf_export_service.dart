@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -142,7 +143,7 @@ class PdfExportService {
         ),
         build: (context) => [
           // Заголовок с иконкой
-          _buildPdfTitle(conspect, type, materialIcon),
+          _buildPdfTitle(conspect, type, materialIcon, isPro: isPro),
           pw.SizedBox(height: 12),
 
           // Информация о материале
@@ -151,6 +152,14 @@ class PdfExportService {
 
           // Основной контент
           ..._buildContentWidgets(filteredContent, fontRegular, fontBold, sectionIcons),
+
+          // Pro: Творческая разминка / раскраска для рабочего листа
+          if (isPro && type == PdfMaterialType.worksheet && conspect.illustrationColoring != null)
+            _buildProColoringSection(conspect.illustrationColoring!),
+
+          // Pro: Наградной стикер / медаль для домашней работы
+          if (isPro && type == PdfMaterialType.homework && conspect.illustrationReward != null)
+            _buildProRewardSection(conspect.illustrationReward!),
         ],
       ),
     );
@@ -442,10 +451,20 @@ class PdfExportService {
   }
 
   /// Создает заголовок в формате "Тема: название темы" с иконкой и легким оформлением
-  static pw.Widget _buildPdfTitle(Conspect conspect, PdfMaterialType type, pw.MemoryImage? materialIcon) {
+  static pw.Widget _buildPdfTitle(Conspect conspect, PdfMaterialType type, pw.MemoryImage? materialIcon, {bool isPro = false}) {
     // Используем тему из конспекта, очищенную от эмодзи
     final topic = _replaceEmojisWithSymbols(conspect.topic.isNotEmpty ? conspect.topic : conspect.title);
     
+    pw.MemoryImage? mascotImage;
+    if (isPro && conspect.illustrationMascot != null && conspect.illustrationMascot!.isNotEmpty) {
+      try {
+        final clean = conspect.illustrationMascot!.contains(',')
+            ? conspect.illustrationMascot!.split(',').last
+            : conspect.illustrationMascot!;
+        mascotImage = pw.MemoryImage(base64Decode(clean));
+      } catch (_) {}
+    }
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -498,6 +517,20 @@ class PdfExportService {
                   ],
                 ),
               ),
+              // Pro Маскот урока в шапке
+              if (mascotImage != null)
+                pw.Container(
+                  width: 48,
+                  height: 48,
+                  margin: const pw.EdgeInsets.only(left: 8),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: PdfColors.indigo200, width: 1),
+                  ),
+                  padding: const pw.EdgeInsets.all(3),
+                  child: pw.Image(mascotImage, fit: pw.BoxFit.contain),
+                ),
             ],
           ),
         ),
@@ -2163,8 +2196,16 @@ class PdfExportService {
 
   /// Виджет одной карточки с пунктирной рамкой и полями для вырезания
   static pw.Widget _buildPrintableCardItem(PrintableCard card) {
+    pw.MemoryImage? cardImage;
+    if (card.imageUrl != null && card.imageUrl!.isNotEmpty) {
+      try {
+        final clean = card.imageUrl!.contains(',') ? card.imageUrl!.split(',').last : card.imageUrl!;
+        cardImage = pw.MemoryImage(base64Decode(clean));
+      } catch (_) {}
+    }
+
     return pw.Container(
-      padding: const pw.EdgeInsets.all(12),
+      padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
         color: PdfColors.white,
         borderRadius: pw.BorderRadius.circular(6),
@@ -2185,16 +2226,21 @@ class PdfExportService {
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.indigo50,
+                  color: cardImage != null ? PdfColors.amber50 : PdfColors.indigo50,
                   borderRadius: pw.BorderRadius.circular(3),
-                  border: pw.Border.all(color: PdfColors.indigo200, width: 0.5),
+                  border: pw.Border.all(
+                    color: cardImage != null ? PdfColors.amber300 : PdfColors.indigo200,
+                    width: 0.5,
+                  ),
                 ),
                 child: pw.Text(
-                  PrintableCard.getTypeLabel(card.type).toUpperCase(),
+                  cardImage != null
+                      ? '★ PRO • ${PrintableCard.getTypeLabel(card.type).toUpperCase()}'
+                      : PrintableCard.getTypeLabel(card.type).toUpperCase(),
                   style: pw.TextStyle(
-                    fontSize: 8,
+                    fontSize: 7.5,
                     fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.indigo800,
+                    color: cardImage != null ? PdfColors.amber900 : PdfColors.indigo800,
                   ),
                 ),
               ),
@@ -2205,24 +2251,44 @@ class PdfExportService {
             ],
           ),
 
-          // Центр: лицевой текст (крупный, яркий)
+          // Центр: если есть картинка YandexART - выводим ее над текстом
           pw.Expanded(
-            child: pw.Center(
-              child: pw.Text(
-                _stripEmojis(card.frontText),
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(
-                  fontSize: card.frontText.length <= 4 ? 32 : (card.frontText.length <= 12 ? 22 : 14),
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.indigo900,
-                ),
-              ),
-            ),
+            child: cardImage != null
+                ? pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.Container(
+                        height: 72,
+                        child: pw.Image(cardImage, fit: pw.BoxFit.contain),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        _stripEmojis(card.frontText),
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          fontSize: card.frontText.length <= 4 ? 20 : 13,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.indigo900,
+                        ),
+                      ),
+                    ],
+                  )
+                : pw.Center(
+                    child: pw.Text(
+                      _stripEmojis(card.frontText),
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        fontSize: card.frontText.length <= 4 ? 32 : (card.frontText.length <= 12 ? 22 : 14),
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.indigo900,
+                      ),
+                    ),
+                  ),
           ),
 
           // Низ: подсказка / образ / оборотная сторона
           pw.Container(
-            padding: const pw.EdgeInsets.all(6),
+            padding: const pw.EdgeInsets.all(5),
             decoration: pw.BoxDecoration(
               color: PdfColors.grey100,
               borderRadius: pw.BorderRadius.circular(4),
@@ -2233,15 +2299,130 @@ class PdfExportService {
                 if (card.imageHint != null && card.imageHint!.isNotEmpty)
                   pw.Text(
                     'Образ: ${_stripEmojis(card.imageHint!)}',
-                    style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
+                    style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey800),
                     maxLines: 1,
                   ),
                 if (card.backText.isNotEmpty)
                   pw.Text(
                     'Подсказка: ${_stripEmojis(card.backText)}',
-                    style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
-                    maxLines: 2,
+                    style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700),
+                    maxLines: 1,
                   ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Pro-блок раскраски для рабочего листа
+  static pw.Widget _buildProColoringSection(String coloringBase64) {
+    pw.MemoryImage? img;
+    try {
+      final clean = coloringBase64.contains(',') ? coloringBase64.split(',').last : coloringBase64;
+      img = pw.MemoryImage(base64Decode(clean));
+    } catch (_) {}
+
+    if (img == null) return pw.SizedBox();
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 16, bottom: 12),
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.indigo300, width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                '🎨 Творческая разминка: раскрась по образцу',
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.indigo50,
+                  borderRadius: pw.BorderRadius.circular(3),
+                  border: pw.Border.all(color: PdfColors.indigo200, width: 0.5),
+                ),
+                child: pw.Text(
+                  '★ YandexART Pro',
+                  style: pw.TextStyle(fontSize: 7.5, color: PdfColors.indigo800, fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Center(
+            child: pw.Container(
+              height: 130,
+              child: pw.Image(img, fit: pw.BoxFit.contain),
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Инструкция: раскрасьте аккуратно цветными карандашами, не выходя за контуры.',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Pro-блок наградной медали / стикера для домашнего задания
+  static pw.Widget _buildProRewardSection(String rewardBase64) {
+    pw.MemoryImage? img;
+    try {
+      final clean = rewardBase64.contains(',') ? rewardBase64.split(',').last : rewardBase64;
+      img = pw.MemoryImage(base64Decode(clean));
+    } catch (_) {}
+
+    if (img == null) return pw.SizedBox();
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 16),
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.amber50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.amber300, width: 1, style: pw.BorderStyle.dashed),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 56,
+            height: 56,
+            child: pw.Image(img, fit: pw.BoxFit.contain),
+          ),
+          pw.SizedBox(width: 14),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      '🏆 Знак отличия: «Успешно пройдено!»',
+                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900),
+                    ),
+                    pw.Text(
+                      '-- вырезать наклейку --',
+                      style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.amber700),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  'Педагог или родитель может вырезать эту памятную медаль и наклеить в тетрадь ученика за прилежно выполненную работу.',
+                  style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
+                ),
               ],
             ),
           ),

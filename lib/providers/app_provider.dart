@@ -15,12 +15,14 @@ import '../services/prompt_builder.dart';
 import '../services/storage_service.dart';
 import '../services/yandex_gpt_service.dart';
 import '../services/ai_service.dart';
+import '../services/yandex_art_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
   final MethodRepository _methodRepository;
   late final YandexGptService _yandexGptService;
   late final AiService _aiService;
+  late final YandexArtService _artService;
 
   bool _isLoading = false;
   bool _isGenerating = false;
@@ -40,6 +42,7 @@ class AppProvider with ChangeNotifier {
       storageService: _storageService,
       yandexGptService: _yandexGptService,
     );
+    _artService = YandexArtService(storageService: _storageService);
   }
 
   // Getters
@@ -484,6 +487,61 @@ class AppProvider with ChangeNotifier {
       return [];
     } catch (e) {
       _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
+  /// Генерация полного арт-пакета YandexART для Pro-пользователей
+  Future<void> generateArtPackageForConspect(String conspectId) async {
+    final index = _conspects.indexWhere((c) => c.id == conspectId);
+    if (index == -1) return;
+
+    final conspect = _conspects[index];
+    _isGenerating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // 1. Генерация картинок для карточек
+      List<PrintableCard>? updatedCards;
+      if (conspect.cards != null && conspect.cards!.isNotEmpty) {
+        final cardsList = <PrintableCard>[];
+        for (final card in conspect.cards!) {
+          final imgBase64 = await _artService.generateCardIllustration(
+            card.imageHint ?? card.frontText,
+            word: card.frontText,
+          );
+          cardsList.add(PrintableCard(
+            id: card.id,
+            frontText: card.frontText,
+            backText: card.backText,
+            imageHint: card.imageHint,
+            imageUrl: imgBase64,
+            type: card.type,
+          ));
+        }
+        updatedCards = cardsList;
+      }
+
+      // 2. Генерация маскота, раскраски и наградного стикера
+      final mascot = await _artService.generateMascotBanner(conspect.topic, conspect.ageGroup);
+      final coloring = await _artService.generateColoringActivity(conspect.topic);
+      final reward = await _artService.generateRewardSticker(conspect.topic);
+
+      final updatedConspect = conspect.copyWith(
+        cards: updatedCards ?? conspect.cards,
+        illustrationMascot: mascot,
+        illustrationColoring: coloring,
+        illustrationReward: reward,
+        updatedAt: DateTime.now(),
+      );
+
+      await saveConspect(updatedConspect);
+    } catch (e) {
+      _errorMessage = 'Ошибка генерации YandexART: $e';
       rethrow;
     } finally {
       _isGenerating = false;

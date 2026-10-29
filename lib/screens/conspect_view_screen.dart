@@ -1649,24 +1649,21 @@ ${_currentConspect!.content}
                       Expanded(
                         child: Center(
                           child: hasImage
-                              ? Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: isDark 
-                                        ? Colors.white.withOpacity(0.05) 
-                                        : Colors.black.withOpacity(0.04),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: isDark 
-                                          ? Colors.white.withOpacity(0.1) 
-                                          : Colors.black.withOpacity(0.08),
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.memory(
+                                    base64Decode(
+                                      card.imageUrl!.contains(',')
+                                          ? card.imageUrl!.split(',').last
+                                          : card.imageUrl!,
                                     ),
-                                  ),
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 20,
-                                    color: isDark ? Colors.white70 : Colors.black54,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.image_outlined,
+                                      size: 20,
+                                    ),
                                   ),
                                 )
                               : Text(
@@ -1704,6 +1701,82 @@ ${_currentConspect!.content}
                   ),
                 );
               },
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Center(
+              child: Builder(
+                builder: (artCtx) {
+                  final provider = artCtx.watch<AppProvider>();
+                  final isPro = provider.isProUser;
+                  final isGenerating = provider.isGenerating;
+
+                  return OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      side: BorderSide(color: isPro ? AppColors.primaryIndigo : const Color(0xFFF59E0B)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                      ),
+                    ),
+                    icon: isGenerating
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            Icons.palette_outlined,
+                            color: isPro ? AppColors.primaryIndigo : const Color(0xFFF59E0B),
+                            size: 16,
+                          ),
+                    label: Text(
+                      isGenerating
+                          ? 'YandexART генерирует арт-пакет...'
+                          : '🎨 Добавить иллюстрации YandexART (PRO)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isPro ? (isDark ? Colors.white : AppColors.primaryIndigo) : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                    onPressed: isGenerating
+                        ? null
+                        : () async {
+                            if (!isPro) {
+                              _showProFeatureDialog(
+                                context: context,
+                                title: 'Иллюстрации YandexART (PRO)',
+                                description:
+                                    'Генерация художественных иллюстраций к карточкам, маскота урока, развивающей раскраски и наградной медали доступна в тарифе «Методист Pro».',
+                              );
+                              return;
+                            }
+
+                            try {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('🎨 YandexART создает иллюстрации к уроку и PDF...')),
+                              );
+                              await provider.generateArtPackageForConspect(_currentConspect!.id);
+                              final updated = provider.conspects.firstWhere((c) => c.id == _currentConspect!.id);
+                              if (mounted) {
+                                setState(() {
+                                  _currentConspect = updated;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('✨ Иллюстрации YandexART успешно встроены в карточки и PDF!')),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Ошибка генерации YandexART: $e')),
+                                );
+                              }
+                            }
+                          },
+                  );
+                },
+              ),
             ),
           ] else ...[
             Center(
