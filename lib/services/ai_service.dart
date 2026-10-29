@@ -22,9 +22,11 @@ class AiService {
   static const String mistralEndpoint = 'https://api.mistral.ai/v1/chat/completions';
   
   static const Map<String, String> availableOpenRouterModels = {
-    'qwen/qwen-2.5-72b-instruct': 'Qwen 2.5 72B Instruct (Открытая модель, Алибаба)',
-    'deepseek/deepseek-chat': 'DeepSeek V3 (Открытая передовая архитектура)',
+    'qwen/qwen-2.5-72b-instruct': 'Qwen 2.5 72B Instruct (Открытая, эталон для русского языка)',
+    'deepseek/deepseek-chat': 'DeepSeek V3 (Открытая модель 671B, глубокая логика)',
+    'deepseek/deepseek-r1': 'DeepSeek R1 (Открытая модель рассуждений / CoT)',
     'meta-llama/llama-3.3-70b-instruct': 'Llama 3.3 70B Instruct (Meta)',
+    'google/gemini-2.0-flash-001': 'Gemini 2.0 Flash (Сверхбыстрая и точная)',
   };
 
   static const Map<String, String> availableMistralModels = {
@@ -350,8 +352,8 @@ class AiService {
           {'role': 'system', 'content': systemPrompt},
           {'role': 'user', 'content': userPrompt},
         ],
-        'temperature': 0.7,
-        'max_tokens': 4000,
+        'temperature': 0.6,
+        'max_tokens': 6000,
       });
 
       final response = await client.post(
@@ -363,7 +365,7 @@ class AiService {
           'Content-Type': 'application/json',
         },
         body: body,
-      ).timeout(const Duration(seconds: 120));
+      ).timeout(const Duration(seconds: 150));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
