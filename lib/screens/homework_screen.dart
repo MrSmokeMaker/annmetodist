@@ -32,6 +32,10 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
 
   int _tasksCount = 5;
   bool _withAnswers = false;
+  bool _parentBriefing = true;
+  bool _householdPractice = true;
+  bool _feedbackSlip = true;
+  bool _ecoPrint = false;
 
   final TextEditingController _customTopicController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -112,6 +116,10 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
       'duration': _selectedDuration,
       'tasksCount': _tasksCount,
       'withAnswers': _withAnswers,
+      'parentBriefing': _parentBriefing,
+      'householdPractice': _householdPractice,
+      'feedbackSlip': _feedbackSlip,
+      'ecoPrint': _ecoPrint,
       'notes': _notesController.text.trim(),
     };
 
@@ -421,23 +429,67 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // С ответами для учителя / родителей
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Страница с ответами для проверки',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                // Настройки и опции листа ДЗ
+                Text(
+                  'Параметры и структура листа ДЗ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Памятка для родителей', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                        subtitle: const Text('1-минутный скрипт и ориентир времени выполнения', style: TextStyle(fontSize: 11.5)),
+                        secondary: const Icon(Icons.family_restroom_rounded, color: AppColors.primaryIndigo),
+                        value: _parentBriefing,
+                        onChanged: (val) => setState(() => _parentBriefing = val),
                       ),
-                    ),
-                    Switch(
-                      value: _withAnswers,
-                      onChanged: (val) => setState(() => _withAnswers = val),
-                    ),
-                  ],
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Исследование в быту / жизнь', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                        subtitle: const Text('Задание с предметами дома и жизненным контекстом', style: TextStyle(fontSize: 11.5)),
+                        secondary: const Icon(Icons.cottage_outlined, color: AppColors.accentTeal),
+                        value: _householdPractice,
+                        onChanged: (val) => setState(() => _householdPractice = val),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Талон обратной связи учителю', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                        subtitle: const Text('Линия отреза для родителя (время, сложность, вопрос)', style: TextStyle(fontSize: 11.5)),
+                        secondary: const Icon(Icons.content_cut_rounded, color: AppColors.secondaryViolet),
+                        value: _feedbackSlip,
+                        onChanged: (val) => setState(() => _feedbackSlip = val),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Страница с ответами для проверки', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                        subtitle: const Text('Ключи для быстрой родительской или учительской сверки', style: TextStyle(fontSize: 11.5)),
+                        secondary: const Icon(Icons.checklist_rtl_rounded, color: AppColors.success),
+                        value: _withAnswers,
+                        onChanged: (val) => setState(() => _withAnswers = val),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Режим Eco-Print (экономия тонера)', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                        subtitle: const Text('Без плотных фоновых заливок для домашней печати', style: TextStyle(fontSize: 11.5)),
+                        secondary: const Icon(Icons.eco_outlined, color: AppColors.warning),
+                        value: _ecoPrint,
+                        onChanged: (val) => setState(() => _ecoPrint = val),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 

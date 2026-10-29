@@ -1,9 +1,9 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import '../models/conspect.dart';
-import '../models/printable_card.dart';
-import 'pdf_icons_helper.dart';
+import 'package:metodist/models/conspect.dart';
+import 'package:metodist/models/printable_card.dart';
+import 'package:metodist/services/pdf_icons_helper.dart';
 
 /// Типы материалов для генерации
 enum PdfMaterialType {
@@ -616,6 +616,132 @@ class PdfExportService {
     return cleaned;
   }
 
+  /// Памятка для родителей (спокойный совет и скрипт помощи)
+  static pw.Widget _buildParentBriefingCard(String content) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 10),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.green50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border(
+          left: const pw.BorderSide(color: PdfColors.green700, width: 3.5),
+          top: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
+          right: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
+          bottom: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
+        ),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.green600,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  'СОВЕТ РОДИТЕЛЮ',
+                  style: pw.TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                'Ориентир времени: 15-20 минут (не затягивайте)',
+                style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.green900),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            content,
+            style: const pw.TextStyle(
+              fontSize: 10,
+              lineSpacing: 1.4,
+              color: PdfColors.grey900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Талон обратной связи родителя учителю
+  static pw.Widget _buildParentFeedbackSlip() {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 14, bottom: 8),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey50,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.green300, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'ТАЛОН ОБРАТНОЙ СВЯЗИ РОДИТЕЛЯ УЧИТЕЛЮ',
+                style: pw.TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.green900,
+                ),
+              ),
+              pw.Text(
+                'Дата: ____________',
+                style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Row(
+            children: [
+              pw.Text('Время работы: ', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+              pw.Text('[ ] 10-15 мин   [ ] 20 мин   [ ] более 30 мин', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey900)),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          pw.Row(
+            children: [
+              pw.Text('Сложность: ', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+              pw.Text('[ ] Справился сам   [ ] С небольшой подсказкой   [ ] Было трудно', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey900)),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Text(
+                  'Вопрос учителю: ________________________________________________________________',
+                  style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Text(
+                'Подпись родителя: ___________________________',
+                style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Блок самооценки и настроения
   static pw.Widget _buildSelfAssessmentBlock() {
     return pw.Container(
@@ -935,6 +1061,14 @@ class PdfExportService {
             ),
           ),
         );
+        inList = false;
+      } else if (trimmed.toLowerCase().contains('памятка для родителей') || trimmed.contains('👨‍👩‍👧')) {
+        final advice = trimmed.replaceFirst(RegExp(r'.*?памятка для родителей:?\s*', caseSensitive: false), '')
+                              .replaceFirst('👨‍👩‍👧', '').trim();
+        widgets.add(_buildParentBriefingCard(advice.isNotEmpty ? advice : 'Помогайте ребенку мягко, задавая наводящие вопросы. Не делайте задание за него. Хвалите за усердие и любознательность!'));
+        inList = false;
+      } else if (trimmed.toLowerCase().contains('обратная связь родителя') || trimmed.toLowerCase().contains('подпись родителя')) {
+        widgets.add(_buildParentFeedbackSlip());
         inList = false;
       } else if (trimmed.toLowerCase().contains('место для ответа ученика') || trimmed.contains('_________')) {
         // Игнорируем, так как это будет обработано отдельно в рабочей зоне
@@ -1630,14 +1764,14 @@ class PdfExportService {
             border: pw.TableBorder.all(color: PdfColors.green400, width: 0.8),
             columnWidths: Map.fromIterable(
               List.generate(colCount, (i) => i),
-              (i) => MapEntry(i, pw.FractionColumnWidth(colWidth[i])),
+              value: (i) => pw.FractionColumnWidth(colWidth[i as int]),
             ),
             children: tableBody.asMap().entries.map((entry) {
               final idx = entry.key;
               final cells = entry.value;
               return pw.TableRow(
                 decoration: idx % 2 == 0
-                    ? pw.BoxDecoration(color: PdfColors.green10)
+                    ? pw.BoxDecoration(color: const PdfColor(0.92, 0.99, 0.96))
                     : null,
                 children: cells,
               );
@@ -1905,7 +2039,7 @@ class PdfExportService {
                 return pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: pw.BoxDecoration(
-                    color: PdfColors.purple10,
+                    color: const PdfColor(0.96, 0.95, 1.0),
                     borderRadius: pw.BorderRadius.circular(4),
                     border: pw.Border.all(color: PdfColors.purple200, width: 0.6),
                   ),

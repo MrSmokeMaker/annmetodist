@@ -577,6 +577,58 @@ window.createWorksheetPdf = function(jsonStr) {
       }
     });
 
+    // Parent feedback slip for homework
+    if (isHomework && data.feedbackSlip !== false) {
+      docDefinition.content.push({
+        margin: [0, 12, 0, 10],
+        unbreakable: true,
+        stack: [
+          {
+            text: '✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -',
+            alignment: 'center',
+            fontSize: 8,
+            color: '#94A3B8',
+            margin: [0, 0, 0, 6]
+          },
+          {
+            table: {
+              widths: ['*'],
+              body: [
+                [{
+                  fillColor: isEcoPrint ? undefined : '#F8FAFC',
+                  borderColor: ['#CBD5E1', '#CBD5E1', '#CBD5E1', '#CBD5E1'],
+                  border: [true, true, true, true],
+                  stack: [
+                    {
+                      columns: [
+                        { width: '*', text: '📋 ТАЛОН ОБРАТНОЙ СВЯЗИ УЧИТЕЛЮ (заполняется родителем)', bold: true, fontSize: 9.5, color: '#1E293B' },
+                        { width: 120, text: 'Лист сдать учителю', alignment: 'right', italics: true, fontSize: 8.5, color: '#64748B' }
+                      ]
+                    },
+                    {
+                      margin: [0, 6, 0, 4],
+                      columns: [
+                        { width: '48%', text: '⏱ Время работы: [  ] до 15 мин  [  ] 15-25 мин  [  ] >30 мин', fontSize: 8.5, color: '#334155' },
+                        { width: '52%', text: '💡 Сложность: [  ] Легко сам  [  ] С подсказкой  [  ] Трудно', fontSize: 8.5, color: '#334155' }
+                      ]
+                    },
+                    {
+                      columns: [
+                        { width: '*', text: 'Вопрос учителю: __________________________________________________', fontSize: 8.5, color: '#475569' },
+                        { width: 140, text: 'Подпись: ____________', alignment: 'right', fontSize: 8.5, color: '#475569' }
+                      ],
+                      margin: [0, 2, 0, 0]
+                    }
+                  ],
+                  margin: [8, 8, 8, 8]
+                }]
+              ]
+            }
+          }
+        ]
+      });
+    }
+
     // Answers page if requested
     if (withAnswers) {
       docDefinition.content.push({
