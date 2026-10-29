@@ -28,8 +28,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Validate Activities & Templates Schema
-        run: node scripts/validate_activities.js
+      - name: Validate Activities & Topics Data
+        run: |
+          node scripts/validate_activities.js
+          node scripts/validate_topics.js
 
       - name: Enable Web support
         run: flutter config --enable-web
