@@ -41,17 +41,41 @@
     }
   </style>
 
-  <style>
+    <style>
+    :root {
+      --bg-dark: #0D0F14;
+      --surface-dark: #161922;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --primary-indigo: #6366F1;
+      --primary-violet: #8B5CF6;
+      --accent-cyan: #06B6D4;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
     body {
       margin: 0;
       padding: 0;
-      background-color: #0D0F14;
-      color: #F8FAFC;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
       font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
+
+    .ambient-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 55%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.18) 0%, transparent 55%),
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.12) 0%, transparent 60%);
+    }
+
     .loading-container {
       position: fixed;
       top: 0;
@@ -62,39 +86,129 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 60%),
-                  radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.2) 0%, transparent 60%),
-                  #0D0F14;
       z-index: 9999;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      background-color: var(--bg-dark);
     }
+
+    .landing-card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      padding: 36px 28px;
+      max-width: 420px;
+      width: 88%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.18);
+      animation: floatIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+    }
+
     .orb {
-      width: 68px;
-      height: 68px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #7C5CFF, #6366F1);
-      box-shadow: 0 0 36px rgba(124, 92, 255, 0.65);
-      animation: pulse 1.6s infinite ease-in-out;
-      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--primary-violet), var(--primary-indigo));
+      box-shadow: 0 0 35px rgba(124, 92, 255, 0.7);
+      animation: pulse 1.8s infinite ease-in-out;
+      margin: 0 auto 20px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
+    .orb svg {
+      width: 36px;
+      height: 36px;
+      fill: #ffffff;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+    }
+
     .title {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: -0.5px;
       margin-bottom: 6px;
+      background: linear-gradient(135deg, #ffffff 60%, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
+
     .subtitle {
       font-size: 14px;
-      color: #94A3B8;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .features-pill-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .feature-pill {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 100px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .progress-bar-value {
+      height: 100%;
+      width: 35%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--primary-indigo), var(--primary-violet));
+      background-size: 200% 100%;
+      animation: progressIndeterminate 1.8s infinite ease-in-out;
+    }
+
+    .loading-status {
+      font-size: 13px;
+      color: var(--text-muted);
       animation: pulse-text 2s ease-in-out infinite;
     }
+
     @keyframes pulse {
-      0%, 100% { transform: scale(0.92); opacity: 0.8; }
-      50% { transform: scale(1.08); opacity: 1; }
+      0%, 100% { transform: scale(0.94); opacity: 0.85; box-shadow: 0 0 25px rgba(124, 92, 255, 0.5); }
+      50% { transform: scale(1.06); opacity: 1; box-shadow: 0 0 45px rgba(124, 92, 255, 0.85); }
     }
+
     @keyframes pulse-text {
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
+    }
+
+    @keyframes progressIndeterminate {
+      0% { transform: translateX(-100%); width: 40%; }
+      50% { transform: translateX(50%); width: 70%; }
+      100% { transform: translateX(200%); width: 40%; }
+    }
+
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
   </style>
 
@@ -114,10 +228,26 @@
   </script>
 </head>
 <body>
+    <div class="ambient-glow"></div>
   <div id="loading" class="loading-container">
-    <div class="orb"></div>
-    <div class="title">Методист</div>
-    <div class="subtitle">Загрузка приложения...</div>
+    <div class="landing-card">
+      <div class="orb">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+      </div>
+      <div class="title">Методист</div>
+      <div class="subtitle">Умный генератор конспектов занятий, рабочих листов и заданий на базе нейросетей</div>
+      
+      <div class="features-pill-row">
+        <span class="feature-pill">✨ Конспекты по ФГОС</span>
+        <span class="feature-pill">📄 Рабочие листы</span>
+        <span class="feature-pill">📝 Домашка</span>
+      </div>
+
+      <div class="progress-bar-container" role="progressbar" aria-label="Загрузка приложения">
+        <div class="progress-bar-value"></div>
+      </div>
+      <div class="loading-status">Загрузка модулей методиста...</div>
+    </div>
   </div>
 
   <script>
