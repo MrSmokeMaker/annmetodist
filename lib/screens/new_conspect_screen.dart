@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
@@ -16,10 +17,16 @@ import 'settings_screen.dart';
 
 class NewConspectScreen extends StatefulWidget {
   final Set<GenerationType> selectedMaterials;
+  final String? initialTopic;
+  final String? initialAgeGroup;
+  final String? initialMethodId;
 
   const NewConspectScreen({
     super.key,
     this.selectedMaterials = const {GenerationType.conspect},
+    this.initialTopic,
+    this.initialAgeGroup,
+    this.initialMethodId,
   });
 
   @override
@@ -134,8 +141,20 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
       final provider = context.read<AppProvider>();
       if (provider.methods.isNotEmpty) {
         setState(() {
-          _selectedAgeGroup = provider.selectedAgeGroup;
-          _selectedMethod = provider.methods.first;
+          _selectedAgeGroup = widget.initialAgeGroup ?? provider.selectedAgeGroup;
+          if (widget.initialMethodId != null) {
+            _selectedMethod = provider.methods.firstWhere(
+              (m) => m.id == widget.initialMethodId,
+              orElse: () => provider.methods.first,
+            );
+          } else {
+            _selectedMethod = provider.methods.first;
+          }
+          if (widget.initialTopic != null && widget.initialTopic!.isNotEmpty) {
+            _isCustomTopic = true;
+            _customTopicText = widget.initialTopic!;
+            _customTopicController.text = widget.initialTopic!;
+          }
           _updateDurationForAgeGroup(_selectedAgeGroup);
         });
       }
@@ -300,7 +319,12 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): _onGeneratePressed,
+          const SingleActivator(LogicalKeyboardKey.enter, meta: true): _onGeneratePressed,
+        },
+        child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           leading: IconButton(
@@ -1205,6 +1229,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                 GradientButton(
                   text: _getGenerateButtonText(),
                   icon: Icons.auto_awesome,
+                  shortcutLabel: isDesktop ? 'Ctrl+↵' : null,
                   onPressed: _onGeneratePressed,
                 ),
 
@@ -1215,6 +1240,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
         ),
       ),
     ),
-  );
+  ),
+);
   }
 }

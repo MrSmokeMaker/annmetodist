@@ -10,6 +10,7 @@ class GradientButton extends StatelessWidget {
   final double height;
   final double borderRadius;
   final double? width;
+  final String? shortcutLabel;
 
   const GradientButton({
     super.key,
@@ -21,6 +22,7 @@ class GradientButton extends StatelessWidget {
     this.height = 54.0,
     this.borderRadius = AppRadii.lg, // 22.0
     this.width,
+    this.shortcutLabel,
   });
 
   @override
@@ -86,6 +88,24 @@ class GradientButton extends StatelessWidget {
                               letterSpacing: 0.2,
                             ),
                           ),
+                          if (shortcutLabel != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.22),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                shortcutLabel!,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
               ),

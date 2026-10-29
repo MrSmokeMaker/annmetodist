@@ -10,10 +10,8 @@ import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
 import 'conspect_view_screen.dart';
 import 'settings_screen.dart';
-import '../models/recent_pdf.dart';
 
 import 'new_conspect_screen.dart';
-import '../constants.dart';
 import '../screens/worksheet_screen.dart';
 import '../screens/homework_screen.dart';
 import '../widgets/generation_type_sheet.dart';
@@ -218,6 +216,55 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.sm),
+
+              // Quick Actions Row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickActionBtn(
+                        context: context,
+                        icon: Icons.menu_book_rounded,
+                        label: 'Конспект',
+                        color: AppColors.primaryIndigo,
+                        isDark: isDark,
+                        onTap: () => Navigator.of(context).push(
+                          FadeSlidePageRoute(page: const NewConspectScreen()),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildQuickActionBtn(
+                        context: context,
+                        icon: Icons.description_rounded,
+                        label: 'Раб. лист',
+                        color: AppColors.cyan,
+                        isDark: isDark,
+                        onTap: () => Navigator.of(context).push(
+                          FadeSlidePageRoute(page: const WorksheetScreen()),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildQuickActionBtn(
+                        context: context,
+                        icon: Icons.assignment_turned_in_rounded,
+                        label: 'Домашка',
+                        color: const Color(0xFFF59E0B),
+                        isDark: isDark,
+                        onTap: () => Navigator.of(context).push(
+                          FadeSlidePageRoute(page: const HomeworkScreen()),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -739,50 +786,305 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+  Widget _buildQuickActionBtn({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: 'Перейти к созданию: $label',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.12)
+                    : Colors.black.withOpacity(0.08),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(isDark ? 0.25 : 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 16, color: color),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: GlassCard(
+      ),
+    );
+  }
+
+  Widget _buildStarterTemplateCard({
+    required String title,
+    required String subject,
+    required String method,
+    required String ageGroup,
+    required String ageGroupId,
+    required String methodId,
+    required String duration,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderRadius: AppRadii.md,
+      onTap: () {
+        Navigator.of(context).push(
+          FadeSlidePageRoute(
+            page: NewConspectScreen(
+              initialTopic: title,
+              initialAgeGroup: ageGroupId,
+              initialMethodId: methodId,
+            ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(isDark ? 0.2 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 22, color: color),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        subject,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '• $ageGroup • $duration',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  method,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward_rounded,
+            size: 18,
+            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    if (_searchQuery.isNotEmpty) {
+      return Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: AppSpacing.xl * 1.5,
+            vertical: AppSpacing.md,
           ),
-          borderRadius: AppRadii.lg,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.menu_book_rounded,
-                size: 52,
-                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                _searchQuery.isNotEmpty
-                    ? 'Ничего не найдено'
-                    : 'В библиотеке пока нет конспектов',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _searchQuery.isNotEmpty
-                    ? 'Попробуйте изменить поисковый запрос.'
-                    : 'Нажмите «Новый конспект», чтобы создать первый',
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
-              ),
-            ],
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.xl * 1.5,
+            ),
+            borderRadius: AppRadii.lg,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 52,
+                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Ничего не найдено',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Попробуйте изменить поисковый запрос.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GlassCard(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            borderRadius: AppRadii.lg,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.indigoViolet,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Быстрый старт с готовых образцов',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Выберите готовый шаблон для мгновенного создания:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _buildStarterTemplateCard(
+            title: 'Счёт предметов до 10: Сказка о цифрах',
+            subject: 'Математика',
+            method: 'Методика Пчелко и Поляка',
+            ageGroup: '1 класс',
+            ageGroupId: 'grade_1',
+            methodId: 'pchelko_math',
+            duration: '45 мин',
+            icon: Icons.calculate_rounded,
+            color: AppColors.cyan,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildStarterTemplateCard(
+            title: 'Первый слог и звучащее слово',
+            subject: 'Обучение чтению',
+            method: 'Метод Редозубова',
+            ageGroup: 'Дошкольники',
+            ageGroupId: 'preschool',
+            methodId: 'redozubov_reading',
+            duration: '20 мин',
+            icon: Icons.menu_book_rounded,
+            color: AppColors.primaryIndigo,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildStarterTemplateCard(
+            title: 'Красивая строчка и базовые элементы букв',
+            subject: 'Чистописание',
+            method: 'Нейро-подход Мазиной',
+            ageGroup: '1 класс',
+            ageGroupId: 'grade_1',
+            methodId: 'mazina_penmanship',
+            duration: '30 мин',
+            icon: Icons.draw_rounded,
+            color: const Color(0xFFF59E0B),
+            isDark: isDark,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
       ),
     );
   }
