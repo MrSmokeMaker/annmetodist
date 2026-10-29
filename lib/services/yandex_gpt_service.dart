@@ -16,7 +16,7 @@ class YandexGptException implements Exception {
 class YandexGptService {
   final StorageService _storageService;
 
-  static const String defaultModel = 'yandexgpt-lite';
+  static const String defaultModel = 'yandexgpt'; // YandexGPT Pro for high-depth generation
 
   YandexGptService({required StorageService storageService})
       : _storageService = storageService;
@@ -113,6 +113,8 @@ class YandexGptService {
     required String systemPrompt,
     required String userPrompt,
     String model = defaultModel,
+    double temperature = 0.6,
+    int maxTokens = 4000,
   }) async {
     // Retrieve proxy URL from storage.
     final proxyUrl = await _storageService.getProxyUrl();
@@ -128,8 +130,8 @@ class YandexGptService {
           {'role': 'system', 'content': systemPrompt},
           {'role': 'user', 'content': userPrompt},
         ],
-        'temperature': 0.6,
-        'max_tokens': 3000,
+        'temperature': temperature,
+        'max_tokens': maxTokens,
       });
 
       final response = await client
