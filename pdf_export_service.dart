@@ -1235,7 +1235,7 @@ class PdfExportService {
           pw.BoxShadow(
             color: PdfColors.blue100,
             blurRadius: 6,
-            offset: const pw.Offset(0, 2),
+            offset: const PdfPoint(0, 2),
           ),
         ],
       ),

@@ -515,7 +515,7 @@ window.createWorksheetPdf = function(jsonStr) {
       const iconKey = icons[(i - 1) % icons.length];
       const taskSvg = iconMap[iconKey] || iconMap['star'];
       docDefinition.content.push({
-        margin: [0, 6, 0, 10],
+        margin: taskSpacing,
         unbreakable: true,
         table: {
           dontBreakRows: true,
