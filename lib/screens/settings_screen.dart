@@ -23,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _openRouterKeyController = TextEditingController();
   final TextEditingController _mistralKeyController = TextEditingController();
   String _selectedProvider = 'yandex';
-  String _selectedOpenRouterModel = 'qwen/qwen-2.5-72b-instruct';
+  String _selectedOpenRouterModel = 'deepseek/deepseek-chat:free';
   String _selectedMistralModel = 'mistral-large-latest';
   bool _isChecking = false;
   String? _checkStatus;
@@ -49,7 +49,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _proxyUrlController.text = url ?? '';
       _selectedProvider = provider.activeAiProvider;
-      _selectedOpenRouterModel = provider.openRouterModel;
+      final savedModel = provider.openRouterModel;
+      _selectedOpenRouterModel = AiService.availableOpenRouterModels.containsKey(savedModel)
+          ? savedModel
+          : 'deepseek/deepseek-chat:free';
       _openRouterKeyController.text = provider.openRouterApiKey ?? '';
       _selectedMistralModel = provider.mistralModel;
       _mistralKeyController.text = provider.mistralApiKey ?? '';

@@ -44,8 +44,8 @@ class StorageService {
   }
 
   String getOpenRouterModel() {
-    if (!_isInitialized) return 'qwen/qwen-2.5-72b-instruct';
-    return _sharedPreferences.getString(_openRouterModelStorageKey) ?? 'qwen/qwen-2.5-72b-instruct';
+    if (!_isInitialized) return 'deepseek/deepseek-chat:free';
+    return _sharedPreferences.getString(_openRouterModelStorageKey) ?? 'deepseek/deepseek-chat:free';
   }
 
   Future<void> saveOpenRouterModel(String model) async {

@@ -22,6 +22,8 @@ class AiService {
   static const String mistralEndpoint = 'https://api.mistral.ai/v1/chat/completions';
   
   static const Map<String, String> availableOpenRouterModels = {
+    'deepseek/deepseek-chat:free': 'DeepSeek V3 [Бесплатно 0\$] (Флагманская логика)',
+    'qwen/qwen-2.5-72b-instruct:free': 'Qwen 2.5 72B [Бесплатно 0\$] (Эталон русского языка)',
     'qwen/qwen-2.5-72b-instruct': 'Qwen 2.5 72B Instruct (Открытая, эталон для русского языка)',
     'deepseek/deepseek-chat': 'DeepSeek V3 (Открытая модель 671B, глубокая логика)',
     'deepseek/deepseek-r1': 'DeepSeek R1 (Открытая модель рассуждений / CoT)',
