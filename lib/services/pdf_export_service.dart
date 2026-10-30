@@ -755,12 +755,7 @@ class PdfExportService {
       decoration: pw.BoxDecoration(
         color: PdfColors.green50,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border(
-          left: const pw.BorderSide(color: PdfColors.green700, width: 3.5),
-          top: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
-          right: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
-          bottom: const pw.BorderSide(color: PdfColors.green200, width: 0.8),
-        ),
+        border: pw.Border.all(color: PdfColors.green300, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2009,12 +2004,7 @@ static List<pw.Widget> _buildContentWidgets(
       decoration: pw.BoxDecoration(
         color: bgColor,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border(
-          left: pw.BorderSide(color: borderColor, width: 3.5),
-          top: pw.BorderSide(color: _withOpacity(borderColor, 0.25), width: 0.6),
-          right: pw.BorderSide(color: _withOpacity(borderColor, 0.25), width: 0.6),
-          bottom: pw.BorderSide(color: _withOpacity(borderColor, 0.25), width: 0.6),
-        ),
+        border: pw.Border.all(color: borderColor, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2144,9 +2134,7 @@ static List<pw.Widget> _buildContentWidgets(
                 topLeft: pw.Radius.circular(12),
                 topRight: pw.Radius.circular(12),
               ),
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColors.blue200, width: 1),
-              ),
+              border: pw.Border.all(color: PdfColors.blue200, width: 0.8),
             ),
             child: pw.Row(
               children: [
