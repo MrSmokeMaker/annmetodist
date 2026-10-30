@@ -105,6 +105,7 @@ void main() {
           base: fontRegular,
           bold: fontBold,
           italic: fontRegular,
+          fontFallback: [fontRegular, fontBold],
         ),
         header: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,

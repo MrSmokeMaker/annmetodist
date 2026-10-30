@@ -1096,30 +1096,36 @@ static List<pw.Widget> _buildContentWidgets(
         return;
       }
 
+      int currentTaskNum = taskNumber;
+      final explicitTaskMatch = RegExp(r'^Задание\s+(\d+)[:\.]?\s*(.*)$', caseSensitive: false).firstMatch(header);
+      if (explicitTaskMatch != null) {
+        currentTaskNum = int.tryParse(explicitTaskMatch.group(1)!) ?? (taskNumber + 1);
+        taskNumber = currentTaskNum;
+      } else {
+        taskNumber++;
+        currentTaskNum = taskNumber;
+      }
+
       // 8. Ловушка Незнайки / Ловушка для внимательных
       if (type == 'trap' || lowerHeader.contains('ловушка') || fullText.contains('ловушка незнайки') || fullText.contains('найди ошибки')) {
-        taskNumber++;
-        widgets.add(_buildTrapCard(header, lines, taskNumber));
+        widgets.add(_buildTrapCard(header, lines, currentTaskNum));
         return;
       }
 
       // 9. Прописи / каллиграфия (для начальной школы и русского языка)
       if (type == 'handwriting' || fullText.contains('[прописи]') || lowerHeader.contains('каллиграфическ') || lowerHeader.contains('чистописан')) {
-        taskNumber++;
-        widgets.add(_buildHandwritingCard(header, lines, taskNumber));
+        widgets.add(_buildHandwritingCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10. Соедини стрелками
       if (type == 'matching' || fullText.contains('[соедини стрелками]') || lowerHeader.contains('соедини стрелк')) {
-        taskNumber++;
-        widgets.add(_buildMatchingTaskCard(header, lines, taskNumber));
+        widgets.add(_buildMatchingTaskCard(header, lines, currentTaskNum));
         return;
       }
 
       // 11. Стандартная неделимая карточка задания
-      taskNumber++;
-      widgets.add(_buildStandardTaskCard(header, lines, taskNumber, isWorksheetOrHomework));
+      widgets.add(_buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework));
     }
 
     for (final rawLine in rawLines) {
@@ -1161,12 +1167,17 @@ static List<pw.Widget> _buildContentWidgets(
         continue;
       }
 
-      // 3. Задания с нумерацией на верхнем уровне (без отступа пробелами/табами в начале строки)
+      // 3. Задания (Задание 1: ... или 1. ...)
+      final isExplicitTask = RegExp(r'^Задание\s+\d+', caseSensitive: false).hasMatch(trimmed);
+      final currentIsExplicitTask = currentHeader != null &&
+          RegExp(r'^Задание\s+\d+', caseSensitive: false).hasMatch(currentHeader!);
+
       final isTopLevelNumbered = !rawLine.startsWith(' ') &&
           !rawLine.startsWith('\t') &&
-          RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed);
+          RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed) &&
+          !currentIsExplicitTask;
 
-      if (isTopLevelNumbered && currentType != 'assessment' && currentType != 'keys') {
+      if ((isExplicitTask || isTopLevelNumbered) && currentType != 'assessment' && currentType != 'keys') {
         flushCurrentBlock();
         currentHeader = trimmed;
         final lower = trimmed.toLowerCase();
@@ -1456,9 +1467,14 @@ static List<pw.Widget> _buildContentWidgets(
   static pw.Widget _buildHandwritingCard(String header, List<String> lines, int num) {
     final cleanHeader = _replaceEmojisWithSymbols(header);
     String displayHeader = cleanHeader;
-    final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-    if (numPrefixMatch != null) {
-      displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
+    if (explicitMatch != null) {
+      displayHeader = displayHeader.substring(explicitMatch.end).trim();
+    } else {
+      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
+      if (numPrefixMatch != null) {
+        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+      }
     }
 
     return pw.Container(
@@ -1534,9 +1550,14 @@ static List<pw.Widget> _buildContentWidgets(
   static pw.Widget _buildTrapCard(String header, List<String> lines, int num) {
     final cleanHeader = _replaceEmojisWithSymbols(header);
     String displayHeader = cleanHeader;
-    final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-    if (numPrefixMatch != null) {
-      displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
+    if (explicitMatch != null) {
+      displayHeader = displayHeader.substring(explicitMatch.end).trim();
+    } else {
+      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
+      if (numPrefixMatch != null) {
+        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+      }
     }
     if (displayHeader.toLowerCase().startsWith('ловушка незнайки:')) {
       displayHeader = displayHeader.substring('ловушка незнайки:'.length).trim();
@@ -1589,9 +1610,14 @@ static List<pw.Widget> _buildContentWidgets(
   static pw.Widget _buildMatchingTaskCard(String header, List<String> lines, int num) {
     final cleanHeader = _replaceEmojisWithSymbols(header);
     String displayHeader = cleanHeader;
-    final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-    if (numPrefixMatch != null) {
-      displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
+    if (explicitMatch != null) {
+      displayHeader = displayHeader.substring(explicitMatch.end).trim();
+    } else {
+      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
+      if (numPrefixMatch != null) {
+        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+      }
     }
 
     return pw.Container(
@@ -1638,9 +1664,14 @@ static List<pw.Widget> _buildContentWidgets(
   static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet) {
     final cleanHeader = _replaceEmojisWithSymbols(header);
     String displayHeader = cleanHeader;
-    final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-    if (numPrefixMatch != null) {
-      displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
+    if (explicitMatch != null) {
+      displayHeader = displayHeader.substring(explicitMatch.end).trim();
+    } else {
+      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
+      if (numPrefixMatch != null) {
+        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+      }
     }
 
     return pw.Container(
