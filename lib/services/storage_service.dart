@@ -74,8 +74,8 @@ class StorageService {
   }
 
   String getUserTier() {
-    if (!_isInitialized) return 'free';
-    return _sharedPreferences.getString(_userTierStorageKey) ?? 'free';
+    if (!_isInitialized) return 'pro';
+    return _sharedPreferences.getString(_userTierStorageKey) ?? 'pro';
   }
 
   Future<void> saveUserTier(String tier) async {
