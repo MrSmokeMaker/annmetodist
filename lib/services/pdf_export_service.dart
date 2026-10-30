@@ -1747,6 +1747,48 @@ static List<pw.Widget> _buildContentWidgets(
         continue;
       }
 
+      // Интерактивные карточки-буквы для раскрашивания/выбора: [ А ] [ Б ] [ У ] ...
+      if (RegExp(r'^(\[\s*[^ \]]+\s*\]\s*){2,}\$').hasMatch(line) ||
+          (line.contains('[') && line.contains(']') && RegExp(r'(\[\s*[^ \]]+\s*\]\s*){3,}').hasMatch(line))) {
+        final matches = RegExp(r'\[\s*([^\]]+)\s*\]').allMatches(line);
+        final items = matches.map((m) => m.group(1)!.trim()).toList();
+        if (items.isNotEmpty) {
+          widgets.add(
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 4),
+              child: pw.Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final item in items)
+                    pw.Container(
+                      constraints: const pw.BoxConstraints(minWidth: 28),
+                      height: 28,
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor.fromInt(0xFFF8FAFC),
+                        borderRadius: pw.BorderRadius.circular(6),
+                        border: pw.Border.all(color: const PdfColor.fromInt(0xFF94A3B8), width: 1),
+                      ),
+                      alignment: pw.Alignment.center,
+                      child: pw.Text(
+                        _replaceEmojisWithSymbols(item),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 11,
+                          color: PdfColors.indigo900,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+          i++;
+          continue;
+        }
+      }
+
       // Поля для ответа / пропуски
       if (line.contains('____') || line.toLowerCase().contains('линии для ответа')) {
         widgets.add(_buildAnswerLine(line));
