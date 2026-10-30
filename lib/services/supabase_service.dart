@@ -26,6 +26,7 @@ class SupabaseService {
     return await client.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: kIsWeb ? 'https://mrsmokemaker.github.io/annmetodist/' : null,
     );
   }
 

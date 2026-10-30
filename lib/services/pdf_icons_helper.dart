@@ -1,12 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'dart:typed_data';
+import 'dart:io';
 
 /// Вспомогательный класс для работы с иконками в PDF
 class PdfIconsHelper {
   static final Map<String, Uint8List?> _iconCache = {};
 
-  /// Загружает иконку из assets и кэширует ее
+  /// Загружает иконку из assets (или напрямую из файла) и кэширует ее
   static Future<pw.MemoryImage?> loadIcon(String iconName) async {
     try {
       // Проверяем кэш
@@ -14,19 +16,49 @@ class PdfIconsHelper {
         return pw.MemoryImage(_iconCache[iconName]!);
       }
 
-      // Загружаем из assets
-      final ByteData data = await rootBundle.load('assets/images/pdf_icons/$iconName.png');
-      final Uint8List bytes = data.buffer.asUint8List();
+      Uint8List? bytes;
+
+      // 1. Попытка загрузить напрямую из файла (для тестов и desktop)
+      if (!kIsWeb) {
+        try {
+          final filePaths = [
+            'assets/images/pdf_icons/' + iconName + '.png',
+            'assets/images/pdf_icons/' + iconName + '.jpg',
+            'assets/images/' + iconName + '.png',
+          ];
+          for (final p in filePaths) {
+            final f = File(p);
+            if (f.existsSync()) {
+              bytes = f.readAsBytesSync();
+              break;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. Попытка загрузить из rootBundle
+      if (bytes == null) {
+        final ByteData data = await rootBundle.load('assets/images/pdf_icons/' + iconName + '.png');
+        bytes = data.buffer.asUint8List();
+      }
 
       // Кэшируем
       _iconCache[iconName] = bytes;
 
       return pw.MemoryImage(bytes);
     } catch (e) {
-      print('Ошибка загрузки иконки $iconName: $e');
       return null;
     }
   }
+
+  /// Загружает маскота «Сова-Методист»
+  static Future<pw.MemoryImage?> loadMascot() => loadIcon('mascot_owl');
+
+  /// Загружает золотую звезду для рейтингов и самооценки
+  static Future<pw.MemoryImage?> loadStarGold() => loadIcon('star_gold');
+
+  /// Загружает серую звезду
+  static Future<pw.MemoryImage?> loadStarGray() => loadIcon('star_gray');
 
   /// Получает имя файла иконки для типа материала
   static String getMaterialIconName(String type) {

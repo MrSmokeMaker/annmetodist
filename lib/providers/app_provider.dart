@@ -294,6 +294,7 @@ class AppProvider with ChangeNotifier {
         historicalFeedbackTags: historyTags,
         variantIndex: variantIndex,
         totalVariants: totalVariants,
+        materials: materials,
       );
 
       final userPrompt = PromptBuilder.buildUserPrompt(
@@ -303,6 +304,7 @@ class AppProvider with ChangeNotifier {
         duration: duration,
         situationTitle: situation?.title,
         variantIndex: totalVariants > 1 ? variantIndex : null,
+        materials: materials,
       );
 
       // Используем улучшенные промпты, если включено
@@ -323,6 +325,7 @@ class AppProvider with ChangeNotifier {
           historicalFeedbackTags: historyTags,
           variantIndex: variantIndex,
           totalVariants: totalVariants,
+          materials: materials,
         );
         
         finalSystemPrompt = enhancedPrompt['systemPrompt']!;
@@ -351,6 +354,9 @@ class AppProvider with ChangeNotifier {
       );
       await _storageService.savePromptVersion(promptVersion);
 
+      final effectiveMaterials = _mapGenerationTypesToStrings(materials) ?? const ['conspect'];
+      final effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
+
       final conspect = Conspect(
         id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
         title: '$topicTitle$titleSuffix',
@@ -362,11 +368,11 @@ class AppProvider with ChangeNotifier {
         duration: duration,
         review: review ?? '',
         notes: notes ?? '',
-        content: generatedText,
+        content: effectiveContent,
         variantIndex: variantIndex,
         batchGroupId: batchGroupId,
         cards: cards.isNotEmpty ? cards : null,
-        generatedMaterials: _mapGenerationTypesToStrings(materials) ?? const ['conspect'],
+        generatedMaterials: effectiveMaterials,
         parentAudioScript: parentAudio,
         promptVersionId: promptVersion.id,
         createdAt: DateTime.now(),

@@ -1,3 +1,4 @@
+import '../constants.dart';
 import 'dart:convert';
 import '../models/printable_card.dart';
 import '../models/conspect.dart';
@@ -139,8 +140,62 @@ class PromptBuilder {
     int? variantIndex,
     int? totalVariants,
     String? customTemplate,
+    Set<GenerationType>? materials,
   }) {
-    final template = customTemplate ?? defaultTemplate;
+    var template = customTemplate ?? defaultTemplate;
+
+    // Адаптация структуры промпта строго под выбранные материалы
+    if (materials != null && materials.isNotEmpty) {
+      final hasConspect = materials.contains(GenerationType.conspect);
+      final hasWorksheet = materials.contains(GenerationType.worksheet);
+      final hasHomework = materials.contains(GenerationType.homework);
+
+      if (hasConspect && !hasWorksheet && !hasHomework) {
+        template += '''\n
+ВАЖНЕЙШАЯ ДИРЕКТИВА ПО ВЫБОРУ МАТЕРИАЛОВ:
+Пользователь выбрал генерацию ТОЛЬКО КОНСПЕКТА ЗАНЯТИЯ (без раздаточных листов и без домашней работы).
+Твоя задача — составить ТОЛЬКО:
+1. # Цель и задачи занятия
+2. # Теоретическое обоснование и глубокое объяснение темы
+3. # Ход занятия (пошаговый развернутый сценарий, диалоги учителя и детей, хронометраж, двигательная пауза)
+4. # Дифференциация и индивидуальный маршрут
+
+СТРОЖАЙШИЙ ЗАПРЕТ: КАТЕГОРИЧЕСКИ НЕ ГЕНЕРИРУЙ раздел "# Лист заданий для печати", раздел "# Подсказка для родителя" и раздел "# Домашняя работа". Заверши ответ разделом дифференциации.
+''';
+      } else if (!hasConspect && hasWorksheet && !hasHomework) {
+        template += '''\n
+ВАЖНЕЙШАЯ ДИРЕКТИВА ПО ВЫБОРУ МАТЕРИАЛОВ:
+Пользователь выбрал генерацию ТОЛЬКО РАЗДАТОЧНОГО РАБОЧЕГО ЛИСТА ДЛЯ ПЕЧАТИ.
+Твоя задача — составить ТОЛЬКО:
+# Лист заданий для печати:
+- ## Главное правило урока: (мнемоника)
+- ## Ловушка для внимательных: (разбор типичной ошибки)
+- ### Уровень 1: Старт (2-3 базовых задания)
+- ### Уровень 2: Практик (3-4 практических задания)
+- ### Уровень 3: Детектив Pro (2 логических задания)
+- ## Самооценка и рефлексия (шкала успеха)
+- ## 🔑 Ключи и ответы для учителя
+
+СТРОЖАЙШИЙ ЗАПРЕТ: НЕ генерируй сценарий урока, цели, задачи и домашнюю работу!
+''';
+      } else if (!hasConspect && !hasWorksheet && hasHomework) {
+        template += '''\n
+ВАЖНЕЙШАЯ ДИРЕКТИВА ПО ВЫБОРУ МАТЕРИАЛОВ:
+Пользователь выбрал генерацию ТОЛЬКО ДОМАШНЕЙ РАБОТЫ.
+Твоя задача — составить ТОЛЬКО:
+# Домашняя работа:
+- ## ПАМЯТКА ДЛЯ РОДИТЕЛЕЙ: (1-минутный скрипт)
+- ### Блок 1: Тренировка
+- ### Блок 2: Исследование в быту
+- ### Блок 3: Семейный вызов / мини-игра
+- ## Шкала настроения ребенка
+- ## ТАЛОН ОБРАТНОЙ СВЯЗИ УЧИТЕЛЮ (отрезной корешок ✂)
+
+СТРОЖАЙШИЙ ЗАПРЕТ: НЕ генерируй сценарий урока и раздаточный рабочий лист!
+''';
+      }
+    }
+    
 
     final effectiveTopic = topic.trim().isEmpty ? 'не указано' : topic.trim();
     final effectiveAge = ageGroup.trim().isEmpty ? 'не указано' : ageGroup.trim();
@@ -216,7 +271,11 @@ class PromptBuilder {
     required String duration,
     String? situationTitle,
     int? variantIndex,
+    Set<GenerationType>? materials,
   }) {
+    final hasConspect = materials == null || materials.isEmpty || materials.contains(GenerationType.conspect);
+    final hasWorksheet = materials == null || materials.isEmpty || materials.contains(GenerationType.worksheet);
+    final hasHomework = materials == null || materials.isEmpty || materials.contains(GenerationType.homework);
     final situationPart = (situationTitle != null && situationTitle.isNotEmpty)
         ? ' (ситуация: $situationTitle)'
         : '';
@@ -224,11 +283,19 @@ class PromptBuilder {
         ? ' (Вариант $variantIndex)'
         : '';
     
-    // Определяем рекомендуемые эмодзи для заголовков
     final recommendedEmojis = _getRecommendedEmojisForTopic(topic);
+
+    String materialsDirective = '';
+    if (hasConspect && !hasWorksheet && !hasHomework) {
+      materialsDirective = '\n\nВАЖНО: Пользователь выбрал ТОЛЬКО КОНСПЕКТ. Сгенерируй только цели, теорию, ход урока и дифференциацию. НЕ создавай лист заданий и домашку!';
+    } else if (!hasConspect && hasWorksheet && !hasHomework) {
+      materialsDirective = '\n\nВАЖНО: Пользователь выбрал ТОЛЬКО РАБОЧИЙ ЛИСТ. Сгенерируй только раздел "# Лист заданий для печати" с заданиями для ученика, самооценкой и ответами для учителя.';
+    } else if (!hasConspect && !hasWorksheet && hasHomework) {
+      materialsDirective = '\n\nВАЖНО: Пользователь выбрал ТОЛЬКО ДОМАШНЮЮ РАБОТУ. Сгенерируй только раздел "# Домашняя работа" с памяткой родителям и заданиями.';
+    }
     
     return '''
-Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".
+Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".$materialsDirective
 
 🎨 ДЛЯ УЛУЧШЕННОГО ВИЗУАЛЬНОГО ФОРМАТА ИСПОЛЬЗУЙ:
 
@@ -412,6 +479,7 @@ ${conspectContent.length > 1200 ? conspectContent.substring(0, 1200) : conspectC
     List<String>? historicalFeedbackTags,
     int? variantIndex,
     int? totalVariants,
+    Set<GenerationType>? materials,
   }) {
     final baseSystemPrompt = buildSystemPrompt(
       methodBlock: methodBlock,
@@ -425,6 +493,7 @@ ${conspectContent.length > 1200 ? conspectContent.substring(0, 1200) : conspectC
       historicalFeedbackTags: historicalFeedbackTags,
       variantIndex: variantIndex,
       totalVariants: totalVariants,
+      materials: materials,
     );
 
     // Получаем иконку для типа материала на основе метода
@@ -644,5 +713,60 @@ ${recommendations.map((r) => '- $r').join('\n')}
 
 Верни улучшенный контент с сохранением всего оригинального материала, но с лучшей структурой.
 ''';
+  }
+
+  /// Фильтрует готовый сгенерированный контент строго по выбранным типам материалов
+  static String filterContentByMaterials(String content, List<String> materials) {
+    if (materials.isEmpty || materials.length >= 3) return content;
+    final hasConspect = materials.contains('conspect');
+    final hasWorksheet = materials.contains('worksheet');
+    final hasHomework = materials.contains('homework');
+
+    // Если только конспект: отсекаем раздаточный лист и домашнюю работу
+    if (hasConspect && !hasWorksheet && !hasHomework) {
+      final lower = content.toLowerCase();
+      final wsIdx = lower.indexOf('# лист заданий');
+      final wsIdx2 = lower.indexOf('# раздаточн');
+      final wsIdx3 = lower.indexOf('# рабочий лист');
+      int cutIdx = -1;
+      for (final idx in [wsIdx, wsIdx2, wsIdx3]) {
+        if (idx != -1 && (cutIdx == -1 || idx < cutIdx)) cutIdx = idx;
+      }
+      final hwIdx = lower.indexOf('# домашн');
+      if (hwIdx != -1 && (cutIdx == -1 || hwIdx < cutIdx)) cutIdx = hwIdx;
+      if (cutIdx != -1) {
+        return content.substring(0, cutIdx).trim();
+      }
+    }
+
+    // Если только рабочий лист: извлекаем рабочий лист
+    if (!hasConspect && hasWorksheet && !hasHomework) {
+      final lower = content.toLowerCase();
+      final wsIdx = lower.indexOf('# лист заданий');
+      final wsIdx2 = lower.indexOf('# раздаточн');
+      final wsIdx3 = lower.indexOf('# рабочий лист');
+      int startIdx = -1;
+      for (final idx in [wsIdx, wsIdx2, wsIdx3]) {
+        if (idx != -1 && (startIdx == -1 || idx < startIdx)) startIdx = idx;
+      }
+      if (startIdx != -1) {
+        final hwIdx = lower.indexOf('# домашн', startIdx);
+        if (hwIdx != -1) {
+          return content.substring(startIdx, hwIdx).trim();
+        }
+        return content.substring(startIdx).trim();
+      }
+    }
+
+    // Если только домашка: извлекаем домашку
+    if (!hasConspect && !hasWorksheet && hasHomework) {
+      final lower = content.toLowerCase();
+      final hwIdx = lower.indexOf('# домашн');
+      if (hwIdx != -1) {
+        return content.substring(hwIdx).trim();
+      }
+    }
+
+    return content;
   }
 }
