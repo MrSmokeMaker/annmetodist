@@ -458,7 +458,7 @@ class StorageService {
     archive.addFile(ArchiveFile('library_manifest.json', manifestBytes.length, manifestBytes));
 
     final zipData = ZipEncoder().encode(archive);
-    return Uint8List.fromList(zipData);
+    return Uint8List.fromList(zipData ?? []);
   }
 
   Future<Map<String, int>> importLibraryZip(List<int> zipBytes) async {

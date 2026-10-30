@@ -43,7 +43,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final isDesktop = MediaQuery.of(context).size.width >= 800;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Desktop layout removed – using only mobile BottomNavigationBar layout
+    if (isDesktop) {
       return Scaffold(
         body: AmbientBackground(
           child: Row(

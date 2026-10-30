@@ -55,7 +55,7 @@ class DocxExportService {
     // Encode to ZIP
     final encoder = ZipEncoder();
     final encodedData = encoder.encode(archive);
-    final docxBytes = Uint8List.fromList(encodedData);
+    final docxBytes = Uint8List.fromList(encodedData ?? []);
 
     final safeTitle = conspect.title
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')

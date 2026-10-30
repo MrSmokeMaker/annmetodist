@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -31,7 +31,7 @@ class PdfExportService {
     String result = text.replaceAll(emojiRegex, '');
     
     // Также удаляем все декоративные символы (•, →, ⚡, ✱, ≡, ☑, ✓, ✗, ★, ⌕, ☁, ■, ▰, ◊, №, ‼ и т.д.)
-    final decorativeSymbolsRegex = RegExp(r'[•→⚡✱≡☑✓✗★⭐⌕☁■▰◊№‼]');
+    final decorativeSymbolsRegex = RegExp(r'[•→⚡✱≡☑✓✗★⭐⌕☁■▰◊№‼\uFFFD]');
     result = result.replaceAll(decorativeSymbolsRegex, '');
     
     // Очистка лишних пробелов
@@ -733,7 +733,12 @@ class PdfExportService {
                   ),
                   pw.Expanded(
                     flex: 1,
-                    child: pw.Text('Класс: 1 «____»', style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800)),
+                    child: pw.Text(
+                      conspect.ageGroup.toLowerCase().contains('дошкол') || conspect.ageGroup.toLowerCase().contains('preschool') || conspect.ageGroup.toLowerCase().contains('4-5') || conspect.ageGroup.toLowerCase().contains('5-6')
+                          ? 'Группа: «____»'
+                          : (conspect.ageGroup.contains('2') ? 'Класс: 2 «____»' : 'Класс: 1 «____»'),
+                      style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800),
+                    ),
                   ),
                   pw.Expanded(
                     flex: 1,
@@ -1843,6 +1848,13 @@ static List<pw.Widget> _buildContentWidgets(
         continue;
       }
 
+      // Иллюстрация YandexART
+      if (line.contains('Иллюстрация YandexART') || line.contains('[Иллюстрация YandexART')) {
+        widgets.add(_buildYandexArtPlaceholderCard(line));
+        i++;
+        continue;
+      }
+
       // Таблицы Markdown
       if (line.startsWith('|') && line.endsWith('|')) {
         final List<String> tableLines = [];
@@ -2055,8 +2067,8 @@ static List<pw.Widget> _buildContentWidgets(
               children: [
                 for (int c = 0; c < headerRow.length; c++)
                   pw.Container(
-                    height: 22,
-                    padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 6),
+                    height: 28,
+                    padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
                     alignment: pw.Alignment.center,
                     child: pw.Text(
                       c < row.length ? _replaceEmojisWithSymbols(row[c]) : '',
@@ -2065,6 +2077,89 @@ static List<pw.Widget> _buildContentWidgets(
                   ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Карточка дидактической иллюстрации YandexART
+  static pw.Widget _buildYandexArtPlaceholderCard(String label) {
+    final cleanLabel = _replaceEmojisWithSymbols(label).replaceAll('[', '').replaceAll(']', '').trim();
+    final lower = cleanLabel.toLowerCase();
+    final isColoring = lower.contains('раскраск') || lower.contains('контур') || lower.contains('моторика');
+    final isMath = lower.contains('счет') || lower.contains('счёт') || lower.contains('чисел');
+    final isPhonetic = lower.contains('звук') || lower.contains('фонетическ') || lower.contains('букв');
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 4),
+      padding: const pw.EdgeInsets.all(7),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFF0FDF4),
+        borderRadius: pw.BorderRadius.circular(7),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF86EFAC), width: 0.8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF16A34A),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  'YANDEXART • ДИДАКТИЧЕСКИЙ РИСУНОК',
+                  style: pw.TextStyle(color: PdfColors.white, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+              pw.Text(
+                cleanLabel,
+                style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          pw.Container(
+            height: isColoring ? 58 : 46,
+            width: double.infinity,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(
+                color: const PdfColor.fromInt(0xFFCBD5E1),
+                width: 0.8,
+                style: pw.BorderStyle.dashed,
+              ),
+            ),
+            alignment: pw.Alignment.center,
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text(
+                  isColoring
+                      ? '[Контурный рисунок YandexART для раскрашивания и штриховки]'
+                      : (isMath
+                          ? '[Наглядные предметы для пересчета: сосчитай и запиши число]'
+                          : (isPhonetic
+                              ? '[Предметные карточки YandexART для звукового анализа]'
+                              : '[Дидактическая сюжетная иллюстрация YandexART к условию]')),
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontStyle: pw.FontStyle.italic,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  'Место для визуального анализа и выполнения задания учеником',
+                  style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey400),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
