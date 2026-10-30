@@ -31,7 +31,7 @@ class _TaskAuditBadgeState extends State<TaskAuditBadge> {
       final artService = appProvider.yandexArtService;
       final imageResult = await artService.generateImage(
         prompt: prompt,
-        type: widget.evaluation.taskIndex % 2 == 1 ? 'coloring' : 'card',
+        type: widget.evaluation.artType?.contains('раскраска') == true ? 'coloring' : 'card',
         label: prompt,
       );
 
@@ -63,7 +63,9 @@ class _TaskAuditBadgeState extends State<TaskAuditBadge> {
         color: isDark ? const Color(0xFF131826) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.primaryIndigo.withOpacity(isDark ? 0.3 : 0.2),
+          color: eval.requiresArt
+              ? AppColors.accentCyan.withOpacity(isDark ? 0.4 : 0.3)
+              : AppColors.primaryIndigo.withOpacity(isDark ? 0.3 : 0.2),
           width: 0.8,
         ),
       ),
@@ -95,49 +97,99 @@ class _TaskAuditBadgeState extends State<TaskAuditBadge> {
               height: 1.3,
             ),
           ),
-          if (eval.yandexArtPrompt != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '🎨 YandexART: ${eval.yandexArtPrompt}',
+          const SizedBox(height: 6),
+          if (eval.requiresArt && eval.yandexArtPrompt != null) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2638) : const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.accentCyan.withOpacity(0.3), width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: AppGradients.cyanTeal,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '🎨 YandexART: ${eval.artType ?? "Визуализация"}',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (eval.isArtLogicallyAligned)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.success.withOpacity(0.4), width: 0.5),
+                          ),
+                          child: const Text(
+                            '🧩 Согласован 10/10',
+                            style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.success),
+                          ),
+                        ),
+                      const Spacer(),
+                      InkWell(
+                        onTap: _isGeneratingArt ? null : _generateArt,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: AppGradients.indigoViolet,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _isGeneratingArt
+                              ? const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white),
+                                )
+                              : const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.palette_rounded, size: 12, color: Colors.white),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Создать арт',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Промпт: "${eval.yandexArtPrompt}"',
                     style: TextStyle(
                       fontSize: 10.5,
                       fontStyle: FontStyle.italic,
                       color: isDark ? AppColors.accentCyan : AppColors.primaryIndigo,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: _isGeneratingArt ? null : _generateArt,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.cyanTeal,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: _isGeneratingArt
-                        ? const SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white),
-                          )
-                        : const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.palette_rounded, size: 12, color: Colors.white),
-                              SizedBox(width: 4),
-                              Text(
-                                'Создать арт',
-                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                            ],
-                          ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Icon(Icons.format_shapes_rounded, size: 13, color: isDark ? Colors.white38 : Colors.black38),
+                const SizedBox(width: 4),
+                Text(
+                  '🎨 YandexART: не требуется (вербально-аналитическое упражнение)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.white54 : Colors.black54,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ],

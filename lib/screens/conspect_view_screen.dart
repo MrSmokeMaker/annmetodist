@@ -1243,6 +1243,7 @@ ${_currentConspect!.content}
                               topic: _currentConspect!.topic,
                               ageGroup: _currentConspect!.ageGroup,
                               subject: _currentConspect!.subject,
+                              methodId: _currentConspect!.methodId,
                             );
                             _saveInjectedContent(injected);
                           },
@@ -1257,6 +1258,7 @@ ${_currentConspect!.content}
                     topic: _currentConspect!.topic,
                     ageGroup: _currentConspect!.ageGroup,
                     subject: _currentConspect!.subject,
+                    methodId: _currentConspect!.methodId,
                   ).map((eval) => TaskAuditBadge(evaluation: eval)),
                 ],
 
