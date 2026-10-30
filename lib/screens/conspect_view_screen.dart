@@ -23,6 +23,12 @@ import '../widgets/gradient_button.dart';
 import '../widgets/thinking_indicator.dart';
 import 'lesson_run_screen.dart';
 import 'profile_screen.dart';
+import '../services/docx_export_service.dart';
+import '../services/surgical_ai_service.dart';
+import '../widgets/interactive_methodist_drawer.dart';
+import '../widgets/block_action_toolbar.dart';
+import '../widgets/rno_dialog.dart';
+
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -76,6 +82,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
   late Animation<double> _saveScaleAnim;
   late Animation<double> _saveFadeAnim;
   bool _showSavedBanner = false;
+  int? _isRegeneratingBlockIndex;
 
   @override
   void initState() {
@@ -468,6 +475,22 @@ ${_currentConspect!.content}
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      floatingActionButton: (_isLoading || _currentConspect == null)
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: AppColors.primaryIndigo,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              icon: const Icon(Icons.school_rounded, size: 20),
+              label: const Text('Методист на связи', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              onPressed: () {
+                InteractiveMethodistDrawer.show(
+                  context,
+                  conspect: _currentConspect!,
+                  gptService: context.read<AppProvider>().yandexGptService,
+                );
+              },
+            ),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
@@ -480,6 +503,24 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
+            // Пакет дифференциации «3 в 1»
+            IconButton(
+              tooltip: 'Дифференциация «3 в 1» (Опора / База / Pro)',
+              icon: const Icon(Icons.layers_rounded, color: AppColors.accentAmber),
+              onPressed: _generateDifferentiationPackage,
+            ),
+            // Работа над ошибками
+            IconButton(
+              tooltip: 'Работа над ошибками (РНО)',
+              icon: const Icon(Icons.healing_rounded, color: Color(0xFF10B981)),
+              onPressed: () => RnoDialog.show(context, currentConspect: _currentConspect),
+            ),
+            // Word export
+            IconButton(
+              tooltip: 'Экспорт в Word (.docx)',
+              icon: const Icon(Icons.description_rounded, color: Color(0xFF3B82F6)),
+              onPressed: _exportDocx,
+            ),
             // Toggle edit mode
             IconButton(
               tooltip: _isEditing ? 'Сохранить изменения' : 'Редактировать',
@@ -815,6 +856,17 @@ ${_currentConspect!.content}
                                   label: const Text('PDF Домашка', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                                   onPressed: () => _exportMaterial(PdfMaterialType.homework),
                                 ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E40AF),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.description_rounded, size: 16),
+                                  label: const Text('Word (.docx)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  onPressed: _exportDocx,
+                                ),
                               // Если сгенерировано больше одного материала, предлагаем единый комплект (с гарантией новых листов)
                               if ((_hasMaterial(PdfMaterialType.worksheet) || _hasMaterial(PdfMaterialType.homework)) && _hasMaterial(PdfMaterialType.conspect))
                                 OutlinedButton.icon(
@@ -1089,6 +1141,11 @@ ${_currentConspect!.content}
                             ),
                       ),
                     ),
+                    if (isWorksheet || lowerHeader.contains('ход') || lowerHeader.contains('задани'))
+                      BlockActionToolbar(
+                        isLoading: _isRegeneratingBlockIndex == i,
+                        onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -2747,4 +2804,122 @@ ${_currentConspect!.content}
       },
     );
   }
+
+  Future<void> _exportDocx() async {
+    if (_currentConspect == null) return;
+    try {
+      await DocxExportService.exportConspectToDocx(_currentConspect!);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка экспорта в Word: $e')),
+      );
+    }
+  }
+
+  Future<void> _generateDifferentiationPackage() async {
+    if (_currentConspect == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.layers_rounded, color: AppColors.accentAmber),
+            SizedBox(width: 8),
+            Text('Дифференциация «3 в 1»', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'Создать комплект из 3 дифференцированных вариантов на класс по этой теме?\n\n'
+          '• Вариант А: Опора (ОВЗ / пошаговый алгоритм)\n'
+          '• Вариант Б: Стандарт ФГОС (базовый уровень)\n'
+          '• Вариант В: Детектив Pro (Олимпиада / ТРИЗ-задачи)',
+          style: TextStyle(fontSize: 13.5),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Отмена')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryIndigo, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Сгенерировать пакет 3 в 1'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final appProvider = context.read<AppProvider>();
+      final bundle = await appProvider.generateDifferentiatedPackage(_currentConspect!);
+      setState(() {
+        _currentConspect = bundle[1]; // Вариант Б
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Пакет из ${bundle.length} вариантов успешно создан!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка создания пакета дифференциации: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleBlockAction(int index, Map<String, String> section, BlockAction action, String? customTheme) async {
+    if (_currentConspect == null || _isRegeneratingBlockIndex != null) return;
+    setState(() => _isRegeneratingBlockIndex = index);
+
+    try {
+      final appProvider = context.read<AppProvider>();
+      final surgicalService = appProvider.surgicalAiService;
+      final oldBlockText = section['content']!;
+
+      final updatedBlockText = await surgicalService.modifyBlock(
+        conspect: _currentConspect!,
+        blockText: oldBlockText,
+        action: action,
+        customTheme: customTheme,
+      );
+
+      final updatedConspect = await appProvider.updateConspectBlock(
+        conspect: _currentConspect!,
+        oldBlockText: oldBlockText,
+        newBlockText: updatedBlockText,
+      );
+
+      setState(() {
+        _currentConspect = updatedConspect;
+        _editController.text = updatedConspect.content;
+        _isRegeneratingBlockIndex = null;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Блок успешно обновлен через YandexGPT Pro!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRegeneratingBlockIndex = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка обновления блока: $e')),
+        );
+      }
+    }
+  }
+
 }

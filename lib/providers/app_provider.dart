@@ -16,6 +16,7 @@ import '../services/storage_service.dart';
 import '../services/yandex_gpt_service.dart';
 import '../services/ai_service.dart';
 import '../services/yandex_art_service.dart';
+import '../services/surgical_ai_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
@@ -23,6 +24,7 @@ class AppProvider with ChangeNotifier {
   late final YandexGptService _yandexGptService;
   late final AiService _aiService;
   late final YandexArtService _artService;
+  late final SurgicalAiService _surgicalAiService;
 
   bool _isLoading = false;
   bool _isGenerating = false;
@@ -43,6 +45,7 @@ class AppProvider with ChangeNotifier {
       yandexGptService: _yandexGptService,
     );
     _artService = YandexArtService(storageService: _storageService);
+    _surgicalAiService = SurgicalAiService(gptService: _yandexGptService);
   }
 
   // Getters
@@ -62,6 +65,7 @@ class AppProvider with ChangeNotifier {
   MethodRepository get methodRepository => _methodRepository;
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
+  SurgicalAiService get surgicalAiService => _surgicalAiService;
   AiService get aiService => _aiService;
   String get activeAiProvider => _aiService.activeProvider;
   String get openRouterModel => _aiService.openRouterModel;
@@ -355,7 +359,25 @@ class AppProvider with ChangeNotifier {
       await _storageService.savePromptVersion(promptVersion);
 
       final effectiveMaterials = _mapGenerationTypesToStrings(materials) ?? const ['conspect'];
-      final effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
+      var effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
+
+      // Проход 2: Строгая верификация и самоочистка (Self-Refine) для тарифа Pro
+      if (isProUser && effectiveMaterials.contains('worksheet')) {
+        try {
+          final sanitizePrompt = PromptBuilder.buildSanitizerVerificationPrompt(effectiveContent);
+          final cleaned = await _yandexGptService.generateConspect(
+            systemPrompt: sanitizePrompt['systemPrompt']!,
+            userPrompt: sanitizePrompt['userPrompt']!,
+            temperature: 0.2,
+            maxTokens: 3500,
+          );
+          if (cleaned.trim().isNotEmpty) {
+            effectiveContent = cleaned.trim();
+          }
+        } catch (e) {
+          print('Self-Refine pass bypassed: $e');
+        }
+      }
 
       List<PrintableCard>? effectiveCards = cards.isNotEmpty ? cards : null;
       String? illustrationMascot;
@@ -639,5 +661,115 @@ class AppProvider with ChangeNotifier {
     _conspects = _storageService.getAllConspects();
     notifyListeners();
     return result;
+  }
+
+  // Функция 1: Точечная регенерация блоков урока (Хирургический AI)
+  Future<Conspect> updateConspectBlock({
+    required Conspect conspect,
+    required String oldBlockText,
+    required String newBlockText,
+  }) async {
+    final updatedContent = conspect.content.replaceFirst(oldBlockText, newBlockText);
+    final updatedConspect = conspect.copyWith(
+      content: updatedContent,
+      updatedAt: DateTime.now(),
+    );
+    await _storageService.saveConspect(updatedConspect);
+    final idx = _conspects.indexWhere((c) => c.id == conspect.id);
+    if (idx != -1) {
+      _conspects[idx] = updatedConspect;
+    }
+    notifyListeners();
+    return updatedConspect;
+  }
+
+  // Функция 2: Пакетная дифференциация «3 в 1» (Опора / База / Детектив Pro)
+  Future<List<Conspect>> generateDifferentiatedPackage(Conspect baseConspect) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final batchId = baseConspect.batchGroupId ?? '${DateTime.now().millisecondsSinceEpoch}_batch';
+
+      // 1. Обновляем базовый вариант как Вариант Б
+      final baseUpdated = baseConspect.copyWith(
+        title: baseConspect.title.startsWith('[') ? baseConspect.title : '[База ФГОС] ${baseConspect.title}',
+        variantIndex: 2,
+        batchGroupId: batchId,
+        updatedAt: DateTime.now(),
+      );
+      await _storageService.saveConspect(baseUpdated);
+      final baseIdx = _conspects.indexWhere((c) => c.id == baseConspect.id);
+      if (baseIdx != -1) {
+        _conspects[baseIdx] = baseUpdated;
+      }
+
+      // 2. Генерируем Вариант А: Опора (ОВЗ / Адаптивный)
+      final supportPrompt = PromptBuilder.buildDifferentiationPrompt(
+        baseConspect: baseConspect,
+        variantType: 'support',
+      );
+      final supportContent = await _yandexGptService.generateConspect(
+        systemPrompt: supportPrompt['systemPrompt']!,
+        userPrompt: supportPrompt['userPrompt']!,
+        temperature: 0.4,
+        maxTokens: 3000,
+      );
+      final variantA = Conspect(
+        id: '${DateTime.now().millisecondsSinceEpoch}_var1',
+        title: '[Опора / ОВЗ] ${baseConspect.title}',
+        methodId: baseConspect.methodId,
+        methodName: baseConspect.methodName,
+        subject: baseConspect.subject,
+        ageGroup: baseConspect.ageGroup,
+        topic: baseConspect.topic,
+        duration: baseConspect.duration,
+        content: supportContent,
+        variantIndex: 1,
+        batchGroupId: batchId,
+        generatedMaterials: const ['worksheet'],
+        createdAt: DateTime.now(),
+      );
+      await _storageService.saveConspect(variantA);
+      _conspects.insert(0, variantA);
+
+      // 3. Генерируем Вариант В: Детектив Pro (Олимпиада / ТРИЗ)
+      final olympiadPrompt = PromptBuilder.buildDifferentiationPrompt(
+        baseConspect: baseConspect,
+        variantType: 'olympiad',
+      );
+      final olympiadContent = await _yandexGptService.generateConspect(
+        systemPrompt: olympiadPrompt['systemPrompt']!,
+        userPrompt: olympiadPrompt['userPrompt']!,
+        temperature: 0.5,
+        maxTokens: 3000,
+      );
+      final variantC = Conspect(
+        id: '${DateTime.now().millisecondsSinceEpoch}_var3',
+        title: '[Детектив Pro / ТРИЗ] ${baseConspect.title}',
+        methodId: baseConspect.methodId,
+        methodName: baseConspect.methodName,
+        subject: baseConspect.subject,
+        ageGroup: baseConspect.ageGroup,
+        topic: baseConspect.topic,
+        duration: baseConspect.duration,
+        content: olympiadContent,
+        variantIndex: 3,
+        batchGroupId: batchId,
+        generatedMaterials: const ['worksheet'],
+        createdAt: DateTime.now(),
+      );
+      await _storageService.saveConspect(variantC);
+      _conspects.insert(0, variantC);
+
+      _isLoading = false;
+      notifyListeners();
+      return [variantA, baseUpdated, variantC];
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Ошибка генерации пакета дифференциации: $e';
+      notifyListeners();
+      rethrow;
+    }
   }
 }
