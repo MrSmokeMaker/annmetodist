@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -365,41 +364,37 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1040),
-                    child: Stack(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.sm,
+                      ),
                       children: [
-                        // Main Scrollable Form Content
-                        ListView(
-                          padding: EdgeInsets.fromLTRB(
-                            AppSpacing.lg,
-                            AppSpacing.sm,
-                            AppSpacing.lg,
-                            100, // Padding for sticky bottom CTA
-                          ),
-                          children: [
-                            // Card 1: Core Parameters
-                            _buildCoreParametersCard(context, provider, availableTopics, isDark),
+                        // Card 1: Core Parameters
+                        _buildCoreParametersCard(context, provider, availableTopics, isDark),
 
-                            const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.md),
 
-                            // Card 2: Activity Techniques Library
-                            _buildActivityLibraryCard(context, provider, isDesktop, isDark),
+                        // Card 2: Activity Techniques Library
+                        _buildActivityLibraryCard(context, provider, isDesktop, isDark),
 
-                            const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.md),
 
-                            // Card 3: Material Generation Options
-                            _buildMaterialsAndVariantsCard(isDark),
+                        // Card 3: Material Generation Options
+                        _buildMaterialsAndVariantsCard(isDark),
 
-                            const SizedBox(height: AppSpacing.xxl),
-                          ],
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Primary Generation Button
+                        GradientButton(
+                          text: _getGenerateButtonText(),
+                          icon: Icons.auto_awesome_rounded,
+                          shortcutLabel: isDesktop ? 'Ctrl+↵' : null,
+                          onPressed: _onGeneratePressed,
+                          borderRadius: AppRadii.md,
                         ),
 
-                        // Floating Glass Action Bar at the Bottom
-                        Positioned(
-                          left: AppSpacing.lg,
-                          right: AppSpacing.lg,
-                          bottom: 12,
-                          child: _buildFloatingBottomBar(isDesktop, isDark),
-                        ),
+                        const SizedBox(height: 60),
                       ],
                     ),
                   ),
@@ -1132,71 +1127,5 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
     );
   }
 
-  // Floating Action Capsule Bar
-  Widget _buildFloatingBottomBar(bool isDesktop, bool isDark) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadii.xl),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F121C).withOpacity(0.90) : Colors.white.withOpacity(0.92),
-            borderRadius: BorderRadius.circular(AppRadii.xl),
-            border: Border.all(
-              color: isDark ? AppColors.specularHighlight : AppColors.lightBorder,
-              width: 1,
-            ),
-            boxShadow: AppShadows.cardLg,
-          ),
-          child: Row(
-            children: [
-              // Summary pill
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _effectiveTopicTitle.isNotEmpty
-                          ? _effectiveTopicTitle
-                          : 'Укажите тему урока',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    Text(
-                      '${_selectedMethod?.subject ?? "Предмет"} • $_selectedDuration • ${_selectedMaterials.length} мат.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
-              const SizedBox(width: 12),
-
-              // Action CTA
-              SizedBox(
-                height: 44,
-                child: GradientButton(
-                  text: _getGenerateButtonText(),
-                  icon: Icons.auto_awesome,
-                  shortcutLabel: isDesktop ? 'Ctrl+↵' : null,
-                  onPressed: _onGeneratePressed,
-                  borderRadius: AppRadii.md,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
