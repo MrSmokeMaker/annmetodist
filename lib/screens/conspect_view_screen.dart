@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -278,18 +277,7 @@ ${_currentConspect!.content}
     }
   }
 
-  Future<void> _exportPdf() async {
-    if (_currentConspect == null) return;
-    try {
-      final isPro = context.read<AppProvider>().isProUser;
-      await PdfExportService.exportAndSharePdf(_currentConspect!, isPro: isPro);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка экспорта в PDF: $e')),
-      );
-    }
-  }
+
 
   void _showProFeatureDialog({
     required BuildContext context,
@@ -544,132 +532,170 @@ ${_currentConspect!.content}
 
               // 3. Content View / Edit Mode
               else if (_currentConspect != null)
-                ListView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  children: [
-                    // Переключатель вариантов, если создано > 1 варианта
-                    if (_variants.length > 1) ...[
-                      GlassCard(
-                        padding: const EdgeInsets.all(6),
-                        child: Row(
-                          children: List.generate(_variants.length, (idx) {
-                            final isSel = _selectedVariantIndex == idx;
-                            final variantNumber = _variants[idx].variantIndex;
-                            return Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 3),
-                                child: InkWell(
-                                  onTap: () => _selectVariant(idx),
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    decoration: BoxDecoration(
-                                      gradient: isSel ? AppGradients.indigoViolet : null,
-                                      color: isSel
-                                          ? null
-                                          : (isDark
-                                              ? Colors.white.withOpacity(0.04)
-                                              : Colors.black.withOpacity(0.04)),
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 980),
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.sm,
+                      ),
+                      children: [
+                        // Переключатель вариантов, если создано > 1 варианта
+                        if (_variants.length > 1) ...[
+                          GlassCard(
+                            padding: const EdgeInsets.all(6),
+                            borderRadius: AppRadii.lg,
+                            child: Row(
+                              children: List.generate(_variants.length, (idx) {
+                                final isSel = _selectedVariantIndex == idx;
+                                final variantNumber = _variants[idx].variantIndex;
+                                return Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                                    child: InkWell(
+                                      onTap: () => _selectVariant(idx),
                                       borderRadius: BorderRadius.circular(AppRadii.sm),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Вариант $variantNumber',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 180),
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        decoration: BoxDecoration(
+                                          gradient: isSel ? AppGradients.indigoViolet : null,
                                           color: isSel
-                                              ? Colors.white
+                                              ? null
                                               : (isDark
-                                                  ? AppColors.textSecondaryDark
-                                                  : AppColors.textSecondaryLight),
+                                                  ? const Color(0x14FFFFFF)
+                                                  : Colors.black.withOpacity(0.04)),
+                                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                                          boxShadow: isSel ? AppShadows.glowPrimary : null,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Вариант $variantNumber',
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                              color: isSel
+                                                  ? Colors.white
+                                                  : (isDark
+                                                      ? AppColors.textSecondaryDark
+                                                      : AppColors.textSecondaryLight),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-
-                    // Top Info Glass Chip Banner
-                    GlassCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: AppGradients.indigoViolet,
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                            ),
-                            child: const Icon(
-                              Icons.school_outlined,
-                              color: Colors.white,
-                              size: 18,
+                                );
+                              }),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _currentConspect!.title,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  '${_currentConspect!.methodName} • ${_currentConspect!.subject} • ${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondaryLight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.cyan,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.sm),
-                              ),
-                            ),
-                            icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                            label: const Text(
-                              'Вести урок',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                FadeSlidePageRoute(
-                                  page: LessonRunScreen(conspect: _currentConspect!),
-                                ),
-                              );
-                            },
-                          ),
+                          const SizedBox(height: AppSpacing.sm),
                         ],
-                      ),
-                    ),
+
+                        // Top Info Glass Chip Banner
+                        GlassCard(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          borderRadius: AppRadii.xl,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  gradient: AppGradients.indigoViolet,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: AppShadows.glowPrimary,
+                                ),
+                                child: const Icon(
+                                  Icons.school_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _currentConspect!.title,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 4,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            gradient: AppGradients.indigoViolet,
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: Text(
+                                            _currentConspect!.methodName,
+                                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: Text(
+                                            _currentConspect!.subject,
+                                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0x14FFFFFF) : Colors.black.withOpacity(0.04),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: Text(
+                                            '${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
+                                            style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.cyan,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                                label: const Text(
+                                  'Вести урок',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    FadeSlidePageRoute(
+                                      page: LessonRunScreen(conspect: _currentConspect!),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
 
                     const SizedBox(height: AppSpacing.sm),
 
@@ -876,6 +902,8 @@ ${_currentConspect!.content}
                     const SizedBox(height: AppSpacing.xxl),
                   ],
                 ),
+              ),
+            ),
 
               // 4. Save feedback banner (fade + scale)
               if (_showSavedBanner)
@@ -946,36 +974,63 @@ ${_currentConspect!.content}
           (lowerHeader.contains('ход занятия') && i + 1 < sections.length &&
               (sections[i + 1]['header']!.toLowerCase().contains('лист заданий')));
 
+      IconData sectionIcon = Icons.article_rounded;
+      Color sectionColor = AppColors.primaryIndigo;
+      if (lowerHeader.contains('цели') || lowerHeader.contains('задач') || lowerHeader.contains('план')) {
+        sectionIcon = Icons.flag_rounded;
+        sectionColor = AppColors.primaryIndigo;
+      } else if (lowerHeader.contains('ход') || lowerHeader.contains('этап') || lowerHeader.contains('заняти')) {
+        sectionIcon = Icons.timeline_rounded;
+        sectionColor = AppColors.cyan;
+      } else if (isWorksheet) {
+        sectionIcon = Icons.assignment_rounded;
+        sectionColor = const Color(0xFF2563EB);
+      } else if (isHomework) {
+        sectionIcon = Icons.home_work_rounded;
+        sectionColor = const Color(0xFF059669);
+      } else if (lowerHeader.contains('дифференц') || lowerHeader.contains('рефлекс') || lowerHeader.contains('итог')) {
+        sectionIcon = Icons.lightbulb_outline_rounded;
+        sectionColor = AppColors.accentAmber;
+      }
+
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: GlassCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            borderRadius: AppRadii.lg,
+            borderRadius: AppRadii.xl,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with Gradient underline
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Header with Modern Icon Tag
+                Row(
                   children: [
-                    Text(
-                      header,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
                     Container(
-                      height: 3,
-                      width: 52,
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        gradient: AppGradients.indigoViolet,
-                        borderRadius: BorderRadius.circular(2),
+                        color: sectionColor.withOpacity(isDark ? 0.20 : 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(sectionIcon, size: 16, color: sectionColor),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        header,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.3,
+                              fontSize: 16,
+                            ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
                 ),
                 const SizedBox(height: AppSpacing.md),
 
@@ -986,7 +1041,7 @@ ${_currentConspect!.content}
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
                       fontSize: 14.5,
-                      height: 1.55,
+                      height: 1.6,
                       color: isDark
                           ? AppColors.textPrimaryDark
                           : AppColors.textPrimaryLight,
@@ -997,11 +1052,12 @@ ${_currentConspect!.content}
                     ),
                     listBullet: TextStyle(
                       fontSize: 14,
-                      color: AppColors.primaryIndigo,
+                      color: sectionColor,
                     ),
                     h2: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                       color: isDark
                           ? AppColors.textPrimaryDark
                           : AppColors.textPrimaryLight,

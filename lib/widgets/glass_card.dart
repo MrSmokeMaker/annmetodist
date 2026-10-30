@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-class GlassCard extends StatelessWidget {
+class GlassCard extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
@@ -12,6 +12,8 @@ class GlassCard extends StatelessWidget {
   final Color? borderColor;
   final VoidCallback? onTap;
   final Gradient? borderGradient;
+  final List<BoxShadow>? boxShadow;
+  final bool isInteractive;
 
   const GlassCard({
     super.key,
@@ -24,83 +26,153 @@ class GlassCard extends StatelessWidget {
     this.borderColor,
     this.onTap,
     this.borderGradient,
+    this.boxShadow,
+    this.isInteractive = true,
   });
+
+  @override
+  State<GlassCard> createState() => _GlassCardState();
+}
+
+class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleController;
+  late final Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.985).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) {
+    if (widget.onTap != null && widget.isInteractive) {
+      _scaleController.forward();
+    }
+  }
+
+  void _onTapUp(TapUpDetails _) {
+    if (widget.onTap != null && widget.isInteractive) {
+      _scaleController.reverse();
+    }
+  }
+
+  void _onTapCancel() {
+    if (widget.onTap != null && widget.isInteractive) {
+      _scaleController.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Premium glass surface colors
     final defaultBg = isDark
-        ? Colors.white.withOpacity(0.09)
-        : Colors.white.withOpacity(0.88);
+        ? (_isHovered
+            ? const Color(0x18FFFFFF) // ~9.5% on hover
+            : const Color(0x12FFFFFF)) // ~7% normal
+        : (_isHovered
+            ? Colors.white.withOpacity(0.95)
+            : Colors.white.withOpacity(0.88));
 
-    final defaultBorder = isDark
-        ? Colors.white.withOpacity(0.16)
-        : Colors.black.withOpacity(0.09);
+    // Specular border gradient for Apple/Linear high-end frosted look
+    final defaultBorderGradient = isDark
+        ? (_isHovered
+            ? const LinearGradient(
+                colors: [Color(0x4DFFFFFF), Color(0x14FFFFFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppGradients.glassBorderDark)
+        : AppGradients.glassBorderLight;
 
-    final effectiveBg = backgroundColor ?? defaultBg;
-    final effectiveBorderColor = borderColor ?? defaultBorder;
+    final effectiveBg = widget.backgroundColor ?? defaultBg;
+    final effectiveGradient = widget.borderGradient ?? (widget.borderColor == null ? defaultBorderGradient : null);
 
-    Widget content = Container(
-      padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+    Widget cardBody = Container(
+      padding: widget.padding ?? const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: effectiveBg,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: borderGradient == null
-            ? Border.all(
-                color: effectiveBorderColor,
-                width: 1.0,
-              )
-            : null,
+        borderRadius: BorderRadius.circular(widget.borderRadius),
       ),
-      child: child,
+      child: widget.child,
     );
 
-    // If borderGradient is provided, wrap in an outer container with gradient border
-    if (borderGradient != null) {
-      content = Container(
+    // Render specular border
+    Widget borderedCard;
+    if (effectiveGradient != null) {
+      borderedCard = Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          gradient: borderGradient,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: effectiveGradient,
+          boxShadow: widget.boxShadow ?? (_isHovered ? AppShadows.cardMd : AppShadows.cardSm),
         ),
-        padding: const EdgeInsets.all(1.0),
-        child: Container(
-          padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: effectiveBg,
-            borderRadius: BorderRadius.circular(borderRadius - 1),
+        padding: const EdgeInsets.all(1.0), // 1px micro specular border
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(widget.borderRadius - 1),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
+            child: cardBody,
           ),
-          child: child,
+        ),
+      );
+    } else {
+      borderedCard = Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          border: Border.all(
+            color: widget.borderColor ?? (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            width: 1.0,
+          ),
+          boxShadow: widget.boxShadow ?? (_isHovered ? AppShadows.cardMd : AppShadows.cardSm),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(widget.borderRadius - 1),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
+            child: cardBody,
+          ),
         ),
       );
     }
 
-    Widget glass = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: content,
-      ),
-    );
-
-    if (onTap != null) {
-      glass = Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(borderRadius),
-          splashColor: AppColors.primaryIndigo.withOpacity(0.12),
-          highlightColor: AppColors.primaryIndigo.withOpacity(0.06),
-          child: glass,
+    // Interactive gestures
+    if (widget.onTap != null) {
+      borderedCard = MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: borderedCard,
+          ),
         ),
       );
     }
 
-    if (margin != null) {
-      glass = Padding(padding: margin!, child: glass);
+    if (widget.margin != null) {
+      borderedCard = Padding(padding: widget.margin!, child: borderedCard);
     }
 
-    return glass;
+    return borderedCard;
   }
 }

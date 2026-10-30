@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/ambient_background.dart';
@@ -54,202 +55,235 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
-                  width: _isSidebarExpanded ? 220 : 72,
+                  width: _isSidebarExpanded ? 240 : 76,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF0F121C).withOpacity(0.92)
-                        : Colors.white.withOpacity(0.95),
+                        ? const Color(0xFF0C0E17).withOpacity(0.92)
+                        : Colors.white.withOpacity(0.94),
                     border: Border(
                       right: BorderSide(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.08),
+                        color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
                         width: 1,
                       ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
-                        blurRadius: 16,
+                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
+                        blurRadius: 24,
                         offset: const Offset(4, 0),
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      // App Logo / Title & Pin Toggle
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                gradient: AppGradients.indigoViolet,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryIndigo.withOpacity(0.4),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
-                            ),
-                            if (_isSidebarExpanded) ...[
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Методист',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                                    letterSpacing: 0.5,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                iconSize: 18,
-                                padding: const EdgeInsets.all(4),
-                                constraints: const BoxConstraints(),
-                                tooltip: _isSidebarPinned ? 'Открепить панель' : 'Закрепить панель',
-                                icon: Icon(
-                                  _isSidebarPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-                                  color: _isSidebarPinned
-                                      ? AppColors.primaryIndigo
-                                      : (isDark ? Colors.white60 : AppColors.textMutedLight),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isSidebarPinned = !_isSidebarPinned;
-                                  });
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Create Button
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Tooltip(
-                          message: _isSidebarExpanded ? '' : 'Создать урок или задание',
-                          child: InkWell(
-                            onTap: () => _openCreateSheet(context),
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                gradient: AppGradients.cyanBlue,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.accentCyan.withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: _isSidebarExpanded
-                                    ? MainAxisAlignment.start
-                                    : MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.add_rounded, color: Colors.white, size: 24),
-                                  if (_isSidebarExpanded) ...[
-                                    const SizedBox(width: 10),
-                                    const Text(
-                                      'Создать',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 18),
-                      Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
-                      const SizedBox(height: 12),
-
-                      // Navigation Items
-                      _buildDesktopNavItem(
-                        index: 0,
-                        icon: Icons.dashboard_outlined,
-                        activeIcon: Icons.dashboard_rounded,
-                        label: 'Конспекты',
-                        isDark: isDark,
-                      ),
-                      _buildDesktopNavItem(
-                        index: 1,
-                        icon: Icons.calendar_month_outlined,
-                        activeIcon: Icons.calendar_month_rounded,
-                        label: 'Календарь',
-                        isDark: isDark,
-                      ),
-                      _buildDesktopNavItem(
-                        index: 2,
-                        icon: Icons.person_outline_rounded,
-                        activeIcon: Icons.person_rounded,
-                        label: 'Тарифы & Профиль',
-                        isDark: isDark,
-                      ),
-                      _buildDesktopNavItem(
-                        index: 3,
-                        icon: Icons.settings_outlined,
-                        activeIcon: Icons.settings_rounded,
-                        label: 'Настройки',
-                        isDark: isDark,
-                      ),
-
-                      const Spacer(),
-
-                      // Model / status badge
-                      if (_isSidebarExpanded)
-                        Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 22),
+                          // App Logo / Title & Pin Toggle
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             child: Row(
                               children: [
-                                const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFFFB300)),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    'YandexGPT 5 Pro',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
-                                      fontWeight: FontWeight.w500,
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    gradient: AppGradients.indigoViolet,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: AppShadows.glowPrimary,
+                                  ),
+                                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                                ),
+                                if (_isSidebarExpanded) ...[
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Методист',
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                                            letterSpacing: -0.3,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          'AI Assistant Pro',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
+                                  IconButton(
+                                    iconSize: 18,
+                                    padding: const EdgeInsets.all(4),
+                                    constraints: const BoxConstraints(),
+                                    tooltip: _isSidebarPinned ? 'Открепить панель' : 'Закрепить панель',
+                                    icon: Icon(
+                                      _isSidebarPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                                      color: _isSidebarPinned
+                                          ? AppColors.primaryIndigo
+                                          : (isDark ? Colors.white54 : AppColors.textMutedLight),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isSidebarPinned = !_isSidebarPinned;
+                                      });
+                                    },
+                                  ),
+                                ],
                               ],
                             ),
                           ),
-                        ),
-                      const SizedBox(height: 12),
-                    ],
+
+                          const SizedBox(height: 24),
+
+                          // Create Button (Linear / Raycast Action Button)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Tooltip(
+                              message: _isSidebarExpanded ? '' : 'Создать урок или задание',
+                              child: InkWell(
+                                onTap: () => _openCreateSheet(context),
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  height: 48,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  decoration: BoxDecoration(
+                                    gradient: AppGradients.indigoViolet,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: AppShadows.glowPrimary,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: _isSidebarExpanded
+                                        ? MainAxisAlignment.start
+                                        : MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                                      if (_isSidebarExpanded) ...[
+                                        const SizedBox(width: 10),
+                                        const Text(
+                                          'Создать урок',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Divider(
+                              height: 1,
+                              color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Navigation Items
+                          _buildDesktopNavItem(
+                            index: 0,
+                            icon: Icons.dashboard_outlined,
+                            activeIcon: Icons.dashboard_rounded,
+                            label: 'Конспекты & Уроки',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 1,
+                            icon: Icons.calendar_today_outlined,
+                            activeIcon: Icons.calendar_month_rounded,
+                            label: 'Расписание',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 2,
+                            icon: Icons.badge_outlined,
+                            activeIcon: Icons.badge_rounded,
+                            label: 'Тарифы & Квоты',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 3,
+                            icon: Icons.tune_rounded,
+                            activeIcon: Icons.tune_rounded,
+                            label: 'Настройки',
+                            isDark: isDark,
+                          ),
+
+                          const Spacer(),
+
+                          // Model / status badge
+                          if (_isSidebarExpanded)
+                            Padding(
+                              padding: const EdgeInsets.all(14.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.success,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.success,
+                                            blurRadius: 6,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'YandexGPT 5 Pro',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -267,98 +301,93 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
     }
 
-    // Mobile layout with Bottom Navigation & floating center button
+    // Mobile layout with Floating Glass Bottom Navigation
     return Scaffold(
-      extendBody: false,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0F121C).withOpacity(0.88) : Colors.white.withOpacity(0.92),
-          border: Border(
-            top: BorderSide(
-              color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
-              width: 1,
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
+      extendBody: true,
+      body: AmbientBackground(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
         ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildMobileNavItem(
-                  index: 0,
-                  icon: Icons.home_rounded,
-                  label: 'Главная',
-                  isDark: isDark,
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              height: 68,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF0F121C).withOpacity(0.85)
+                    : Colors.white.withOpacity(0.90),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: isDark ? AppColors.specularHighlight : AppColors.lightBorder,
+                  width: 1,
                 ),
+                boxShadow: AppShadows.cardLg,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildMobileNavItem(
+                    index: 0,
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard_rounded,
+                    label: 'Уроки',
+                    isDark: isDark,
+                  ),
 
-                _buildMobileNavItem(
-                  index: 1,
-                  icon: Icons.calendar_month_rounded,
-                  label: 'Календарь',
-                  isDark: isDark,
-                ),
+                  _buildMobileNavItem(
+                    index: 1,
+                    icon: Icons.calendar_today_outlined,
+                    activeIcon: Icons.calendar_month_rounded,
+                    label: 'План',
+                    isDark: isDark,
+                  ),
 
-                // Center Action Button
-                Tooltip(
-                  message: 'Создать',
-                  child: Semantics(
-                    button: true,
-                    label: 'Создать новый конспект или задание',
-                    child: GestureDetector(
-                      onTap: () => _openCreateSheet(context),
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        margin: const EdgeInsets.only(bottom: 4),
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.cyanBlue,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.accentCyan.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                  // Floating Center Quick Action
+                  GestureDetector(
+                    onTap: () => _openCreateSheet(context),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.indigoViolet,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.35),
+                          width: 1,
                         ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
+                        boxShadow: AppShadows.glowPrimary,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 26,
                       ),
                     ),
                   ),
-                ),
 
-                _buildMobileNavItem(
-                  index: 2,
-                  icon: Icons.person_rounded,
-                  label: 'Профиль',
-                  isDark: isDark,
-                ),
+                  _buildMobileNavItem(
+                    index: 2,
+                    icon: Icons.badge_outlined,
+                    activeIcon: Icons.badge_rounded,
+                    label: 'Профиль',
+                    isDark: isDark,
+                  ),
 
-                _buildMobileNavItem(
-                  index: 3,
-                  icon: Icons.settings_rounded,
-                  label: 'Настройки',
-                  isDark: isDark,
-                ),
-              ],
+                  _buildMobileNavItem(
+                    index: 3,
+                    icon: Icons.tune_rounded,
+                    activeIcon: Icons.tune_rounded,
+                    label: 'Опции',
+                    isDark: isDark,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -387,19 +416,21 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           child: InkWell(
             onTap: () => setState(() => _currentIndex = index),
             borderRadius: BorderRadius.circular(12),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? (isDark ? AppColors.primaryIndigo.withOpacity(0.25) : AppColors.primaryIndigo.withOpacity(0.12))
+                    ? (isDark ? AppColors.primaryIndigo.withOpacity(0.18) : AppColors.primaryIndigo.withOpacity(0.10))
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: isSelected
                     ? Border.all(
                         color: isDark
-                            ? AppColors.primaryIndigo.withOpacity(0.4)
-                            : AppColors.primaryIndigo.withOpacity(0.3),
+                            ? AppColors.primaryIndigo.withOpacity(0.35)
+                            : AppColors.primaryIndigo.withOpacity(0.25),
+                        width: 1,
                       )
                     : null,
               ),
@@ -409,9 +440,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   Icon(
                     isSelected ? activeIcon : icon,
                     color: isSelected
-                        ? (isDark ? AppColors.accentCyan : AppColors.primaryIndigo)
-                        : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
-                    size: 22,
+                        ? (isDark ? AppColors.textPrimaryDark : AppColors.primaryIndigo)
+                        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                    size: 20,
                   ),
                   if (_isSidebarExpanded) ...[
                     const SizedBox(width: 12),
@@ -420,10 +451,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         label,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                           color: isSelected
-                              ? (isDark ? Colors.white : AppColors.primaryIndigo)
-                              : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
+                              ? (isDark ? Colors.white : AppColors.textPrimaryLight)
+                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          letterSpacing: -0.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -442,6 +474,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget _buildMobileNavItem({
     required int index,
     required IconData icon,
+    required IconData activeIcon,
     required String label,
     required bool isDark,
   }) {
@@ -453,28 +486,28 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       button: true,
       child: InkWell(
         onTap: () => setState(() => _currentIndex = index),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                icon,
+                isSelected ? activeIcon : icon,
                 size: 22,
                 color: isSelected
-                    ? (isDark ? AppColors.accentCyan : AppColors.primaryIndigo)
-                    : (isDark ? Colors.white60 : AppColors.textMutedLight),
+                    ? (isDark ? AppColors.primaryIndigo : AppColors.primaryIndigo)
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
               ),
               const SizedBox(height: 3),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   color: isSelected
                       ? (isDark ? Colors.white : AppColors.primaryIndigo)
-                      : (isDark ? Colors.white60 : AppColors.textMutedLight),
+                      : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
                 ),
               ),
             ],

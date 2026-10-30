@@ -31,108 +31,360 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       body: AmbientBackground(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Профиль и тарифы',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Управление аккаунтом и возможностями методиста',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // User Info Card
-              GlassCard(
-                padding: const EdgeInsets.all(18),
-                borderRadius: AppRadii.lg,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: AppGradients.violetMagenta,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryViolet.withOpacity(0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          user?.email?.isNotEmpty == true
-                              ? user!.email!.substring(0, 1).toUpperCase()
-                              : '👤',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            user?.email ?? 'Гостевой доступ',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.all(7),
                                 decoration: BoxDecoration(
-                                  color: _getTierColor(currentTier).withOpacity(0.18),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: _getTierColor(currentTier).withOpacity(0.5),
-                                    width: 1,
-                                  ),
+                                  gradient: AppGradients.violetMagenta,
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  boxShadow: AppShadows.glowAccent,
                                 ),
-                                child: Text(
-                                  _getTierLabel(currentTier),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: _getTierColor(currentTier),
+                                child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Профиль и тарифы',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Управление аккаунтом и возможностями методиста',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // User Info Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    borderRadius: AppRadii.lg,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            gradient: AppGradients.violetMagenta,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryViolet.withValues(alpha: 0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              user?.email?.isNotEmpty == true
+                                  ? user!.email!.substring(0, 1).toUpperCase()
+                                  : '👤',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.email ?? 'Гостевой доступ',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: _getTierColor(currentTier).withValues(alpha: 0.16),
+                                      borderRadius: BorderRadius.circular(AppRadii.full),
+                                      border: Border.all(
+                                        color: _getTierColor(currentTier).withValues(alpha: 0.5),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _getTierLabel(currentTier),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: _getTierColor(currentTier),
+                                      ),
+                                    ),
                                   ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    user != null ? 'Облако активно' : 'Только локально',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (user != null)
+                          IconButton(
+                            tooltip: 'Выйти',
+                            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                            onPressed: () async {
+                              await _supabaseService.signOut();
+                              if (mounted) setState(() {});
+                            },
+                          )
+                        else
+                          ElevatedButton(
+                            onPressed: () {
+                              AuthDialog.show(context, onAuthSuccess: () {
+                                if (mounted) setState(() {});
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryIndigo,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                              ),
+                            ),
+                            child: const Text('Войти', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // Title for Pricing & Billing Toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.stars_rounded, color: AppColors.accentAmber, size: 24),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Тарифные планы',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Billing Period Switcher (Month / School Year)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setState(() => _isAnnualBilling = false),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: !_isAnnualBilling
+                                    ? (isDark ? AppColors.darkSurface : Colors.white)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                                boxShadow: !_isAnnualBilling
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Text(
+                                'Помесячно',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: !_isAnnualBilling ? FontWeight.bold : FontWeight.w500,
+                                  color: !_isAnnualBilling
+                                      ? (isDark ? Colors.white : AppColors.textPrimaryLight)
+                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setState(() => _isAnnualBilling = true),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: _isAnnualBilling ? AppGradients.indigoViolet : null,
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                                boxShadow: _isAnnualBilling ? AppShadows.glowPrimary : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Учебный год',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: _isAnnualBilling ? FontWeight.bold : FontWeight.w500,
+                                      color: _isAnnualBilling
+                                          ? Colors.white
+                                          : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _isAnnualBilling ? Colors.white : AppColors.success,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '-35%',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: _isAnnualBilling ? AppColors.primaryIndigo : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Pricing Cards Layout
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth > 800;
+                      final plans = PricingPlan.defaultPlans;
+
+                      if (isWide) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: plans
+                              .map((plan) => Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: _buildPricingCard(plan, currentTier),
+                                    ),
+                                  ))
+                              .toList(),
+                        );
+                      }
+
+                      return Column(
+                        children: plans
+                            .map((plan) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildPricingCard(plan, currentTier),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ROI / Time Savings Calculator for Teachers
+                  _buildTimeSavingsCalculator(isDark),
+
+                  const SizedBox(height: 20),
+
+                  // Trust & Security Banner
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '7 дней бесплатного пробного периода',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 3),
                               Text(
-                                user != null ? 'Облако активно' : 'Только локально',
+                                'Оплата через СБП, Mir Pay или карты банков РФ. Без скрытых списаний, отмена в 1 клик в любое время.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -140,340 +392,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    if (user != null)
-                      IconButton(
-                        tooltip: 'Выйти',
-                        icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                        onPressed: () async {
-                          await _supabaseService.signOut();
-                          if (mounted) setState(() {});
-                        },
-                      )
-                    else
-                      ElevatedButton(
-                        onPressed: () {
-                          AuthDialog.show(context, onAuthSuccess: () {
-                            if (mounted) setState(() {});
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryIndigo,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                          ),
                         ),
-                        child: const Text('Войти', style: TextStyle(fontSize: 13)),
-                      ),
-                  ],
-                ),
-              ),
+                      ],
+                    ),
+                  ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Title for Pricing & Billing Toggle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.stars_rounded, color: AppColors.primaryViolet, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Тарифные планы',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  // Comparison Table
+                  GlassCard(
+                    padding: const EdgeInsets.all(18),
+                    borderRadius: AppRadii.lg,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Подробное сравнение тарифов',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2),
+                        ),
+                        const SizedBox(height: 14),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columnSpacing: 22,
+                            headingTextStyle: TextStyle(
                               fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
                             ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Billing Period Switcher (Month / School Year)
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => setState(() => _isAnnualBilling = false),
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: !_isAnnualBilling
-                                ? (isDark ? AppColors.darkSurface : Colors.white)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppRadii.sm),
-                            boxShadow: !_isAnnualBilling
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Text(
-                            'Помесячно',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: !_isAnnualBilling ? FontWeight.bold : FontWeight.w500,
-                              color: !_isAnnualBilling
-                                  ? (isDark ? Colors.white : AppColors.textPrimaryLight)
-                                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => setState(() => _isAnnualBilling = true),
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: _isAnnualBilling ? AppGradients.indigoViolet : null,
-                            borderRadius: BorderRadius.circular(AppRadii.sm),
-                            boxShadow: _isAnnualBilling
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primaryIndigo.withOpacity(0.35),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Учебный год',
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: _isAnnualBilling ? FontWeight.bold : FontWeight.w500,
-                                  color: _isAnnualBilling
-                                      ? Colors.white
-                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: _isAnnualBilling ? Colors.white : AppColors.success,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '-35%',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    color: _isAnnualBilling ? AppColors.primaryIndigo : Colors.white,
-                                  ),
-                                ),
-                              ),
+                            columns: const [
+                              DataColumn(label: Text('Возможность')),
+                              DataColumn(label: Text('Старт (0 ₽)')),
+                              DataColumn(label: Text('Практик (Хит)')),
+                              DataColumn(label: Text('Pro (Максимум)')),
+                            ],
+                            rows: const [
+                              DataRow(cells: [
+                                DataCell(Text('Генераций конспектов')),
+                                DataCell(Text('5 / мес')),
+                                DataCell(Text('60 / мес (все уроки)')),
+                                DataCell(Text('Безлимитно ✨')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Рабочие листы (6 механик)')),
+                                DataCell(Text('—')),
+                                DataCell(Text('Включено 📝')),
+                                DataCell(Text('Включено 📝')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Домашние задания + памятки')),
+                                DataCell(Text('—')),
+                                DataCell(Text('Включено 👨‍👩‍👧')),
+                                DataCell(Text('Включено 👨‍👩‍👧')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Режим Eco-Print (экономия тонера)')),
+                                DataCell(Text('—')),
+                                DataCell(Text('Включено 🌿')),
+                                DataCell(Text('Включено 🌿')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Адаптация ОВЗ / ЗПР')),
+                                DataCell(Text('—')),
+                                DataCell(Text('—')),
+                                DataCell(Text('Включено 💡')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Экспорт документов')),
+                                DataCell(Text('Текст')),
+                                DataCell(Text('Премиум PDF')),
+                                DataCell(Text('PDF + Word (DOCX)')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Аудио-скрипт для родителей')),
+                                DataCell(Text('—')),
+                                DataCell(Text('—')),
+                                DataCell(Text('Включено 🎙️')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Совместный доступ')),
+                                DataCell(Text('1 педагог')),
+                                DataCell(Text('1 педагог')),
+                                DataCell(Text('До 3 педагогов 👥')),
+                              ]),
+                              DataRow(cells: [
+                                DataCell(Text('Облачное хранилище')),
+                                DataCell(Text('10 уроков')),
+                                DataCell(Text('200 уроков')),
+                                DataCell(Text('Безлимитно')),
+                              ]),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Pricing Cards Layout
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 800;
-                  final plans = PricingPlan.defaultPlans;
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: plans
-                          .map((plan) => Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  child: _buildPricingCard(plan, currentTier),
-                                ),
-                              ))
-                          .toList(),
-                    );
-                  }
-
-                  return Column(
-                    children: plans
-                        .map((plan) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildPricingCard(plan, currentTier),
-                            ))
-                        .toList(),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // ROI / Time Savings Calculator for Teachers
-              _buildTimeSavingsCalculator(isDark),
-
-              const SizedBox(height: 20),
-
-              // Trust & Security Banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.04) : Colors.white.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '7 дней бесплатного пробного периода',
-                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Оплата через СБП, Mir Pay или карты банков РФ. Без скрытых списаний, отмена в 1 клик в любое время.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+
+                  const SizedBox(height: 60),
+                ],
               ),
-
-              const SizedBox(height: 24),
-
-              // Comparison Table
-              GlassCard(
-                padding: const EdgeInsets.all(18),
-                borderRadius: AppRadii.lg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Подробное сравнение тарифов',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 14),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columnSpacing: 20,
-                        headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                        columns: const [
-                          DataColumn(label: Text('Возможность')),
-                          DataColumn(label: Text('Старт (0 ₽)')),
-                          DataColumn(label: Text('Практик (Хит)')),
-                          DataColumn(label: Text('Pro (Максимум)')),
-                        ],
-                        rows: const [
-                          DataRow(cells: [
-                            DataCell(Text('Генераций конспектов')),
-                            DataCell(Text('5 / мес')),
-                            DataCell(Text('60 / мес (все уроки)')),
-                            DataCell(Text('Безлимитно ✨')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Рабочие листы (6 механик)')),
-                            DataCell(Text('—')),
-                            DataCell(Text('Включено 📝')),
-                            DataCell(Text('Включено 📝')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Домашние задания + памятки')),
-                            DataCell(Text('—')),
-                            DataCell(Text('Включено 👨‍👩‍👧')),
-                            DataCell(Text('Включено 👨‍👩‍👧')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Режим Eco-Print (экономия тонера)')),
-                            DataCell(Text('—')),
-                            DataCell(Text('Включено 🌿')),
-                            DataCell(Text('Включено 🌿')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Адаптация ОВЗ / ЗПР')),
-                            DataCell(Text('—')),
-                            DataCell(Text('—')),
-                            DataCell(Text('Включено 💡')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Экспорт документов')),
-                            DataCell(Text('Текст')),
-                            DataCell(Text('Премиум PDF')),
-                            DataCell(Text('PDF + Word (DOCX)')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Аудио-скрипт для родителей')),
-                            DataCell(Text('—')),
-                            DataCell(Text('—')),
-                            DataCell(Text('Включено 🎙️')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Совместный доступ')),
-                            DataCell(Text('1 педагог')),
-                            DataCell(Text('1 педагог')),
-                            DataCell(Text('До 3 педагогов 👥')),
-                          ]),
-                          DataRow(cells: [
-                            DataCell(Text('Облачное хранилище')),
-                            DataCell(Text('10 уроков')),
-                            DataCell(Text('200 уроков')),
-                            DataCell(Text('Безлимитно')),
-                          ]),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-            ],
+            ),
           ),
         ),
       ),
@@ -491,18 +508,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(
           color: plan.isPopular
               ? AppColors.primaryViolet
-              : (isCurrent ? AppColors.accentCyan : (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08))),
+              : (isCurrent
+                  ? AppColors.accentCyan
+                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder)),
           width: plan.isPopular || isCurrent ? 2 : 1,
         ),
-        boxShadow: plan.isPopular
-            ? [
-                BoxShadow(
-                  color: AppColors.primaryViolet.withOpacity(0.2),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
+        boxShadow: plan.isPopular ? AppShadows.glowAccent : null,
       ),
       child: GlassCard(
         padding: const EdgeInsets.all(18),
@@ -557,11 +568,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: plan.id != 'free' && _isAnnualBilling ? AppColors.success : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                color: plan.id != 'free' && _isAnnualBilling
+                    ? AppColors.success
+                    : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
               ),
             ),
             const SizedBox(height: 14),
-            Divider(color: isDark ? Colors.white12 : Colors.black12),
+            Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             const SizedBox(height: 8),
             ...plan.features.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -600,7 +613,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundColor: plan.isPopular
                       ? AppColors.primaryViolet
                       : (isCurrent
-                          ? (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08))
+                          ? (isDark
+                              ? AppColors.darkSurfaceElevated
+                              : AppColors.lightSurfaceElevated)
                           : AppColors.primaryIndigo),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -624,7 +639,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Интерактивный калькулятор экономии времени педагога
   Widget _buildTimeSavingsCalculator(bool isDark) {
-    // В среднем на 1 урок вручную уходит 45-50 минут, с приложением - 3-5 минут
     final hoursSavedPerWeek = (_weeklyLessons * 0.8).round();
     final costPerLesson = _isAnnualBilling
         ? (2390 / (10 * _weeklyLessons * 4)).toStringAsFixed(1)
@@ -666,16 +680,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             max: 32,
             divisions: 14,
             activeColor: AppColors.primaryIndigo,
-            inactiveColor: isDark ? Colors.white12 : Colors.black12,
+            inactiveColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             onChanged: (val) => setState(() => _weeklyLessons = val),
           ),
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
               borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
             child: Row(
               children: [
@@ -687,14 +703,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '~$hoursSavedPerWeek ч / неделю',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.success),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.success),
                       ),
                       Text('свободы для семьи и отдыха', style: TextStyle(fontSize: 10.5, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 40, color: isDark ? Colors.white12 : Colors.black12),
-                const SizedBox(width: 12),
+                Container(width: 1, height: 40, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -703,7 +719,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '~$costPerLesson ₽ за урок',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primaryViolet),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primaryViolet),
                       ),
                       Text('дешевле чашки чая', style: TextStyle(fontSize: 10.5, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
                     ],

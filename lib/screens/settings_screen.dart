@@ -29,6 +29,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _checkStatus;
   bool? _isCheckSuccessful;
 
+  bool _isExporting = false;
+  bool _isImporting = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Настройки ИИ успешно сохранены.'),
+        backgroundColor: AppColors.success,
         duration: Duration(seconds: 2),
       ),
     );
@@ -99,15 +103,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-
-  bool _isExporting = false;
-  bool _isImporting = false;
-
   Future<void> _exportLibrary() async {
     setState(() => _isExporting = true);
     try {
       final provider = context.read<AppProvider>();
-      final bytes = await provider.exportLibraryZip();
+      final bytes = provider.exportLibraryZip();
       final filename = 'metodist_library_${DateTime.now().toIso8601String().substring(0, 10)}.zip';
       final xFile = XFile.fromData(
         bytes,
@@ -184,23 +184,222 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
-          'Настройки',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: AppGradients.indigoViolet,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                boxShadow: AppShadows.glowPrimary,
+              ),
+              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Настройки',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.3),
+            ),
+          ],
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: AmbientBackground(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            children: [
-              // Supabase Account / Cloud Sync Card
-              Builder(
-                builder: (context) {
-                  final user = SupabaseService().currentUser;
-                  return GlassCard(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                children: [
+                  // Supabase Account / Cloud Sync Card
+                  Builder(
+                    builder: (context) {
+                      final user = SupabaseService().currentUser;
+                      return GlassCard(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        borderRadius: AppRadii.lg,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: AppGradients.violetMagenta,
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                    boxShadow: AppShadows.glowAccent,
+                                  ),
+                                  child: const Icon(
+                                    Icons.cloud_sync_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user != null ? 'Облачный аккаунт' : 'Синхронизация с облаком',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: -0.2,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        user != null
+                                            ? (user.email ?? 'Авторизован')
+                                            : 'Войдите для сохранения конспектов на всех устройствах',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: isDark
+                                              ? AppColors.textSecondaryDark
+                                              : AppColors.textSecondaryLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            if (user != null) ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () async {
+                                        await provider.storageService.syncConspectsFromSupabase();
+                                        await provider.initialize();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Конспекты синхронизированы с Supabase!')),
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(Icons.sync_rounded, size: 18),
+                                      label: const Text('Синхронизировать'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      await SupabaseService().signOut();
+                                      if (context.mounted) {
+                                        (context as Element).markNeedsBuild();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Вы вышли из аккаунта')),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.error),
+                                    label: const Text('Выйти', style: TextStyle(color: AppColors.error)),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    AuthDialog.show(context, onAuthSuccess: () async {
+                                      await provider.storageService.syncConspectsFromSupabase();
+                                      await provider.initialize();
+                                      if (context.mounted) (context as Element).markNeedsBuild();
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryIndigo,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppRadii.md),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.login_rounded, size: 18),
+                                  label: const Text('Войти или создать аккаунт', style: TextStyle(fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Theme Toggle Card
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
+                    ),
+                    borderRadius: AppRadii.lg,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.cyanTeal,
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                boxShadow: AppShadows.glowSecondary,
+                              ),
+                              child: Icon(
+                                provider.isDarkMode
+                                    ? Icons.dark_mode_outlined
+                                    : Icons.light_mode_outlined,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Тёмная тема',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.2,
+                                      ),
+                                ),
+                                Text(
+                                  provider.isDarkMode ? 'Включена (Obsidian Glass)' : 'Выключена (Light Crisp)',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: provider.isDarkMode,
+                          activeColor: AppColors.accentCyan,
+                          onChanged: (val) {
+                            provider.toggleTheme();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // AI Provider and Credentials Card
+                  GlassCard(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     borderRadius: AppRadii.lg,
                     child: Column(
@@ -211,11 +410,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                gradient: AppGradients.violetMagenta,
+                                gradient: AppGradients.indigoViolet,
                                 borderRadius: BorderRadius.circular(AppRadii.md),
+                                boxShadow: AppShadows.glowPrimary,
                               ),
                               child: const Icon(
-                                Icons.cloud_sync_rounded,
+                                Icons.auto_awesome_rounded,
                                 color: Colors.white,
                                 size: 22,
                               ),
@@ -226,17 +426,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    user != null ? 'Облачный аккаунт' : 'Синхронизация с облаком',
+                                    'Искусственный интеллект',
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
                                         ),
                                   ),
                                   Text(
-                                    user != null
-                                        ? (user.email ?? 'Авторизован')
-                                        : 'Войдите для сохранения конспектов на всех устройствах',
+                                    _selectedProvider == 'mistral'
+                                        ? 'Mistral AI (Large 2 / NeMo)'
+                                        : (_selectedProvider == 'openrouter'
+                                            ? 'OpenRouter (Qwen / DeepSeek)'
+                                            : 'YandexGPT (Яндекс Облако)'),
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       color: isDark
                                           ? AppColors.textSecondaryDark
                                           : AppColors.textSecondaryLight,
@@ -248,678 +451,503 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        if (user != null) ...[
-                          Row(
+
+                        // Provider switcher tabs (Yandex / Mistral / OpenRouter)
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            ),
+                          ),
+                          child: Row(
                             children: [
                               Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    await provider.storageService.syncConspectsFromSupabase();
-                                    await provider.initialize();
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Конспекты синхронизированы с Supabase!')),
-                                      );
-                                    }
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedProvider = 'yandex';
+                                      _checkStatus = null;
+                                    });
                                   },
-                                  icon: const Icon(Icons.sync_rounded, size: 18),
-                                  label: const Text('Синхронизировать'),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
+                                    decoration: BoxDecoration(
+                                      gradient: _selectedProvider == 'yandex' ? AppGradients.indigoViolet : null,
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                      boxShadow: _selectedProvider == 'yandex' ? AppShadows.glowPrimary : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '🤖 Yandex',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: _selectedProvider == 'yandex'
+                                              ? Colors.white
+                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  await SupabaseService().signOut();
-                                  if (context.mounted) {
-                                    (context as Element).markNeedsBuild();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Вы вышли из аккаунта')),
-                                    );
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedProvider = 'mistral';
+                                      _checkStatus = null;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
+                                    decoration: BoxDecoration(
+                                      gradient: _selectedProvider == 'mistral' ? AppGradients.indigoViolet : null,
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                      boxShadow: _selectedProvider == 'mistral' ? AppShadows.glowPrimary : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '🌪️ Mistral',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: _selectedProvider == 'mistral'
+                                              ? Colors.white
+                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedProvider = 'openrouter';
+                                      _checkStatus = null;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
+                                    decoration: BoxDecoration(
+                                      gradient: _selectedProvider == 'openrouter' ? AppGradients.indigoViolet : null,
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                      boxShadow: _selectedProvider == 'openrouter' ? AppShadows.glowPrimary : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '⚡ OpenRouter',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: _selectedProvider == 'openrouter'
+                                              ? Colors.white
+                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+
+                        if (_selectedProvider == 'yandex') ...[
+                          Text(
+                            'Запросы направляются через серверную функцию для обхода CORS и защиты ключей.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _proxyUrlController,
+                            label: 'URL прокси‑функции',
+                            hintText: 'https://<region>.cloud.yandex.net/...',
+                            prefixIcon: Icons.link_outlined,
+                          ),
+                        ] else if (_selectedProvider == 'mistral') ...[
+                          Text(
+                            'Mistral AI — открытая европейская модель с первоклассным следованием структуре JSON, высокой скоростью и образцовым оформлением карточек и раздаточных листов.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedMistralModel,
+                                isExpanded: true,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                items: AiService.availableMistralModels.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedMistralModel = val;
+                                    });
                                   }
                                 },
-                                icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
-                                label: const Text('Выйти', style: TextStyle(color: Colors.redAccent)),
                               ),
-                            ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _mistralKeyController,
+                            label: 'API-ключ Mistral AI',
+                            hintText: 'Введите ключ (получите на console.mistral.ai/api-keys)',
+                            prefixIcon: Icons.vpn_key_outlined,
+                            obscureText: true,
                           ),
                         ] else ...[
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                AuthDialog.show(context, onAuthSuccess: () async {
-                                  await provider.storageService.syncConspectsFromSupabase();
-                                  await provider.initialize();
-                                  if (context.mounted) (context as Element).markNeedsBuild();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryIndigo,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppRadii.md),
-                                ),
-                              ),
-                              icon: const Icon(Icons.login_rounded, size: 18),
-                              label: const Text('Войти или создать аккаунт'),
+                          Text(
+                            'OpenRouter дает доступ к мощным открытым моделям с глубоким рассуждением и богатой вариативностью заданий (рекомендуется Qwen 2.5 72B Instruct).',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              height: 1.4,
                             ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedOpenRouterModel,
+                                isExpanded: true,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                items: AiService.availableOpenRouterModels.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedOpenRouterModel = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _openRouterKeyController,
+                            label: 'API-ключ OpenRouter',
+                            hintText: 'sk-or-v1-... (получите на openrouter.ai/keys)',
+                            prefixIcon: Icons.vpn_key_outlined,
+                            obscureText: true,
                           ),
                         ],
-                      ],
-                    ),
-                  );
-                },
-              ),
 
-              const SizedBox(height: AppSpacing.lg),
-              // Theme Toggle Card
-              GlassCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-                borderRadius: AppRadii.lg,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: AppGradients.cyanBlue,
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                          ),
-                          child: Icon(
-                            provider.isDarkMode
-                                ? Icons.dark_mode_outlined
-                                : Icons.light_mode_outlined,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // Test Connection & Save Buttons
+                        Row(
                           children: [
-                            Text(
-                              'Тёмная тема',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                   ),
-                            ),
-                            Text(
-                              provider.isDarkMode ? 'Включена' : 'Выключена',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Switch(
-                      value: provider.isDarkMode,
-                      activeColor: AppColors.primaryIndigo,
-                      onChanged: (val) {
-                        provider.toggleTheme();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // AI Provider and Credentials Card
-              GlassCard(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                borderRadius: AppRadii.lg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: AppGradients.indigoViolet,
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                          ),
-                          child: const Icon(
-                            Icons.auto_awesome_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Искусственный интеллект',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                              Text(
-                                _selectedProvider == 'mistral'
-                                    ? 'Mistral AI (Large 2 / NeMo)'
-                                    : (_selectedProvider == 'openrouter'
-                                        ? 'OpenRouter (Qwen / DeepSeek)'
-                                        : 'YandexGPT (Яндекс Облако)'),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondaryLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Provider switcher tabs (Yandex / Mistral / OpenRouter)
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                        border: Border.all(
-                          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedProvider = 'yandex';
-                                  _checkStatus = null;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: _selectedProvider == 'yandex'
-                                      ? AppColors.primaryIndigo
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '🤖 Yandex',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _selectedProvider == 'yandex'
-                                          ? Colors.white
-                                          : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                    ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
                                   ),
                                 ),
+                                icon: _isChecking
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.wifi_tethering_rounded, size: 18),
+                                label: const Text('Проверить связь'),
+                                onPressed: _isChecking ? null : _checkConnection,
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedProvider = 'mistral';
-                                  _checkStatus = null;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: _selectedProvider == 'mistral'
-                                      ? AppColors.primaryIndigo
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '🌪️ Mistral',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _selectedProvider == 'mistral'
-                                          ? Colors.white
-                                          : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedProvider = 'openrouter';
-                                  _checkStatus = null;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: _selectedProvider == 'openrouter'
-                                      ? AppColors.primaryIndigo
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '⚡ OpenRouter',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _selectedProvider == 'openrouter'
-                                          ? Colors.white
-                                          : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    if (_selectedProvider == 'yandex') ...[
-                      Text(
-                        'Запросы направляются через серверную функцию для обхода CORS и защиты ключей.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      GlassTextField(
-                        controller: _proxyUrlController,
-                        label: 'URL прокси‑функции',
-                        hintText: 'https://<region>.cloud.yandex.net/...',
-                        prefixIcon: Icons.link_outlined,
-                      ),
-                    ] else if (_selectedProvider == 'mistral') ...[
-                      Text(
-                        'Mistral AI — открытая европейская модель с первоклассным следованием структуре JSON, высокой скоростью и образцовым оформлением карточек и раздаточных листов.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.1),
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedMistralModel,
-                            isExpanded: true,
-                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
-                            items: AiService.availableMistralModels.entries.map((entry) {
-                              return DropdownMenuItem<String>(
-                                value: entry.key,
-                                child: Text(
-                                  entry.value,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _selectedMistralModel = val;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      GlassTextField(
-                        controller: _mistralKeyController,
-                        label: 'API-ключ Mistral AI',
-                        hintText: 'Введите ключ (получите на console.mistral.ai/api-keys)',
-                        prefixIcon: Icons.vpn_key_outlined,
-                        obscureText: true,
-                      ),
-                    ] else ...[
-                      Text(
-                        'OpenRouter дает доступ к мощным открытым моделям с глубоким рассуждением и богатой вариативностью заданий (рекомендуется Qwen 2.5 72B Instruct).',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.1),
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedOpenRouterModel,
-                            isExpanded: true,
-                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
-                            items: AiService.availableOpenRouterModels.entries.map((entry) {
-                              return DropdownMenuItem<String>(
-                                value: entry.key,
-                                child: Text(
-                                  entry.value,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _selectedOpenRouterModel = val;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      GlassTextField(
-                        controller: _openRouterKeyController,
-                        label: 'API-ключ OpenRouter',
-                        hintText: 'sk-or-v1-... (получите на openrouter.ai/keys)',
-                        prefixIcon: Icons.vpn_key_outlined,
-                        obscureText: true,
-                      ),
-                    ],
-
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Test Connection & Save Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.2)
-                                    : Colors.black.withOpacity(0.15),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.md),
-                              ),
-                            ),
-                            icon: _isChecking
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.wifi_tethering_rounded, size: 18),
-                            label: const Text('Проверить связь'),
-                            onPressed: _isChecking ? null : _checkConnection,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryIndigo,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.md),
-                              ),
-                            ),
-                            icon: const Icon(Icons.save_rounded, size: 18),
-                            label: const Text('Сохранить'),
-                            onPressed: _saveAiSettings,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    // Status Message
-                    if (_checkStatus != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: _isCheckSuccessful == true
-                              ? AppColors.success.withOpacity(0.12)
-                              : AppColors.error.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          border: Border.all(
-                            color: _isCheckSuccessful == true
-                                ? AppColors.success.withOpacity(0.3)
-                                : AppColors.error.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              _isCheckSuccessful == true
-                                  ? Icons.check_circle_rounded
-                                  : Icons.info_outline_rounded,
-                              color: _isCheckSuccessful == true
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              size: 20,
                             ),
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
-                              child: Text(
-                                _checkStatus!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  color: _isCheckSuccessful == true
-                                      ? AppColors.success
-                                      : AppColors.error,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryIndigo,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                  ),
                                 ),
+                                icon: const Icon(Icons.save_rounded, size: 18, color: Colors.white),
+                                label: const Text('Сохранить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                onPressed: _saveAiSettings,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: AppSpacing.lg),
-
-              // Backup & Library ZIP Card
-              GlassCard(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                borderRadius: AppRadii.lg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: AppGradients.cyanBlue,
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                          ),
-                          child: const Icon(
-                            Icons.archive_outlined,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Резервная копия и библиотека',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                        // Status Message
+                        if (_checkStatus != null) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: _isCheckSuccessful == true
+                                  ? AppColors.success.withValues(alpha: 0.12)
+                                  : AppColors.error.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: _isCheckSuccessful == true
+                                  ? AppColors.success.withValues(alpha: 0.3)
+                                  : AppColors.error.withValues(alpha: 0.3),
                               ),
-                              Text(
-                                'ZIP-архив конспектов, методик и версий промптов',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondaryLight,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  _isCheckSuccessful == true
+                                      ? Icons.check_circle_rounded
+                                      : Icons.info_outline_rounded,
+                                  color: _isCheckSuccessful == true
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Выгрузите всю базу конспектов, версионные промпты и каталоги в единый ZIP-архив для переноса на другое устройство или восстановите библиотеку из ранее сохранённого архива.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.2)
-                                    : Colors.black.withValues(alpha: 0.15),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.md),
-                              ),
-                            ),
-                            icon: _isImporting
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.file_upload_outlined, size: 18),
-                            label: const Text('Импорт ZIP'),
-                            onPressed: _isImporting ? null : _importLibrary,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryIndigo,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.md),
-                              ),
-                            ),
-                            icon: _isExporting
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    _checkStatus!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.4,
+                                      fontWeight: FontWeight.w600,
+                                      color: _isCheckSuccessful == true
+                                          ? AppColors.success
+                                          : AppColors.error,
                                     ),
-                                  )
-                                : const Icon(Icons.download_rounded, size: 18),
-                            label: const Text('Экспорт ZIP'),
-                            onPressed: _isExporting ? null : _exportLibrary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Backup & Library ZIP Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    borderRadius: AppRadii.lg,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.cyanTeal,
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                boxShadow: AppShadows.glowSecondary,
+                              ),
+                              child: const Icon(
+                                Icons.archive_outlined,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Резервная копия и библиотека',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                        ),
+                                  ),
+                                  Text(
+                                    'ZIP-архив конспектов, методик и версий промптов',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Выгрузите всю базу конспектов, версионные промпты и каталоги в единый ZIP-архив для переноса на другое устройство или восстановите библиотеку из ранее сохранённого архива.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark
+                                        ? AppColors.darkBorder
+                                        : AppColors.lightBorder,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                  ),
+                                ),
+                                icon: _isImporting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.file_upload_outlined, size: 18),
+                                label: const Text('Импорт ZIP'),
+                                onPressed: _isImporting ? null : _importLibrary,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryIndigo,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                  ),
+                                ),
+                                icon: _isExporting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.download_rounded, size: 18, color: Colors.white),
+                                label: const Text('Экспорт ZIP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                onPressed: _isExporting ? null : _exportLibrary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // About App Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    borderRadius: AppRadii.lg,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'О приложении',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Методист — персональный ассистент педагога для генерации авторских поурочных планов и конспектов по классическим отечественным методикам на базе нейросети YandexGPT (Яндекс Облако).',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Версия 1.0.0 (Личное использование)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 60),
+                ],
               ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // About App Card
-              GlassCard(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                borderRadius: AppRadii.lg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'О приложении',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Методист — персональный ассистент педагога для генерации авторских поурочных планов и конспектов по классическим отечественным методикам на базе нейросети YandexGPT (Яндекс Облако).',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Версия 1.0.0 (Личное использование)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxl),
-            ],
+            ),
           ),
         ),
       ),

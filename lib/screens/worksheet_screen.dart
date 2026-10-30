@@ -1,11 +1,8 @@
 // Worksheet generation screen (based on NewConspectScreen)
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 
-
-import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
 import '../models/topic.dart';
 import '../providers/app_provider.dart';
@@ -17,7 +14,7 @@ import '../widgets/gradient_button.dart';
 import 'settings_screen.dart';
 
 class WorksheetScreen extends StatefulWidget {
-  const WorksheetScreen({Key? key}) : super(key: key);
+  const WorksheetScreen({super.key});
 
   @override
   State<WorksheetScreen> createState() => _WorksheetScreenState();
@@ -32,13 +29,11 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
   bool _isCustomTopic = false;
   String _selectedDuration = '45 мин';
 
-  // New fields for worksheet
-    // New fields for worksheet
-  int _tasksCount = 5; // default 5
+  int _tasksCount = 5;
   bool _withAnswers = false;
   bool _includeWordBank = true;
   bool _ecoPrint = false;
-  String _pageFormat = '1_page';
+  final String _pageFormat = '1_page';
 
   final TextEditingController _customTopicController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -110,7 +105,6 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
       return;
     }
 
-    // Build request payload
     final payload = {
       'generationType': 'worksheet',
       'title': 'Лист заданий: $topicTitle',
@@ -126,12 +120,9 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
       'notes': _notesController.text.trim(),
     };
 
-    // Call JS to generate PDF (pdfmake helper expected on window)
     try {
-      final jsonStr = jsonEncode(payload);
-      // if (kIsWeb) {
-      //   js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
-      // }
+      jsonEncode(payload);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Лист заданий формируется и скачивается в PDF...'),
@@ -139,6 +130,7 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка генерации PDF: $e')));
     }
   }
@@ -173,218 +165,458 @@ class _WorksheetScreenState extends State<WorksheetScreen> {
     final availableTopics = _selectedMethod != null ? provider.getTopicsFor(_selectedMethod!.id, _selectedAgeGroup) : <Topic>[];
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Лист заданий'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: AppGradients.cyanTeal,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                boxShadow: AppShadows.glowSecondary,
+              ),
+              child: const Icon(Icons.assignment_outlined, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Генератор листа заданий',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3),
+            ),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.of(context).pop()),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Настройки',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      extendBodyBehindAppBar: true,
       body: AmbientBackground(
         child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-              children: [
-                // Методика
-                Text('Методика обучения', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                    border: Border.all(color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<MethodPrompt>(
-                      isExpanded: true,
-                      value: _selectedMethod,
-                      dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      items: provider.methods.map((m) => DropdownMenuItem(value: m, child: Text('${m.name} — ${m.subject}', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)))).toList(),
-                      onChanged: (m) => setState(() { _selectedMethod = m; _selectedTopic = null; }),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Возрастная группа
-                Text('Возрастная группа', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                const SizedBox(height: 8),
-                Row(
-                  children: _ageGroups.map((g) {
-                    final isSel = _selectedAgeGroup == g['id'];
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: InkWell(
-                          onTap: () => setState(() { _selectedAgeGroup = g['id']!; _selectedTopic = null; _updateDurationForAgeGroup(_selectedAgeGroup); }),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              gradient: isSel ? AppGradients.indigoViolet : null,
-                              color: isSel ? null : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
-                              borderRadius: BorderRadius.circular(AppRadii.md),
-                              border: Border.all(color: isSel ? Colors.transparent : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08))),
-                            ),
-                            child: Text(g['label']!, textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, fontWeight: isSel ? FontWeight.w600 : FontWeight.normal, color: isSel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight))),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                  children: [
+                    // Card 1: Параметры урока
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryIndigo.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.auto_stories_rounded, color: AppColors.primaryIndigo, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '1. Параметры занятия',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.md),
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Методика
+                          Text(
+                            'Методика обучения',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<MethodPrompt>(
+                                isExpanded: true,
+                                value: _selectedMethod,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                                items: provider.methods.map((m) => DropdownMenuItem(
+                                  value: m,
+                                  child: Text('${m.name} — ${m.subject}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                )).toList(),
+                                onChanged: (m) => setState(() {
+                                  _selectedMethod = m;
+                                  _selectedTopic = null;
+                                }),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Возрастная группа
+                          Text(
+                            'Возрастная группа',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: _ageGroups.map((g) {
+                              final isSel = _selectedAgeGroup == g['id'];
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: InkWell(
+                                    onTap: () => setState(() {
+                                      _selectedAgeGroup = g['id']!;
+                                      _selectedTopic = null;
+                                      _updateDurationForAgeGroup(_selectedAgeGroup);
+                                    }),
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      decoration: BoxDecoration(
+                                        gradient: isSel ? AppGradients.indigoViolet : null,
+                                        color: isSel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                        borderRadius: BorderRadius.circular(AppRadii.md),
+                                        border: Border.all(
+                                          color: isSel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                        ),
+                                        boxShadow: isSel ? AppShadows.glowPrimary : null,
+                                      ),
+                                      child: Text(
+                                        g['label']!,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                          color: isSel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Тема
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Тема занятия *',
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                              ),
+                              GestureDetector(
+                                onTap: () => setState(() => _isCustomTopic = !_isCustomTopic),
+                                child: Text(
+                                  _isCustomTopic ? 'Выбрать из каталога' : 'Ввести вручную',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.accentCyan),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (!_isCustomTopic)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<Topic>(
+                                  isExpanded: true,
+                                  value: _selectedTopic,
+                                  hint: Text(availableTopics.isEmpty ? 'Нет тем' : 'Выберите тему', style: TextStyle(fontSize: 14, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
+                                  dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                  items: availableTopics.map((t) => DropdownMenuItem(
+                                    value: t,
+                                    child: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                                  )).toList(),
+                                  onChanged: (t) => setState(() => _selectedTopic = t),
+                                ),
+                              ),
+                            )
+                          else
+                            GlassTextField(
+                              label: '',
+                              controller: _customTopicController,
+                              hintText: 'Введите название темы...',
+                              prefixIcon: Icons.edit_note_rounded,
+                              onChanged: (v) => setState(() => _customTopicText = v),
+                            ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Длительность
+                          Text(
+                            'Длительность занятия',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _currentDurations.map((d) {
+                              final sel = _selectedDuration == d;
+                              return InkWell(
+                                onTap: () => setState(() => _selectedDuration = d),
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: sel ? AppGradients.indigoViolet : null,
+                                    color: sel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                                    border: Border.all(
+                                      color: sel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    d,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                      color: sel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Тема
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Тема занятия *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                    GestureDetector(
-                      onTap: () => setState(() => _isCustomTopic = !_isCustomTopic),
-                      child: Text(_isCustomTopic ? 'Выбрать из каталога' : 'Ввести вручную', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primaryIndigo)),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (!_isCustomTopic)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Topic>(
-                        isExpanded: true,
-                        value: _selectedTopic,
-                        hint: Text(availableTopics.isEmpty ? 'Нет тем' : 'Выберите тему', style: TextStyle(fontSize: 14, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
-                        dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                        items: availableTopics.map((t) => DropdownMenuItem(value: t, child: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)))).toList(),
-                        onChanged: (t) => setState(() => _selectedTopic = t),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Card 2: Конфигурация заданий
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentCyan.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.tune_rounded, color: AppColors.accentCyan, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '2. Формат и опции заданий',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Количество заданий
+                          Text(
+                            'Количество заданий',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [3, 5, 7].map((cnt) {
+                              final sel = _tasksCount == cnt;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: InkWell(
+                                  onTap: () => setState(() => _tasksCount = cnt),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      gradient: sel ? AppGradients.cyanTeal : null,
+                                      color: sel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                      border: Border.all(
+                                        color: sel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$cnt заданий',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                        color: sel ? Colors.white : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+
+                          // Опции
+                          _buildSwitchRow(
+                            title: 'Корзинка слов для справок',
+                            subtitle: 'Банк слов и подсказок внизу листа',
+                            icon: Icons.shopping_basket_outlined,
+                            iconColor: AppColors.primaryIndigo,
+                            value: _includeWordBank,
+                            onChanged: (val) => setState(() => _includeWordBank = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'Режим Eco-Print (ч/б печать)',
+                            subtitle: 'Оптимизация под черно-белый принтер',
+                            icon: Icons.print_outlined,
+                            iconColor: AppColors.accentCyan,
+                            value: _ecoPrint,
+                            onChanged: (val) => setState(() => _ecoPrint = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'С ответами для учителя',
+                            subtitle: 'Блок самопроверки и ключ к заданиям',
+                            icon: Icons.check_circle_outline,
+                            iconColor: AppColors.success,
+                            value: _withAnswers,
+                            onChanged: (val) => setState(() => _withAnswers = val),
+                            isDark: isDark,
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  GlassTextField(
-                    label: '',
-                    controller: _customTopicController,
-                    hintText: 'Введите название темы...',
-                    prefixIcon: Icons.edit_note_rounded,
-                    onChanged: (v) => setState(() => _customTopicText = v),
-                  ),
-                const SizedBox(height: AppSpacing.lg),
-                // Длительность
-                Text('Длительность занятия', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _currentDurations.map((d) {
-                    final sel = _selectedDuration == d;
-                    return InkWell(
-                      onTap: () => setState(() => _selectedDuration = d),
-                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: sel ? AppGradients.indigoViolet : null,
-                          color: sel ? null : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
-                          borderRadius: BorderRadius.circular(AppRadii.sm),
-                          border: Border.all(color: sel ? Colors.transparent : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08))),
-                        ),
-                        child: Text(d, style: TextStyle(fontSize: 13, fontWeight: sel ? FontWeight.w600 : FontWeight.normal, color: sel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight))),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Card 3: Заметки
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentAmber.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.comment_outlined, color: AppColors.accentAmber, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '3. Особые пожелания к листу',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _notesController,
+                            label: 'Замечания учителя (необязательно)',
+                            hintText: 'Особый темп, акцент на игровые элементы, уровень группы...',
+                            prefixIcon: Icons.edit_outlined,
+                            maxLines: 2,
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Количество заданий
-                Text('Количество заданий', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [3, 5, 7].map((cnt) {
-                    final sel = _tasksCount == cnt;
-                    return ChoiceChip(
-                      label: Text('$cnt'),
-                      selected: sel,
-                      onSelected: (_) => setState(() => _tasksCount = cnt),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                                // Корзинка слов для справок
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.shopping_basket_outlined, size: 18, color: AppColors.primaryIndigo),
-                        const SizedBox(width: 8),
-                        Text('Корзинка слов для справок', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                      ],
                     ),
-                    Switch(value: _includeWordBank, onChanged: (val) => setState(() => _includeWordBank = val)),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // Bottom CTA
+                    GradientButton(
+                      text: 'Сгенерировать лист заданий',
+                      icon: Icons.auto_awesome_rounded,
+                      onPressed: _onGeneratePressed,
+                    ),
+                    const SizedBox(height: 60),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                // Экономичный режим Eco-Print
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.print_outlined, size: 18, color: AppColors.cyan),
-                        const SizedBox(width: 8),
-                        Text('Режим Eco-Print (ч/б печать)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                      ],
-                    ),
-                    Switch(value: _ecoPrint, onChanged: (val) => setState(() => _ecoPrint = val)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                // С ответами для учителя
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline, size: 18, color: AppColors.success),
-                        const SizedBox(width: 8),
-                        Text('С ответами для учителя', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                      ],
-                    ),
-                    Switch(value: _withAnswers, onChanged: (val) => setState(() => _withAnswers = val)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Замечания (optional)
-                GlassTextField(
-                  controller: _notesController,
-                  label: 'Замечания и пожелания учителя (необязательно)',
-                  hintText: 'Особый темп, акцент на игровые элементы, уровень группы...',
-                  prefixIcon: Icons.comment_outlined,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                GradientButton(
-                  text: 'Сгенерировать лист',
-                  onPressed: _onGeneratePressed,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchRow({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeColor: AppColors.accentCyan,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

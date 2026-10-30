@@ -1,5 +1,4 @@
 // Homework generation screen (based on WorksheetScreen)
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -15,7 +14,7 @@ import '../widgets/gradient_button.dart';
 import 'settings_screen.dart';
 
 class HomeworkScreen extends StatefulWidget {
-  const HomeworkScreen({Key? key}) : super(key: key);
+  const HomeworkScreen({super.key});
 
   @override
   State<HomeworkScreen> createState() => _HomeworkScreenState();
@@ -109,7 +108,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
 
     final payload = {
       'generationType': 'homework',
-      'title': 'Домашнее задание: $topicTitle',
+      'title': 'Домашняя работа: $topicTitle',
       'methodId': _selectedMethod!.id,
       'ageGroup': _selectedAgeGroup,
       'topic': topicTitle,
@@ -124,10 +123,8 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     };
 
     try {
-      final jsonStr = jsonEncode(payload);
-      // if (kIsWeb) {
-      //   js_util.callMethod(js_util.globalThis, 'createWorksheetPdf', [jsonStr]);
-      // }
+      jsonEncode(payload);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Домашнее задание формируется и скачивается в PDF...'),
@@ -135,6 +132,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка генерации PDF: $e')));
     }
   }
@@ -146,7 +144,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
         title: const Text('Требуется URL прокси-функции'),
-        content: const Text('Для генерации домашнего задания необходимо указать URL прокси в настройках.'),
+        content: const Text('Для генерации домашней работы необходимо указать URL прокси в настройках.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Отмена')),
           ElevatedButton(
@@ -169,8 +167,26 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
     final availableTopics = _selectedMethod != null ? provider.getTopicsFor(_selectedMethod!.id, _selectedAgeGroup) : <Topic>[];
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Домашнее задание'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: AppGradients.violetMagenta,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                boxShadow: AppShadows.glowAccent,
+              ),
+              child: const Icon(Icons.home_work_outlined, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Генератор домашнего задания',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3),
+            ),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -180,338 +196,449 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Настройки',
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      extendBodyBehindAppBar: true,
       body: AmbientBackground(
         child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-              children: [
-                // Методика
-                Text(
-                  'Методика обучения',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                    border: Border.all(color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<MethodPrompt>(
-                      isExpanded: true,
-                      value: _selectedMethod,
-                      dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      items: provider.methods
-                          .map((m) => DropdownMenuItem(
-                                value: m,
-                                child: Text(
-                                  '${m.name} — ${m.subject}',
-                                  style: TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                      onChanged: (m) => setState(() {
-                        _selectedMethod = m;
-                        _selectedTopic = null;
-                      }),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Возрастная группа
-                Text(
-                  'Возрастная группа',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: _ageGroups.map((g) {
-                    final isSel = _selectedAgeGroup == g['id'];
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: InkWell(
-                          onTap: () => setState(() {
-                            _selectedAgeGroup = g['id']!;
-                            _selectedTopic = null;
-                            _updateDurationForAgeGroup(_selectedAgeGroup);
-                          }),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              gradient: isSel ? AppGradients.indigoViolet : null,
-                              color: isSel ? null : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
-                              borderRadius: BorderRadius.circular(AppRadii.md),
-                              border: Border.all(
-                                color: isSel ? Colors.transparent : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
-                              ),
-                            ),
-                            child: Text(
-                              g['label']!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: isSel ? FontWeight.w600 : FontWeight.normal,
-                                color: isSel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Тема
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                   children: [
-                    Text(
-                      'Тема домашнего задания *',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _isCustomTopic = !_isCustomTopic),
-                      child: Text(
-                        _isCustomTopic ? 'Выбрать из каталога' : 'Ввести вручную',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryIndigo,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (!_isCustomTopic)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Topic>(
-                        isExpanded: true,
-                        value: _selectedTopic,
-                        hint: Text(
-                          availableTopics.isEmpty ? 'Нет тем' : 'Выберите тему',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    // Card 1: Параметры занятия
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryViolet.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.school_rounded, color: AppColors.primaryViolet, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '1. Параметры занятия',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
                           ),
-                        ),
-                        dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                        items: availableTopics
-                            .map((t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text(
-                                    t.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          const SizedBox(height: AppSpacing.md),
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Методика
+                          Text(
+                            'Методика обучения',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<MethodPrompt>(
+                                isExpanded: true,
+                                value: _selectedMethod,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                                items: provider.methods.map((m) => DropdownMenuItem(
+                                  value: m,
+                                  child: Text('${m.name} — ${m.subject}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                )).toList(),
+                                onChanged: (m) => setState(() {
+                                  _selectedMethod = m;
+                                  _selectedTopic = null;
+                                }),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Возрастная группа
+                          Text(
+                            'Возрастная группа',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: _ageGroups.map((g) {
+                              final isSel = _selectedAgeGroup == g['id'];
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: InkWell(
+                                    onTap: () => setState(() {
+                                      _selectedAgeGroup = g['id']!;
+                                      _selectedTopic = null;
+                                      _updateDurationForAgeGroup(_selectedAgeGroup);
+                                    }),
+                                    borderRadius: BorderRadius.circular(AppRadii.md),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      decoration: BoxDecoration(
+                                        gradient: isSel ? AppGradients.violetMagenta : null,
+                                        color: isSel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                        borderRadius: BorderRadius.circular(AppRadii.md),
+                                        border: Border.all(
+                                          color: isSel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                        ),
+                                        boxShadow: isSel ? AppShadows.glowAccent : null,
+                                      ),
+                                      child: Text(
+                                        g['label']!,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                          color: isSel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ))
-                            .toList(),
-                        onChanged: (t) => setState(() => _selectedTopic = t),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Тема
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Тема домашней работы *',
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                              ),
+                              GestureDetector(
+                                onTap: () => setState(() => _isCustomTopic = !_isCustomTopic),
+                                child: Text(
+                                  _isCustomTopic ? 'Выбрать из каталога' : 'Ввести вручную',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryViolet),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (!_isCustomTopic)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<Topic>(
+                                  isExpanded: true,
+                                  value: _selectedTopic,
+                                  hint: Text(availableTopics.isEmpty ? 'Нет тем' : 'Выберите тему', style: TextStyle(fontSize: 14, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
+                                  dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                  items: availableTopics.map((t) => DropdownMenuItem(
+                                    value: t,
+                                    child: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                                  )).toList(),
+                                  onChanged: (t) => setState(() => _selectedTopic = t),
+                                ),
+                              ),
+                            )
+                          else
+                            GlassTextField(
+                              label: '',
+                              controller: _customTopicController,
+                              hintText: 'Введите тему домашнего задания...',
+                              prefixIcon: Icons.edit_note_rounded,
+                              onChanged: (v) => setState(() => _customTopicText = v),
+                            ),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Время на выполнение
+                          Text(
+                            'Рекомендуемое время на выполнение',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _currentDurations.map((d) {
+                              final sel = _selectedDuration == d;
+                              return InkWell(
+                                onTap: () => setState(() => _selectedDuration = d),
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: sel ? AppGradients.violetMagenta : null,
+                                    color: sel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                                    border: Border.all(
+                                      color: sel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    d,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                      color: sel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  GlassTextField(
-                    label: '',
-                    controller: _customTopicController,
-                    hintText: 'Введите тему домашнего задания...',
-                    prefixIcon: Icons.edit_note_rounded,
-                    onChanged: (v) => setState(() => _customTopicText = v),
-                  ),
-                const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.lg),
 
-                // Длительность
-                Text(
-                  'Рекомендуемое время на выполнение',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _currentDurations.map((d) {
-                    final sel = _selectedDuration == d;
-                    return InkWell(
-                      onTap: () => setState(() => _selectedDuration = d),
-                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: sel ? AppGradients.indigoViolet : null,
-                          color: sel ? null : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
-                          borderRadius: BorderRadius.circular(AppRadii.sm),
-                          border: Border.all(
-                            color: sel ? Colors.transparent : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
+                    // Card 2: Структура листа ДЗ
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentCyan.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.dashboard_customize_rounded, color: AppColors.accentCyan, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '2. Структура и разделы листа ДЗ',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: Text(
-                          d,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
-                            color: sel ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          const SizedBox(height: AppSpacing.md),
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          const SizedBox(height: AppSpacing.md),
+
+                          // Количество заданий
+                          Text(
+                            'Количество заданий в домашней работе',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [3, 5, 7].map((cnt) {
+                              final sel = _tasksCount == cnt;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: InkWell(
+                                  onTap: () => setState(() => _tasksCount = cnt),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      gradient: sel ? AppGradients.violetMagenta : null,
+                                      color: sel ? null : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                                      border: Border.all(
+                                        color: sel ? Colors.transparent : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '$cnt заданий',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                        color: sel ? Colors.white : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+
+                          // Секции ДЗ
+                          _buildSwitchRow(
+                            title: 'Памятка для родителей',
+                            subtitle: '1-минутный скрипт и ориентир времени выполнения',
+                            icon: Icons.family_restroom_rounded,
+                            iconColor: AppColors.primaryIndigo,
+                            value: _parentBriefing,
+                            onChanged: (val) => setState(() => _parentBriefing = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'Исследование в быту / жизнь',
+                            subtitle: 'Задание с предметами дома и жизненным контекстом',
+                            icon: Icons.cottage_outlined,
+                            iconColor: AppColors.accentCyan,
+                            value: _householdPractice,
+                            onChanged: (val) => setState(() => _householdPractice = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'Талон обратной связи учителю',
+                            subtitle: 'Линия отреза для родителя (время, сложность, вопрос)',
+                            icon: Icons.content_cut_rounded,
+                            iconColor: AppColors.primaryViolet,
+                            value: _feedbackSlip,
+                            onChanged: (val) => setState(() => _feedbackSlip = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'Страница с ответами для проверки',
+                            subtitle: 'Ключи для быстрой сверки родителями или учителем',
+                            icon: Icons.checklist_rtl_rounded,
+                            iconColor: AppColors.success,
+                            value: _withAnswers,
+                            onChanged: (val) => setState(() => _withAnswers = val),
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildSwitchRow(
+                            title: 'Режим Eco-Print (экономия тонера)',
+                            subtitle: 'Без плотных темных заливок для домашнего принтера',
+                            icon: Icons.eco_outlined,
+                            iconColor: AppColors.accentAmber,
+                            value: _ecoPrint,
+                            onChanged: (val) => setState(() => _ecoPrint = val),
+                            isDark: isDark,
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Количество заданий
-                Text(
-                  'Количество заданий в домашней работе',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [3, 5, 7].map((cnt) {
-                    final sel = _tasksCount == cnt;
-                    return ChoiceChip(
-                      label: Text('$cnt'),
-                      selected: sel,
-                      onSelected: (_) => setState(() => _tasksCount = cnt),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Настройки и опции листа ДЗ
-                Text(
-                  'Параметры и структура листа ДЗ',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                    border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      SwitchListTile(
-                        title: const Text('Памятка для родителей', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                        subtitle: const Text('1-минутный скрипт и ориентир времени выполнения', style: TextStyle(fontSize: 11.5)),
-                        secondary: const Icon(Icons.family_restroom_rounded, color: AppColors.primaryIndigo),
-                        value: _parentBriefing,
-                        onChanged: (val) => setState(() => _parentBriefing = val),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text('Исследование в быту / жизнь', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                        subtitle: const Text('Задание с предметами дома и жизненным контекстом', style: TextStyle(fontSize: 11.5)),
-                        secondary: const Icon(Icons.cottage_outlined, color: AppColors.accentTeal),
-                        value: _householdPractice,
-                        onChanged: (val) => setState(() => _householdPractice = val),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text('Талон обратной связи учителю', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                        subtitle: const Text('Линия отреза для родителя (время, сложность, вопрос)', style: TextStyle(fontSize: 11.5)),
-                        secondary: const Icon(Icons.content_cut_rounded, color: AppColors.secondaryViolet),
-                        value: _feedbackSlip,
-                        onChanged: (val) => setState(() => _feedbackSlip = val),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text('Страница с ответами для проверки', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                        subtitle: const Text('Ключи для быстрой родительской или учительской сверки', style: TextStyle(fontSize: 11.5)),
-                        secondary: const Icon(Icons.checklist_rtl_rounded, color: AppColors.success),
-                        value: _withAnswers,
-                        onChanged: (val) => setState(() => _withAnswers = val),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text('Режим Eco-Print (экономия тонера)', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                        subtitle: const Text('Без плотных фоновых заливок для домашней печати', style: TextStyle(fontSize: 11.5)),
-                        secondary: const Icon(Icons.eco_outlined, color: AppColors.warning),
-                        value: _ecoPrint,
-                        onChanged: (val) => setState(() => _ecoPrint = val),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.lg),
 
-                // Замечания и подсказки
-                GlassTextField(
-                  controller: _notesController,
-                  label: 'Комментарии и инструкции к домашнему заданию (необязательно)',
-                  hintText: 'Критерии оценивания, подсказки для родителей...',
-                  prefixIcon: Icons.comment_outlined,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: AppSpacing.lg),
+                    // Card 3: Заметки
+                    GlassCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentAmber.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                                ),
+                                child: const Icon(Icons.comment_outlined, color: AppColors.accentAmber, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                '3. Инструкции и критерии оценивания',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _notesController,
+                            label: 'Комментарии к домашнему заданию (необязательно)',
+                            hintText: 'Критерии оценивания, подсказки для родителей...',
+                            prefixIcon: Icons.edit_outlined,
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
 
-                GradientButton(
-                  text: 'Сгенерировать домашнее задание',
-                  onPressed: _onGeneratePressed,
+                    // Bottom CTA
+                    GradientButton(
+                      text: 'Сгенерировать домашнее задание',
+                      icon: Icons.auto_awesome_rounded,
+                      onPressed: _onGeneratePressed,
+                    ),
+                    const SizedBox(height: 60),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchRow({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeColor: AppColors.primaryViolet,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

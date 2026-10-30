@@ -74,69 +74,120 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AppProvider>();
     final lessonsForSelectedDate = provider.getLessonsForDate(_selectedDate);
-    final isDesktop = MediaQuery.of(context).size.width >= 800;
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
-          'Календарь занятий',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: AppGradients.indigoViolet,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                boxShadow: AppShadows.glowPrimary,
+              ),
+              child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Календарь занятий',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          TextButton.icon(
-            onPressed: _goToToday,
-            icon: const Icon(Icons.today_rounded, size: 18, color: AppColors.accentCyan),
-            label: const Text(
-              'Сегодня',
-              style: TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w600),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: InkWell(
+              onTap: _goToToday,
+              borderRadius: BorderRadius.circular(AppRadii.full),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.accentCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadii.full),
+                  border: Border.all(
+                    color: AppColors.accentCyan.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.today_rounded, size: 16, color: AppColors.accentCyan),
+                    SizedBox(width: 6),
+                    Text(
+                      'Сегодня',
+                      style: TextStyle(
+                        color: AppColors.accentCyan,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: AmbientBackground(
         child: SafeArea(
-          child: isDesktop
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left: Calendar Grid
-                    Expanded(
-                      flex: 5,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: _buildCalendarCard(provider, isDark),
-                      ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: isDesktop
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left: Calendar Grid
+                        Expanded(
+                          flex: 6,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: _buildCalendarCard(provider, isDark),
+                          ),
+                        ),
+                        // Right: Lessons for selected day
+                        Expanded(
+                          flex: 5,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: _buildDayDetailsCard(lessonsForSelectedDate, provider, isDark),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      children: [
+                        _buildCalendarCard(provider, isDark),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildDayDetailsCard(lessonsForSelectedDate, provider, isDark),
+                        const SizedBox(height: 90),
+                      ],
                     ),
-                    // Right: Lessons for selected day
-                    Expanded(
-                      flex: 4,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: _buildDayDetailsCard(lessonsForSelectedDate, provider, isDark),
-                      ),
-                    ),
-                  ],
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    _buildCalendarCard(provider, isDark),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildDayDetailsCard(lessonsForSelectedDate, provider, isDark),
-                    const SizedBox(height: 80),
-                  ],
-                ),
+            ),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primaryIndigo,
         foregroundColor: Colors.white,
+        elevation: 6,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Запланировать'),
+        label: const Text(
+          'Запланировать',
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+        ),
         onPressed: () => _showAddLessonDialog(context, provider),
       ),
     );
@@ -144,32 +195,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildCalendarCard(AppProvider provider, bool isDark) {
     return GlassCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          // Month header & arrows
+          // Month header & navigation
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left_rounded),
+                icon: const Icon(Icons.chevron_left_rounded, size: 24),
+                splashRadius: 20,
                 onPressed: _previousMonth,
               ),
-              Text(
-                _formatMonthYear(_focusedMonth),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                  borderRadius: BorderRadius.circular(AppRadii.full),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+                child: Text(
+                  _formatMonthYear(_focusedMonth),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right_rounded),
+                icon: const Icon(Icons.chevron_right_rounded, size: 24),
+                splashRadius: 20,
                 onPressed: _nextMonth,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
 
           // Days of week row
           Row(
@@ -184,7 +247,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _WeekdayLabel('Вс', isWeekend: true),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // Calendar Grid
           _buildMonthGrid(provider, isDark),
@@ -196,8 +259,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildMonthGrid(AppProvider provider, bool isDark) {
     final firstDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
     final daysInMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    
-    // In DateTime: Monday is 1, Sunday is 7
     final firstWeekday = firstDayOfMonth.weekday; // 1 to 7
     final prevMonthDays = DateTime(_focusedMonth.year, _focusedMonth.month, 0).day;
 
@@ -228,7 +289,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 7,
-      childAspectRatio: 1.05,
+      childAspectRatio: 1.1,
       children: dayCells,
     );
   }
@@ -260,22 +321,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
           }
         });
       },
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadii.md),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.all(2),
+        margin: const EdgeInsets.all(3),
         decoration: BoxDecoration(
+          gradient: isSelected ? AppGradients.indigoViolet : null,
           color: isSelected
-              ? AppColors.primaryIndigo
+              ? null
               : (isToday
-                  ? (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06))
+                  ? (isDark
+                      ? AppColors.primaryIndigo.withValues(alpha: 0.15)
+                      : AppColors.primaryIndigo.withValues(alpha: 0.08))
                   : Colors.transparent),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           border: isSelected
               ? Border.all(color: AppColors.accentCyan, width: 1.5)
               : (isToday
-                  ? Border.all(color: AppColors.primaryIndigo.withOpacity(0.6), width: 1)
+                  ? Border.all(color: AppColors.primaryIndigo.withValues(alpha: 0.6), width: 1.2)
                   : null),
+          boxShadow: isSelected ? AppShadows.glowPrimary : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -283,28 +348,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Text(
               '${date.day}',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w500,
+                fontSize: 13.5,
+                fontWeight: isSelected || isToday ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected
                     ? Colors.white
                     : (isCurrentMonth
-                        ? (isDark ? Colors.white : Colors.black87)
-                        : (isDark ? Colors.white24 : Colors.black26)),
+                        ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                        : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight)),
               ),
             ),
             if (hasLessons) ...[
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   lessonsOnDay.length > 3 ? 3 : lessonsOnDay.length,
                   (index) => Container(
-                    width: 4.5,
-                    height: 4.5,
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                    width: 5,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.white : AppColors.accentCyan,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isSelected ? Colors.white : AppColors.accentCyan).withValues(alpha: 0.6),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -322,7 +393,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     bool isDark,
   ) {
     return GlassCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -336,16 +407,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     Text(
                       _formatDateFull(_selectedDate),
                       style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       lessons.isEmpty
                           ? 'Нет запланированных занятий'
                           : 'Занятий на день: ${lessons.length}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 12.5,
                         color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                       ),
                     ),
@@ -360,29 +433,52 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1),
+          Divider(
+            height: 1,
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
           const SizedBox(height: AppSpacing.md),
 
           if (lessons.isEmpty)
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(vertical: 36),
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.event_available_rounded,
-                      size: 44,
-                      color: isDark ? Colors.white24 : Colors.black26,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'На эту дату уроки не запланированы',
-                      style: TextStyle(
-                        fontSize: 13,
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.event_available_rounded,
+                        size: 30,
                         color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                       ),
                     ),
                     const SizedBox(height: 14),
+                    Text(
+                      'На эту дату уроки не запланированы',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Нажмите кнопку ниже, чтобы добавить урок в расписание',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     OutlinedButton.icon(
                       onPressed: () => _showAddLessonDialog(context, provider),
                       icon: const Icon(Icons.add_rounded, size: 16),
@@ -397,7 +493,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: lessons.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (ctx, index) {
                 final lesson = lessons[index];
                 return _buildLessonItem(lesson, provider, isDark);
@@ -421,12 +517,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
       child: Column(
@@ -436,27 +532,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryIndigo.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
+                  gradient: AppGradients.cyanTeal,
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
+                  boxShadow: AppShadows.glowSecondary,
                 ),
-                child: Text(
-                  '⏰ ${lesson.time}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.accentCyan,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 13, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      lesson.time,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '👤 ${lesson.studentOrClass}',
+                  lesson.studentOrClass,
                   style: const TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -471,36 +576,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           // Topic
           Text(
-            '📚 Тема: ${lesson.topic}',
+            lesson.topic,
             style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white70 : Colors.black87,
-              fontWeight: FontWeight.w500,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
             ),
           ),
 
           if (lesson.notes != null && lesson.notes!.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              '📝 Заметка: ${lesson.notes}',
+              '📝 ${lesson.notes}',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 12,
                 color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                 fontStyle: FontStyle.italic,
               ),
             ),
           ],
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Generated Materials Chips
+          // Material Badges
           Wrap(
             spacing: 6,
-            runSpacing: 4,
+            runSpacing: 6,
             children: [
               _buildMaterialChip(
                 label: 'Конспект',
@@ -512,30 +617,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 label: 'Лист заданий',
                 icon: Icons.assignment_outlined,
                 isAvailable: lesson.hasWorksheet,
-                color: const Color(0xFF2563EB),
+                color: AppColors.accentCyan,
               ),
               _buildMaterialChip(
                 label: 'Домашка',
                 icon: Icons.home_work_outlined,
                 isAvailable: lesson.hasHomework,
-                color: const Color(0xFF059669),
+                color: AppColors.success,
               ),
             ],
           ),
 
           if (linkedConspect != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                      side: BorderSide(color: AppColors.primaryIndigo.withOpacity(0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      side: BorderSide(color: AppColors.primaryIndigo.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                     ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                    label: const Text('Открыть конспект', style: TextStyle(fontSize: 12)),
+                    label: const Text('Открыть конспект', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -566,12 +671,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isAvailable ? color.withOpacity(0.15) : Colors.grey.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(6),
+        color: isAvailable ? color.withValues(alpha: 0.14) : Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
         border: Border.all(
-          color: isAvailable ? color.withOpacity(0.4) : Colors.grey.withOpacity(0.2),
+          color: isAvailable ? color.withValues(alpha: 0.35) : Colors.grey.withValues(alpha: 0.2),
           width: 0.8,
         ),
       ),
@@ -584,7 +689,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             label,
             style: TextStyle(
               fontSize: 11,
-              fontWeight: isAvailable ? FontWeight.w600 : FontWeight.normal,
+              fontWeight: isAvailable ? FontWeight.w700 : FontWeight.normal,
               color: isAvailable ? color : Colors.grey,
             ),
           ),
@@ -618,7 +723,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.assignment_rounded, color: Color(0xFF2563EB)),
+              leading: const Icon(Icons.assignment_rounded, color: AppColors.accentCyan),
               title: const Text('PDF Лист заданий для печати'),
               subtitle: const Text('Рабочий лист с правилом и упражнениями'),
               onTap: () {
@@ -627,7 +732,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.home_work_rounded, color: Color(0xFF059669)),
+              leading: const Icon(Icons.home_work_rounded, color: AppColors.success),
               title: const Text('PDF Домашняя работа'),
               subtitle: const Text('Задания на закрепление и памятка родителям'),
               onTap: () {
@@ -683,15 +788,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           final width = MediaQuery.of(context).size.width;
-          final dialogWidth = width > 520 ? 480.0 : (width - 32);
+          final dialogWidth = width > 540 ? 500.0 : (width - 32);
 
           return Dialog(
-            backgroundColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
-            elevation: 16,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            elevation: 24,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.xl),
+              side: BorderSide(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
+            ),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: MediaQuery.of(context).size.height * 0.9),
+              constraints: BoxConstraints(
+                maxWidth: dialogWidth,
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -699,11 +812,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.04) : AppColors.primaryIndigo.withOpacity(0.06),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
                       border: Border(
                         bottom: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                         ),
                       ),
                     ),
@@ -713,7 +826,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             gradient: AppGradients.indigoViolet,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                            boxShadow: AppShadows.glowPrimary,
                           ),
                           child: const Icon(Icons.event_note_rounded, color: Colors.white, size: 20),
                         ),
@@ -724,7 +838,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             children: [
                               Text(
                                 'Запланировать занятие',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.5),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16.5,
+                                  letterSpacing: -0.2,
+                                ),
                               ),
                               SizedBox(height: 2),
                               Text(
@@ -753,14 +871,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           // Date & Time pickers
                           const Text(
                             'Дата и время проведения',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
                               Expanded(
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(AppRadii.md),
                                   onTap: () async {
                                     final picked = await showDatePicker(
                                       context: context,
@@ -773,13 +891,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     }
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                                     decoration: BoxDecoration(
-                                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.08),
+                                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                                       border: Border.all(
-                                        color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                       ),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(AppRadii.md),
                                     ),
                                     child: Row(
                                       children: [
@@ -797,7 +915,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(AppRadii.md),
                                   onTap: () async {
                                     final picked = await showTimePicker(
                                       context: context,
@@ -808,17 +926,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     }
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                                     decoration: BoxDecoration(
-                                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.08),
+                                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                                       border: Border.all(
-                                        color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                       ),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(AppRadii.md),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.access_time_filled_rounded, size: 18, color: AppColors.primaryIndigo),
+                                        const Icon(Icons.access_time_filled_rounded, size: 18, color: AppColors.accentCyan),
                                         const SizedBox(width: 8),
                                         Text(
                                           selectedTime.format(context),
@@ -841,13 +959,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               hintText: 'Миша (1 класс) или 3-Б',
                               prefixIcon: const Icon(Icons.person_rounded, size: 20),
                               filled: true,
-                              fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.withOpacity(0.06),
+                              fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(AppRadii.md),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                 ),
                               ),
                             ),
@@ -862,13 +980,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               hintText: 'Сложение в пределах 20',
                               prefixIcon: const Icon(Icons.menu_book_rounded, size: 20),
                               filled: true,
-                              fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.withOpacity(0.06),
+                              fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(AppRadii.md),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                 ),
                               ),
                             ),
@@ -884,13 +1002,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 labelText: 'Привязать материал из базы',
                                 prefixIcon: const Icon(Icons.link_rounded, size: 20),
                                 filled: true,
-                                fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.withOpacity(0.06),
+                                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(AppRadii.md),
                                   borderSide: BorderSide(
-                                    color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                   ),
                                 ),
                               ),
@@ -927,7 +1045,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           // Material Selector Chips
                           const Text(
                             'Материалы к уроку:',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
                           Wrap(
@@ -943,35 +1061,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 ),
                                 selected: hasConspect,
                                 onSelected: (val) => setDialogState(() => hasConspect = val),
-                                selectedColor: AppColors.primaryIndigo.withOpacity(0.15),
+                                selectedColor: AppColors.primaryIndigo.withValues(alpha: 0.15),
                                 checkmarkColor: AppColors.primaryIndigo,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                               ),
                               FilterChip(
                                 label: const Text('Лист заданий'),
                                 avatar: Icon(
                                   Icons.assignment_outlined,
                                   size: 16,
-                                  color: hasWorksheet ? const Color(0xFF2563EB) : Colors.grey,
+                                  color: hasWorksheet ? AppColors.accentCyan : Colors.grey,
                                 ),
                                 selected: hasWorksheet,
                                 onSelected: (val) => setDialogState(() => hasWorksheet = val),
-                                selectedColor: const Color(0xFF2563EB).withOpacity(0.15),
-                                checkmarkColor: const Color(0xFF2563EB),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                selectedColor: AppColors.accentCyan.withValues(alpha: 0.15),
+                                checkmarkColor: AppColors.accentCyan,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                               ),
                               FilterChip(
                                 label: const Text('Домашка'),
                                 avatar: Icon(
                                   Icons.home_work_outlined,
                                   size: 16,
-                                  color: hasHomework ? const Color(0xFF059669) : Colors.grey,
+                                  color: hasHomework ? AppColors.success : Colors.grey,
                                 ),
                                 selected: hasHomework,
                                 onSelected: (val) => setDialogState(() => hasHomework = val),
-                                selectedColor: const Color(0xFF059669).withOpacity(0.15),
-                                checkmarkColor: const Color(0xFF059669),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                selectedColor: AppColors.success.withValues(alpha: 0.15),
+                                checkmarkColor: AppColors.success,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                               ),
                             ],
                           ),
@@ -986,13 +1104,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               hintText: 'Повторить счет, взять счетные палочки',
                               prefixIcon: const Icon(Icons.edit_note_rounded, size: 20),
                               filled: true,
-                              fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.withOpacity(0.06),
+                              fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(AppRadii.md),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.12),
+                                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                                 ),
                               ),
                             ),
@@ -1006,11 +1124,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.withOpacity(0.04),
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadii.xl)),
                       border: Border(
                         top: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                         ),
                       ),
                     ),
@@ -1031,7 +1149,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
                           ),
                           icon: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
                           label: const Text(
@@ -1096,7 +1214,7 @@ class _WeekdayLabel extends StatelessWidget {
           text,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: isWeekend ? AppColors.accentCyan : Colors.grey,
           ),
         ),
