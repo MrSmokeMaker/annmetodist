@@ -15,6 +15,24 @@ class PrintableCard {
     this.type = 'word',
   });
 
+  PrintableCard copyWith({
+    String? id,
+    String? frontText,
+    String? backText,
+    String? imageHint,
+    String? imageUrl,
+    String? type,
+  }) {
+    return PrintableCard(
+      id: id ?? this.id,
+      frontText: frontText ?? this.frontText,
+      backText: backText ?? this.backText,
+      imageHint: imageHint ?? this.imageHint,
+      imageUrl: imageUrl ?? this.imageUrl,
+      type: type ?? this.type,
+    );
+  }
+
   factory PrintableCard.fromJson(Map<String, dynamic> json) {
     String readString(String snakeCase, String camelCase) =>
         (json[snakeCase] ?? json[camelCase] ?? '').toString().trim();

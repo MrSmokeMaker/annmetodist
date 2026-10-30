@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -58,20 +58,93 @@ class PdfExportService {
     await _exportSinglePdf(conspect, type, isPro: isPro);
   }
 
+  /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
+  static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false}) async {
+    final pdf = pw.Document();
+
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontItalic = await PdfGoogleFonts.robotoItalic();
+
+    final mascotImage = await PdfIconsHelper.loadMascot();
+    final starGold = await PdfIconsHelper.loadStarGold();
+    final starGray = await PdfIconsHelper.loadStarGray();
+
+    final sectionIcons = <String, pw.MemoryImage?>{};
+    final lines = conspect.content.split('\n');
+    for (final line in lines) {
+      final trimmed = _replaceEmojisWithSymbols(line);
+      if (trimmed.startsWith('# ')) {
+        final sectionTitle = trimmed.substring(2).trim();
+        final iconName = PdfIconsHelper.getSectionIconName(sectionTitle);
+        if (!sectionIcons.containsKey(iconName)) {
+          final icon = await PdfIconsHelper.loadIcon(iconName);
+          sectionIcons[iconName] = icon;
+        }
+      }
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.fromLTRB(44, 24, 24, 24),
+        theme: pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+          italic: fontItalic,
+          fontFallback: [fontRegular, fontBold],
+        ),
+        header: (context) => _buildPdfHeader(conspect, PdfMaterialType.conspect, isPro: isPro),
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 12),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              if (isPro)
+                pw.Text(
+                  'Методист Pro • Комплект материалов',
+                  style: const pw.TextStyle(color: PdfColors.indigo700, fontSize: 8),
+                )
+              else
+                pw.SizedBox(),
+              pw.Text(
+                'Страница ${context.pageNumber} из ${context.pagesCount}',
+                style: const pw.TextStyle(color: PdfColors.grey500, fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+        build: (context) => [
+          _buildPdfTitle(conspect, PdfMaterialType.conspect, null, isPro: isPro, mascotImage: mascotImage),
+          pw.SizedBox(height: 10),
+          _buildMaterialInfo(conspect, PdfMaterialType.conspect),
+          pw.SizedBox(height: 12),
+          ..._buildContentWidgets(
+            conspect.content,
+            fontRegular,
+            fontBold,
+            sectionIcons,
+            starGold: starGold,
+            starGray: starGray,
+            isWorksheetOrHomework: false,
+          ),
+        ],
+      ),
+    );
+
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: 'Комплект_${conspect.title.replaceAll(' ', '_')}.pdf',
+    );
+  }
+
   /// Exports conspect to formatted PDF document and opens print/share dialog
   static Future<void> exportAndSharePdf(Conspect conspect, {bool isPro = false}) async {
-    // Если выбран только один материал, используем старый метод для обратной совместимости
-    if (conspect.generatedMaterials.length == 1 && conspect.generatedMaterials.contains('conspect')) {
+    if (conspect.generatedMaterials.length <= 1) {
       await _exportSinglePdf(conspect, PdfMaterialType.conspect, isPro: isPro);
-      return;
-    }
-    
-    // Генерация нескольких PDF по выбранным материалам
-    for (final material in conspect.generatedMaterials) {
-      final materialType = _mapMaterialToType(material);
-      if (materialType != null) {
-        await _exportSinglePdf(conspect, materialType, isPro: isPro);
-      }
+    } else {
+      await exportAllMaterialsCombinedPdf(conspect, isPro: isPro);
     }
   }
 
@@ -84,12 +157,11 @@ class PdfExportService {
     final fontBold = await PdfGoogleFonts.robotoBold();
     final fontItalic = await PdfGoogleFonts.robotoItalic();
 
-    // Извлекаем только нужную часть контента в зависимости от типа
+    // Извлекаем только нужную часть контента строго в зависимости от типа материала
     final filteredContent = _extractMaterialContent(conspect.content, type);
     if (filteredContent.isEmpty) {
-      // Если контент не найден, используем весь контент
-      await _exportLegacyPdf(conspect);
-      return;
+      final label = _getMaterialLabel(type);
+      throw Exception('Материал «$label» не был сформирован в этом конспекте.');
     }
 
     // Загружаем иконку для типа материала, маскота и звезд
@@ -311,70 +383,99 @@ class PdfExportService {
     }
   }
 
-  /// Извлекает контент для определенного типа материала
+  static final List<String> _worksheetKeywords = [
+    'лист заданий',
+    'рабочий лист',
+    'раздаточный лист',
+    'раздаточный материал',
+  ];
+
+  static final List<String> _homeworkKeywords = [
+    'домашнее задание',
+    'домашняя работа',
+    'задания на дом',
+    'блок дополнительных заданий',
+    'домашка',
+  ];
+
+  static final List<String> _cardsKeywords = [
+    'карточки для занятия',
+    'раздаточные карточки',
+    '```json',
+  ];
+
+  static int _findSectionStartIndex(String text, List<String> keywords, [int startFrom = 0]) {
+    final lower = text.toLowerCase();
+    int minIndex = -1;
+
+    for (final kw in keywords) {
+      final prefixes = ['\n# ', '\n## ', '\n### ', '# ', '## ', '### ', '\n'];
+      for (final prefix in prefixes) {
+        final pattern = '$prefix$kw';
+        final idx = lower.indexOf(pattern, startFrom);
+        if (idx != -1) {
+          final actualIdx = (prefix.startsWith('\n') && idx > 0) ? idx + 1 : idx;
+          if (minIndex == -1 || actualIdx < minIndex) {
+            minIndex = actualIdx;
+          }
+        }
+      }
+    }
+    return minIndex;
+  }
+
+  /// Проверяет наличие конкретного материала в тексте
+  static bool hasMaterialContent(String content, PdfMaterialType type) {
+    final extracted = _extractMaterialContent(content, type);
+    return extracted.trim().isNotEmpty;
+  }
+
+  static String _getMaterialLabel(PdfMaterialType type) {
+    switch (type) {
+      case PdfMaterialType.conspect: return 'Конспект';
+      case PdfMaterialType.worksheet: return 'Лист заданий';
+      case PdfMaterialType.homework: return 'Домашняя работа';
+    }
+  }
+
+  /// Извлекает контент строго для определенного типа материала
   static String _extractMaterialContent(String content, PdfMaterialType type) {
     final cleanedContent = _removeCardsAndJson(content);
-    final sections = _splitContentBySections(cleanedContent);
+
+    final wsIndex = _findSectionStartIndex(cleanedContent, _worksheetKeywords);
+    final hwIndex = _findSectionStartIndex(cleanedContent, _homeworkKeywords);
+    final cardsIndex = _findSectionStartIndex(cleanedContent, _cardsKeywords);
 
     switch (type) {
       case PdfMaterialType.conspect:
-        final conspectSections = sections.entries
-            .where((entry) {
-              final lower = entry.key.toLowerCase();
-              return !lower.contains('лист заданий') &&
-                     !lower.contains('раздаточн') &&
-                     !lower.contains('рабочий лист') &&
-                     !lower.contains('домашн') &&
-                     !lower.contains('блок дополнительных заданий');
-            })
-            .map((entry) => '# ${entry.key}\n${entry.value}')
-            .join('\n\n');
-        return conspectSections.isNotEmpty ? conspectSections : cleanedContent;
+        final cutPoints = <int>[];
+        if (wsIndex != -1) cutPoints.add(wsIndex);
+        if (hwIndex != -1) cutPoints.add(hwIndex);
+        if (cardsIndex != -1) cutPoints.add(cardsIndex);
+
+        if (cutPoints.isNotEmpty) {
+          cutPoints.sort();
+          return cleanedContent.substring(0, cutPoints.first).trim();
+        }
+        return cleanedContent.trim();
 
       case PdfMaterialType.worksheet:
-        final worksheetSection = sections.entries
-            .firstWhere((entry) {
-              final lower = entry.key.toLowerCase();
-              return lower.contains('лист заданий') ||
-                     lower.contains('раздаточн') ||
-                     lower.contains('рабочий лист');
-            }, orElse: () => const MapEntry('', ''));
-
-        if (worksheetSection.value.isNotEmpty) {
-          return '# Лист заданий для печати\n${worksheetSection.value}';
+        if (wsIndex == -1) return '';
+        int end = cleanedContent.length;
+        if (hwIndex != -1 && hwIndex > wsIndex) {
+          end = hwIndex;
+        } else if (cardsIndex != -1 && cardsIndex > wsIndex) {
+          end = cardsIndex;
         }
-        // Fallback: search by text block if header wasn't caught
-        final lower = cleanedContent.toLowerCase();
-        final wsIndex = lower.indexOf('лист заданий');
-        if (wsIndex != -1) {
-          final hwIndex = lower.indexOf('домашн', wsIndex);
-          if (hwIndex != -1) {
-            return cleanedContent.substring(wsIndex, hwIndex).trim();
-          } else {
-            return cleanedContent.substring(wsIndex).trim();
-          }
-        }
-        return '';
+        return cleanedContent.substring(wsIndex, end).trim();
 
       case PdfMaterialType.homework:
-        final homeworkSection = sections.entries
-            .firstWhere((entry) {
-              final lower = entry.key.toLowerCase();
-              return lower.contains('домашн') ||
-                     lower.contains('блок дополнительных') ||
-                     lower.contains('задания на дом');
-            }, orElse: () => const MapEntry('', ''));
-
-        if (homeworkSection.value.isNotEmpty) {
-          return '# Домашняя работа\n${homeworkSection.value}';
+        if (hwIndex == -1) return '';
+        int end = cleanedContent.length;
+        if (cardsIndex != -1 && cardsIndex > hwIndex) {
+          end = cardsIndex;
         }
-        // Fallback: search by text block
-        final lower = cleanedContent.toLowerCase();
-        final hwIndex = lower.indexOf('домашн');
-        if (hwIndex != -1) {
-          return cleanedContent.substring(hwIndex).trim();
-        }
-        return '';
+        return cleanedContent.substring(hwIndex, end).trim();
 
       default:
         return cleanedContent;
@@ -1042,6 +1143,17 @@ static List<pw.Widget> _buildContentWidgets(
 
       // 1. Главный заголовок раздела #
       if (type == 'section' || level == 1) {
+        final isMajorMaterialHeader = lowerHeader.contains('лист заданий') ||
+            lowerHeader.contains('рабочий лист') ||
+            lowerHeader.contains('раздаточн') ||
+            lowerHeader.contains('домашн') ||
+            lowerHeader.contains('блок дополнительных');
+
+        // Гарантируем, что Лист заданий и Домашка всегда начинаются с нового листа!
+        if (isMajorMaterialHeader && widgets.isNotEmpty) {
+          widgets.add(pw.NewPage());
+        }
+
         final iconName = PdfIconsHelper.getSectionIconName(header);
         final iconImage = sectionIcons[iconName];
         widgets.add(_buildSectionHeader(header, iconImage));

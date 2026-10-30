@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -106,6 +106,15 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
                   _variants.indexWhere((c) => c.id == _currentConspect!.id);
               if (_selectedVariantIndex < 0) _selectedVariantIndex = 0;
             });
+          }
+        }
+
+        // В тарифе Metodist PRO автоматически догенерируем иллюстрации к карточкам, если их еще не созданы
+        final provider = context.read<AppProvider>();
+        if (provider.isProUser && _currentConspect != null && _currentConspect!.cards != null && _currentConspect!.cards!.isNotEmpty) {
+          final lacksImages = _currentConspect!.cards!.any((c) => c.imageUrl == null || c.imageUrl!.isEmpty);
+          if (lacksImages) {
+            _autoGenerateImagesForPro();
           }
         }
       });
@@ -264,6 +273,19 @@ ${_currentConspect!.content}
     await Share.share(textToShare, subject: _currentConspect!.title);
   }
 
+  bool _hasMaterial(PdfMaterialType type) {
+    if (_currentConspect == null) return false;
+    final generated = _currentConspect!.generatedMaterials;
+    switch (type) {
+      case PdfMaterialType.conspect:
+        return generated.contains('conspect') || generated.isEmpty;
+      case PdfMaterialType.worksheet:
+        return generated.contains('worksheet') && PdfExportService.hasMaterialContent(_currentConspect!.content, PdfMaterialType.worksheet);
+      case PdfMaterialType.homework:
+        return generated.contains('homework') && PdfExportService.hasMaterialContent(_currentConspect!.content, PdfMaterialType.homework);
+    }
+  }
+
   Future<void> _exportMaterial(PdfMaterialType type) async {
     if (_currentConspect == null) return;
     try {
@@ -275,6 +297,33 @@ ${_currentConspect!.content}
         SnackBar(content: Text('Ошибка экспорта в PDF: $e')),
       );
     }
+  }
+
+  Future<void> _exportAllCombined() async {
+    if (_currentConspect == null) return;
+    try {
+      final isPro = context.read<AppProvider>().isProUser;
+      await PdfExportService.exportAllMaterialsCombinedPdf(_currentConspect!, isPro: isPro);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка экспорта комплекта PDF: $e')),
+      );
+    }
+  }
+
+  Future<void> _autoGenerateImagesForPro() async {
+    if (_currentConspect == null) return;
+    try {
+      final provider = context.read<AppProvider>();
+      await provider.generateArtPackageForConspect(_currentConspect!.id);
+      final updated = provider.conspects.firstWhere((c) => c.id == _currentConspect!.id);
+      if (mounted) {
+        setState(() {
+          _currentConspect = updated;
+        });
+      }
+    } catch (_) {}
   }
 
 
@@ -699,7 +748,7 @@ ${_currentConspect!.content}
 
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Отдельные кнопки быстрого экспорта материалов
+                    // Интерактивные кнопки быстрого экспорта только сгенерированных материалов
                     GlassCard(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
                       child: Column(
@@ -730,39 +779,55 @@ ${_currentConspect!.content}
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryIndigo,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              if (_hasMaterial(PdfMaterialType.conspect))
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryIndigo,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.menu_book_rounded, size: 16),
+                                  label: const Text('PDF Конспект', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  onPressed: () => _exportMaterial(PdfMaterialType.conspect),
                                 ),
-                                icon: const Icon(Icons.menu_book_rounded, size: 16),
-                                label: const Text('PDF Конспект', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                onPressed: () => _exportMaterial(PdfMaterialType.conspect),
-                              ),
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              if (_hasMaterial(PdfMaterialType.worksheet))
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.assignment_outlined, size: 16),
+                                  label: const Text('PDF Лист заданий', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  onPressed: () => _exportMaterial(PdfMaterialType.worksheet),
                                 ),
-                                icon: const Icon(Icons.assignment_outlined, size: 16),
-                                label: const Text('PDF Лист заданий', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                onPressed: () => _exportMaterial(PdfMaterialType.worksheet),
-                              ),
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF059669),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              if (_hasMaterial(PdfMaterialType.homework))
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF059669),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.home_work_outlined, size: 16),
+                                  label: const Text('PDF Домашка', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  onPressed: () => _exportMaterial(PdfMaterialType.homework),
                                 ),
-                                icon: const Icon(Icons.home_work_outlined, size: 16),
-                                label: const Text('PDF Домашка', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                onPressed: () => _exportMaterial(PdfMaterialType.homework),
-                              ),
+                              // Если сгенерировано больше одного материала, предлагаем единый комплект (с гарантией новых листов)
+                              if ((_hasMaterial(PdfMaterialType.worksheet) || _hasMaterial(PdfMaterialType.homework)) && _hasMaterial(PdfMaterialType.conspect))
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: isDark ? AppColors.accentCyan : AppColors.primaryIndigo,
+                                    side: BorderSide(color: isDark ? AppColors.accentCyan.withOpacity(0.5) : AppColors.primaryIndigo.withOpacity(0.5)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.collections_bookmark_outlined, size: 16),
+                                  label: const Text('PDF Весь комплект (с новых листов)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                  onPressed: _exportAllCombined,
+                                ),
                             ],
                           ),
                         ],
@@ -1657,7 +1722,7 @@ ${_currentConspect!.content}
                 crossAxisCount: 2,
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
-                childAspectRatio: 1.1,
+                childAspectRatio: 0.95,
               ),
               itemBuilder: (context, idx) {
                 final card = cards[idx];
@@ -1707,19 +1772,17 @@ ${_currentConspect!.content}
                         child: Center(
                           child: hasImage
                               ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(8),
                                   child: Image.memory(
                                     base64Decode(
                                       card.imageUrl!.contains(',')
                                           ? card.imageUrl!.split(',').last
                                           : card.imageUrl!,
                                     ),
-                                    width: 48,
-                                    height: 48,
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => const Icon(
                                       Icons.image_outlined,
-                                      size: 20,
+                                      size: 32,
                                     ),
                                   ),
                                 )
@@ -1727,7 +1790,7 @@ ${_currentConspect!.content}
                                   card.frontText,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontSize: card.frontText.length <= 4 ? 18 : 12,
+                                    fontSize: card.frontText.length <= 4 ? 24 : 14,
                                     fontWeight: FontWeight.w800,
                                     color: isDark ? Colors.white : Colors.black87,
                                   ),
@@ -1766,6 +1829,9 @@ ${_currentConspect!.content}
                   final provider = artCtx.watch<AppProvider>();
                   final isPro = provider.isProUser;
                   final isGenerating = provider.isGenerating;
+
+                  // В тарифе Metodist PRO иллюстрации генерируются автоматически по умолчанию, кнопку скрываем
+                  if (isPro) return const SizedBox.shrink();
 
                   return OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(

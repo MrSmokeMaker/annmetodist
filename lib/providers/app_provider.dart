@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../data/method_repository.dart';
@@ -357,6 +357,35 @@ class AppProvider with ChangeNotifier {
       final effectiveMaterials = _mapGenerationTypesToStrings(materials) ?? const ['conspect'];
       final effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
 
+      List<PrintableCard>? effectiveCards = cards.isNotEmpty ? cards : null;
+      String? illustrationMascot;
+      String? illustrationColoring;
+      String? illustrationReward;
+
+      // В тарифе Metodist PRO иллюстрации генерируются автоматически по умолчанию
+      if (isProUser) {
+        if (cards.isNotEmpty) {
+          final enriched = <PrintableCard>[];
+          for (final c in cards) {
+            try {
+              final img = await _artService.generateCardIllustration(
+                c.imageHint ?? c.frontText,
+                word: c.frontText,
+              );
+              enriched.add(c.copyWith(imageUrl: img));
+            } catch (_) {
+              enriched.add(c);
+            }
+          }
+          effectiveCards = enriched;
+        }
+        try {
+          illustrationMascot = await _artService.generateMascotBanner(topicTitle, ageGroup);
+          illustrationColoring = await _artService.generateColoringActivity(topicTitle);
+          illustrationReward = await _artService.generateRewardSticker(topicTitle);
+        } catch (_) {}
+      }
+
       final conspect = Conspect(
         id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
         title: '$topicTitle$titleSuffix',
@@ -371,10 +400,13 @@ class AppProvider with ChangeNotifier {
         content: effectiveContent,
         variantIndex: variantIndex,
         batchGroupId: batchGroupId,
-        cards: cards.isNotEmpty ? cards : null,
+        cards: effectiveCards,
         generatedMaterials: effectiveMaterials,
         parentAudioScript: parentAudio,
         promptVersionId: promptVersion.id,
+        illustrationMascot: illustrationMascot,
+        illustrationColoring: illustrationColoring,
+        illustrationReward: illustrationReward,
         createdAt: DateTime.now(),
       );
 
