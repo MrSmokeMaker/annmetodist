@@ -28,6 +28,9 @@ import '../services/surgical_ai_service.dart';
 import '../widgets/interactive_methodist_drawer.dart';
 import '../widgets/block_action_toolbar.dart';
 import '../widgets/rno_dialog.dart';
+import '../services/worksheet_audit_service.dart';
+import '../widgets/task_audit_badge.dart';
+
 
 
 class ConspectViewScreen extends StatefulWidget {
@@ -83,6 +86,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
   late Animation<double> _saveFadeAnim;
   bool _showSavedBanner = false;
   int? _isRegeneratingBlockIndex;
+  bool _isDebugAuditMode = false;
 
   @override
   void initState() {
@@ -503,6 +507,25 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
+            // Отладочный режим YandexGPT
+            IconButton(
+              tooltip: _isDebugAuditMode ? 'Выключить отладку' : 'Отладка заданий (Оценка YandexGPT)',
+              icon: Icon(
+                Icons.biotech_rounded,
+                color: _isDebugAuditMode ? AppColors.accentCyan : null,
+              ),
+              onPressed: () {
+                setState(() => _isDebugAuditMode = !_isDebugAuditMode);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_isDebugAuditMode
+                        ? 'Отладочный режим включен: отображаются оценки логики, орфографии, визуала и генерация в YandexART'
+                        : 'Отладочный режим выключен'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
             // Пакет дифференциации «3 в 1»
             IconButton(
               tooltip: 'Дифференциация «3 в 1» (Опора / База / Pro)',
@@ -1193,6 +1216,49 @@ ${_currentConspect!.content}
                     ),
                   ),
                 ),
+
+                if (_isDebugAuditMode && isWorksheet && _currentConspect != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryIndigo.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.biotech_rounded, size: 16, color: AppColors.primaryIndigo),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Отладка листа заданий: оценки YandexGPT и промпты YandexART',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final injected = WorksheetAuditService.injectAuditBadges(
+                              content: _currentConspect!.content,
+                              topic: _currentConspect!.topic,
+                              ageGroup: _currentConspect!.ageGroup,
+                              subject: _currentConspect!.subject,
+                            );
+                            _saveInjectedContent(injected);
+                          },
+                          child: const Text('Встроить в текст', style: TextStyle(fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...WorksheetAuditService.auditWorksheet(
+                    content: sectionBody,
+                    topic: _currentConspect!.topic,
+                    ageGroup: _currentConspect!.ageGroup,
+                    subject: _currentConspect!.subject,
+                  ).map((eval) => TaskAuditBadge(evaluation: eval)),
+                ],
 
                 // Dedicated Export Buttons after sections
                 if (isWorksheet) ...[
@@ -2919,6 +2985,28 @@ ${_currentConspect!.content}
           SnackBar(content: Text('Ошибка обновления блока: $e')),
         );
       }
+    }
+  }
+
+
+  Future<void> _saveInjectedContent(String text) async {
+    if (_currentConspect == null) return;
+    final updated = _currentConspect!.copyWith(
+      content: text,
+      updatedAt: DateTime.now(),
+    );
+    await context.read<AppProvider>().saveConspect(updated);
+    setState(() {
+      _currentConspect = updated;
+      _editController.text = text;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Строки оценки YandexGPT успешно встроены под каждое задание!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     }
   }
 

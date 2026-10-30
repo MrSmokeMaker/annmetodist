@@ -65,6 +65,7 @@ class AppProvider with ChangeNotifier {
   MethodRepository get methodRepository => _methodRepository;
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
+  YandexArtService get yandexArtService => _artService;
   SurgicalAiService get surgicalAiService => _surgicalAiService;
   AiService get aiService => _aiService;
   String get activeAiProvider => _aiService.activeProvider;
