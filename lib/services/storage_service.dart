@@ -85,12 +85,17 @@ class StorageService {
 
   bool get hasPackageBundleAccess {
     final tier = getUserTier();
-    return tier == 'practice' || tier == 'pro';
+    return tier == 'practice' || tier == 'pro' || tier == 'developer';
   }
 
   bool get hasProAccess {
     final tier = getUserTier();
-    return tier == 'pro';
+    return tier == 'pro' || tier == 'developer';
+  }
+
+  bool get hasDeveloperAccess {
+    final tier = getUserTier();
+    return tier == 'developer';
   }
 
 
@@ -500,5 +505,15 @@ class StorageService {
       'conspects': importedConspects,
       'prompt_versions': importedPrompts,
     };
+  }
+
+  String? getCustomString(String key) {
+    if (!_isInitialized) return null;
+    return _sharedPreferences.getString(key);
+  }
+
+  Future<void> saveCustomString(String key, String value) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(key, value);
   }
 }

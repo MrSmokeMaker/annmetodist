@@ -6,6 +6,7 @@ import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'world_studio_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 
 class MainNavigationShell extends StatefulWidget {
@@ -25,8 +26,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   final List<Widget> _pages = const [
     HomeScreen(),
     CalendarScreen(),
+    WorldStudioScreen(),
     ProfileScreen(),
-    SettingsScreen(),
   ];
 
   void _openCreateSheet(BuildContext context) {
@@ -220,17 +221,50 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           ),
                           _buildDesktopNavItem(
                             index: 2,
+                            icon: Icons.palette_outlined,
+                            activeIcon: Icons.palette_rounded,
+                            label: 'Студия миров',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 3,
                             icon: Icons.badge_outlined,
                             activeIcon: Icons.badge_rounded,
                             label: 'Тарифы & Квоты',
                             isDark: isDark,
                           ),
-                          _buildDesktopNavItem(
-                            index: 3,
-                            icon: Icons.tune_rounded,
-                            activeIcon: Icons.tune_rounded,
-                            label: 'Настройки',
-                            isDark: isDark,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.settings_outlined,
+                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      size: 20,
+                                    ),
+                                    if (_isSidebarExpanded) ...[
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Настройки',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
 
                           const Spacer(),
@@ -304,6 +338,28 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     // Mobile layout with Floating Glass Bottom Navigation
     return Scaffold(
       extendBody: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(40),
+        child: SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12, top: 4),
+              child: IconButton(
+                icon: const Icon(Icons.settings_outlined, size: 22),
+                tooltip: 'Настройки',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
       body: AmbientBackground(
         child: IndexedStack(
           index: _currentIndex,
@@ -373,17 +429,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
                   _buildMobileNavItem(
                     index: 2,
-                    icon: Icons.badge_outlined,
-                    activeIcon: Icons.badge_rounded,
-                    label: 'Профиль',
+                    icon: Icons.palette_outlined,
+                    activeIcon: Icons.palette_rounded,
+                    label: 'Студия',
                     isDark: isDark,
                   ),
 
                   _buildMobileNavItem(
                     index: 3,
-                    icon: Icons.tune_rounded,
-                    activeIcon: Icons.tune_rounded,
-                    label: 'Опции',
+                    icon: Icons.badge_outlined,
+                    activeIcon: Icons.badge_rounded,
+                    label: 'Профиль',
                     isDark: isDark,
                   ),
                 ],

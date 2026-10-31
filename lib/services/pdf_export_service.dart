@@ -61,7 +61,8 @@ class PdfExportService {
   }
 
   /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
-  static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false}) async {
+  /// Generates the raw PDF bytes for a complete combined kit
+  static Future<Uint8List> generateCombinedPdfBytes(Conspect conspect, {bool isPro = false}) async {
     final pdf = pw.Document();
 
     final fontRegular = await PdfGoogleFonts.robotoRegular();
@@ -137,8 +138,14 @@ class PdfExportService {
       ),
     );
 
+    return await pdf.save();
+  }
+
+  /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
+  static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false}) async {
+    final bytes = await generateCombinedPdfBytes(conspect, isPro: isPro);
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename: 'Комплект_${conspect.title.replaceAll(' ', '_')}.pdf',
     );
   }

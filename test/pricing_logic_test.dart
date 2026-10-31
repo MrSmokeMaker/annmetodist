@@ -3,14 +3,15 @@ import 'package:metodist/models/pricing_plan.dart';
 
 void main() {
   group('Pricing Plan and Monetization Logic Tests', () {
-    test('PricingPlan defaultPlans contain free, practice, and pro tiers', () {
+    test('PricingPlan defaultPlans contain free, practice, pro, and developer tiers', () {
       final plans = PricingPlan.defaultPlans;
-      expect(plans.length, 3);
+      expect(plans.length, 4);
 
       final planIds = plans.map((p) => p.id).toList();
       expect(planIds, contains('free'));
       expect(planIds, contains('practice'));
       expect(planIds, contains('pro'));
+      expect(planIds, contains('developer'));
     });
 
     test('Practice tier offers 35% discount for annual billing and key value features', () {

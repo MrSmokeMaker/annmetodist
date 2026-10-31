@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../data/method_repository.dart';
@@ -63,6 +63,13 @@ class AppProvider with ChangeNotifier {
   List<ActivityTechnique> get activityLibrary =>
       _methodRepository.activityLibrary;
   MethodRepository get methodRepository => _methodRepository;
+  bool get isDeveloper => _storageService.hasDeveloperAccess;
+  String get userTier => _storageService.getUserTier();
+
+  Future<void> setUserTier(String tier) async {
+    await _storageService.saveUserTier(tier);
+    notifyListeners();
+  }
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
   YandexArtService get yandexArtService => _artService;
@@ -170,14 +177,8 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  String get userTier => _storageService.getUserTier();
   bool get hasPackageBundleAccess => _storageService.hasPackageBundleAccess;
   bool get isProUser => _storageService.hasProAccess;
-
-  Future<void> setUserTier(String tier) async {
-    await _storageService.saveUserTier(tier);
-    notifyListeners();
-  }
 
     // Credentials Management
   Future<String?> getApiKey() => _storageService.getApiKey();

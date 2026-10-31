@@ -21,6 +21,7 @@ class ThematicWorld {
   final int accentColorHex;
   final String bannerPrompt;
   final String mascotPrompt;
+  final String? customGreetingPhrase;
 
   const ThematicWorld({
     required this.type,
@@ -34,6 +35,7 @@ class ThematicWorld {
     required this.accentColorHex,
     required this.bannerPrompt,
     required this.mascotPrompt,
+    this.customGreetingPhrase,
   });
 
   Color get primaryColor => Color(primaryColorHex);
@@ -134,6 +136,25 @@ class ThematicWorld {
       orElse: () => space,
     );
   }
+
+  static ThematicWorld findById(String? id) => fromId(id);
+
+  String get subtitle {
+    switch (type) {
+      case ThematicWorldType.space:
+        return 'Орбитальная станция знаний';
+      case ThematicWorldType.forest:
+        return 'Сказочный лес мудрости';
+      case ThematicWorldType.detective:
+        return 'Детективное бюро логики';
+      case ThematicWorldType.workshop:
+        return 'Инженерная мастерская открытий';
+      case ThematicWorldType.meadow:
+        return 'Солнечная поляна открытий';
+    }
+  }
+
+  String get greetingPhrase => customGreetingPhrase ?? mascotEncouragement('greeting');
 
   String mascotEncouragement(String materialTypeName) {
     switch (type) {

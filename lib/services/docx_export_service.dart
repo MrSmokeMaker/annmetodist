@@ -48,15 +48,7 @@ class DocxExportService {
 </w:styles>''';
     archive.addFile(ArchiveFile('word/styles.xml', stylesXml.length, utf8.encode(stylesXml)));
 
-    // 5. word/document.xml
-    final docBody = _buildDocumentXml(conspect);
-    archive.addFile(ArchiveFile('word/document.xml', docBody.length, utf8.encode(docBody)));
-
-    // Encode to ZIP
-    final encoder = ZipEncoder();
-    final encodedData = encoder.encode(archive);
-    final docxBytes = Uint8List.fromList(encodedData ?? []);
-
+    final docxBytes = generateDocxBytes(conspect);
     final safeTitle = conspect.title
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(' ', '_');
@@ -72,6 +64,53 @@ class DocxExportService {
       ],
       subject: conspect.title,
     );
+  }
+
+  /// Generates the raw bytes of a DOCX file for the given conspect
+  static Uint8List generateDocxBytes(Conspect conspect) {
+    final archive = Archive();
+
+    const contentTypesXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>''';
+    archive.addFile(ArchiveFile('[Content_Types].xml', contentTypesXml.length, utf8.encode(contentTypesXml)));
+
+    const relsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>''';
+    archive.addFile(ArchiveFile('_rels/.rels', relsXml.length, utf8.encode(relsXml)));
+
+    const docRelsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>''';
+    archive.addFile(ArchiveFile('word/_rels/document.xml.rels', docRelsXml.length, utf8.encode(docRelsXml)));
+
+    const stylesXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>
+        <w:sz w:val="24"/>
+        <w:lang w:val="ru-RU"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+</w:styles>''';
+    archive.addFile(ArchiveFile('word/styles.xml', stylesXml.length, utf8.encode(stylesXml)));
+
+    final docBody = _buildDocumentXml(conspect);
+    archive.addFile(ArchiveFile('word/document.xml', docBody.length, utf8.encode(docBody)));
+
+    final encoder = ZipEncoder();
+    final encodedData = encoder.encode(archive);
+    return Uint8List.fromList(encodedData ?? []);
   }
 
   static String _buildDocumentXml(Conspect conspect) {

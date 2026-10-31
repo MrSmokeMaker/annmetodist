@@ -3098,18 +3098,217 @@ ${_currentConspect!.content}
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              side: BorderSide(color: Color(world.primaryColorHex).withOpacity(0.5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            icon: const Icon(Icons.palette_outlined, size: 14),
-            label: const Text('Сменить мир', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-            onPressed: () => _showWorldSelectorSheet(context),
+          Builder(
+            builder: (ctx) {
+              final isDev = ctx.watch<AppProvider>().isDeveloper;
+              return OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  side: BorderSide(
+                    color: isDev
+                        ? Color(world.primaryColorHex).withOpacity(0.5)
+                        : Colors.amber.withOpacity(0.7),
+                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: Icon(
+                  isDev ? Icons.palette_outlined : Icons.lock_outline,
+                  size: 14,
+                  color: isDev ? null : Colors.amber.shade700,
+                ),
+                label: Text(
+                  isDev ? 'Сменить мир' : 'Сменить мир 🔒',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDev ? null : Colors.amber.shade800,
+                  ),
+                ),
+                onPressed: () {
+                  if (isDev) {
+                    _showWorldSelectorSheet(context);
+                  } else {
+                    _showDeveloperWorldUpgradeSheet(context);
+                  }
+                },
+              );
+            },
           ),
         ],
       ),
+    );
+  }
+
+  void _showDeveloperWorldUpgradeSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1B4B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'ТАРИФ РАЗРАБОТЧИК',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Переключение и настройка миров доступна в тарифе «Разработчик»',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Мгновенная трансформация листа заданий в 5 тематических игровых миров (Космос, Лес, Детектив, Мастерская, Тайга) с уникальной арт-шапкой YandexART, конструктор авторских методик, REST API для LMS и генератор четверти.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF2E1065).withOpacity(0.6)
+                      : const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFF818CF8).withOpacity(0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Text(
+                                '1 199 ₽',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF4F46E5),
+                                ),
+                              ),
+                              Text(
+                                ' / месяц',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'при оплате за год (14 388 ₽) • выгода 20%',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.purple.shade200 : const Color(0xFF4338CA),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'или 1 499 ₽ при помесячной оплате',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.rocket_launch_rounded),
+                  label: const Text(
+                    'Подключить тариф «Разработчик»',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    context.read<AppProvider>().setUserTier('developer');
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Тариф «Разработчик» успешно активирован! Все 5 миров доступны.'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                    _showWorldSelectorSheet(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
