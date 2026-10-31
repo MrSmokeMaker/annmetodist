@@ -20,20 +20,26 @@ def main():
     shutil.copytree(os.path.join(repo_dir, 'build', 'web'), temp_dir)
     print(f"Copied build/web to {temp_dir}")
 
-    def run(cmd):
-        print(f"Running: {cmd}")
-        res = subprocess.run(cmd, shell=True, check=True, text=True, capture_output=True)
-        if res.stdout:
-            print(res.stdout.strip())
-        if res.stderr:
-            print(res.stderr.strip())
+    # Checkout gh-pages
+    subprocess.run('git checkout gh-pages', shell=True, check=True)
 
-    run('git checkout gh-pages')
+    # Wipe EVERYTHING in repo_dir except .git
+    for item in os.listdir(repo_dir):
+        if item == '.git':
+            continue
+        p = os.path.join(repo_dir, item)
+        if os.path.isdir(p):
+            shutil.rmtree(p, onerror=remove_readonly)
+        else:
+            try:
+                os.chmod(p, stat.S_IWRITE)
+                os.remove(p)
+            except Exception:
+                pass
 
-    # Remove all tracked files in gh-pages to clear out old symlinks and non-web dirs
-    subprocess.run('git rm -rf .', shell=True, check=True)
+    print("Cleaned working directory for gh-pages!")
 
-    # Overwrite / copy files from build/web into repo_dir
+    # Copy ONLY files from temp_dir into repo_dir
     for root, dirs, files in os.walk(temp_dir):
         rel_path = os.path.relpath(root, temp_dir)
         target_dir = repo_dir if rel_path == '.' else os.path.join(repo_dir, rel_path)
@@ -54,7 +60,7 @@ def main():
     subprocess.run('git add -A', shell=True, check=True)
     status = subprocess.run('git status --porcelain', shell=True, text=True, capture_output=True)
     if status.stdout.strip():
-        subprocess.run('git commit -m "deploy: update GitHub Pages with Director tier, Lesson Summary Card & MetodistAI bot"', shell=True, check=True)
+        subprocess.run('git commit -m "deploy: clean web release with WhatCanAiDoWidget and live YandexGPT Pro"', shell=True, check=True)
         print("Committed changes to gh-pages")
         subprocess.run('git push origin gh-pages', shell=True, check=True)
         print("Pushed gh-pages to origin")
@@ -65,7 +71,8 @@ def main():
     
     # Return to master
     subprocess.run('git checkout master', shell=True, check=True)
-    print("Returned to master successfully!")
+    subprocess.run('git checkout .', shell=True, check=True)
+    print("Returned to master cleanly!")
 
 if __name__ == '__main__':
     main()
