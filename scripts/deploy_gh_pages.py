@@ -13,66 +13,79 @@ def remove_readonly(func, path, excinfo):
 
 def main():
     repo_dir = os.path.abspath('.')
-    temp_dir = os.path.join(tempfile.gettempdir(), 'annmetodist_web_build')
+    build_web_dir = os.path.join(repo_dir, 'build', 'web')
     
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir, onerror=remove_readonly)
-    shutil.copytree(os.path.join(repo_dir, 'build', 'web'), temp_dir)
-    print(f"Copied build/web to {temp_dir}")
+    if not os.path.isdir(build_web_dir):
+        print(f"Error: {build_web_dir} does not exist. Run flutter build web first.")
+        return 1
 
-    # Checkout gh-pages
-    subprocess.run('git checkout gh-pages', shell=True, check=True)
+    temp_worktree = os.path.join(tempfile.gettempdir(), 'annmetodist_gh_pages_worktree')
+    if os.path.exists(temp_worktree):
+        subprocess.run(['git', 'worktree', 'remove', '--force', temp_worktree], cwd=repo_dir)
+        if os.path.exists(temp_worktree):
+            shutil.rmtree(temp_worktree, onerror=remove_readonly)
 
-    # Wipe EVERYTHING in repo_dir except .git
-    for item in os.listdir(repo_dir):
-        if item == '.git':
-            continue
-        p = os.path.join(repo_dir, item)
-        if os.path.isdir(p):
-            shutil.rmtree(p, onerror=remove_readonly)
-        else:
-            try:
-                os.chmod(p, stat.S_IWRITE)
-                os.remove(p)
-            except Exception:
-                pass
+    print(f"Creating git worktree at {temp_worktree} for branch gh-pages...")
+    subprocess.run(['git', 'worktree', 'add', temp_worktree, 'gh-pages'], cwd=repo_dir, check=True)
 
-    print("Cleaned working directory for gh-pages!")
+    try:
+        # Clear out all tracked files in worktree
+        print("Cleaning worktree tracked files...")
+        subprocess.run(['git', 'rm', '-rf', '.'], cwd=temp_worktree, check=True)
 
-    # Copy ONLY files from temp_dir into repo_dir
-    for root, dirs, files in os.walk(temp_dir):
-        rel_path = os.path.relpath(root, temp_dir)
-        target_dir = repo_dir if rel_path == '.' else os.path.join(repo_dir, rel_path)
-        os.makedirs(target_dir, exist_ok=True)
-        for f in files:
-            src_f = os.path.join(root, f)
-            dst_f = os.path.join(target_dir, f)
-            shutil.copy2(src_f, dst_f)
+        # Also remove any leftover untracked files in worktree
+        for item in os.listdir(temp_worktree):
+            if item == '.git':
+                continue
+            p = os.path.join(temp_worktree, item)
+            if os.path.isdir(p):
+                shutil.rmtree(p, onerror=remove_readonly)
+            else:
+                try:
+                    os.chmod(p, stat.S_IWRITE)
+                    os.remove(p)
+                except Exception:
+                    pass
 
-    # Ensure .nojekyll exists
-    nojekyll_path = os.path.join(repo_dir, '.nojekyll')
-    if not os.path.exists(nojekyll_path):
-        with open(nojekyll_path, 'w') as f:
+        # Copy all files from build/web into worktree
+        print("Copying build/web files into worktree...")
+        for root, dirs, files in os.walk(build_web_dir):
+            rel_path = os.path.relpath(root, build_web_dir)
+            target_dir = temp_worktree if rel_path == '.' else os.path.join(temp_worktree, rel_path)
+            os.makedirs(target_dir, exist_ok=True)
+            for f in files:
+                src_f = os.path.join(root, f)
+                dst_f = os.path.join(target_dir, f)
+                shutil.copy2(src_f, dst_f)
+
+        # Ensure .nojekyll
+        nojekyll_path = os.path.join(temp_worktree, '.nojekyll')
+        with open(nojekyll_path, 'w', encoding='utf-8') as f:
             pass
 
-    print("Overwrote all web files in gh-pages cleanly!")
-    
-    subprocess.run('git add -A', shell=True, check=True)
-    status = subprocess.run('git status --porcelain', shell=True, text=True, capture_output=True)
-    if status.stdout.strip():
-        subprocess.run('git commit -m "deploy: clean web release with WhatCanAiDoWidget and live YandexGPT Pro"', shell=True, check=True)
-        print("Committed changes to gh-pages")
-        subprocess.run('git push origin gh-pages', shell=True, check=True)
-        print("Pushed gh-pages to origin")
-    else:
-        print("No changes on gh-pages to commit")
+        print("Staging and committing files in gh-pages worktree...")
+        subprocess.run(['git', 'add', '-A'], cwd=temp_worktree, check=True)
 
-    shutil.rmtree(temp_dir, onerror=remove_readonly)
-    
-    # Return to master
-    subprocess.run('git checkout master', shell=True, check=True)
-    subprocess.run('git checkout .', shell=True, check=True)
-    print("Returned to master cleanly!")
+        status = subprocess.run(['git', 'status', '--porcelain'], cwd=temp_worktree, text=True, capture_output=True, check=True)
+        if status.stdout.strip():
+            subprocess.run([
+                'git', 'commit', '-m', 
+                'deploy: clean release v0.5.5 with WhatCanAiDoWidget and live YandexGPT Pro'
+            ], cwd=temp_worktree, check=True)
+            print("Pushing gh-pages to origin...")
+            subprocess.run(['git', 'push', 'origin', 'gh-pages'], cwd=temp_worktree, check=True)
+            print("Successfully deployed clean release to GitHub Pages!")
+        else:
+            print("No changes to commit in gh-pages.")
+
+    finally:
+        print("Cleaning up worktree...")
+        subprocess.run(['git', 'worktree', 'remove', '--force', temp_worktree], cwd=repo_dir)
+        if os.path.exists(temp_worktree):
+            shutil.rmtree(temp_worktree, onerror=remove_readonly)
+        print("Worktree cleanup complete.")
+
+    return 0
 
 if __name__ == '__main__':
-    main()
+    exit(main())
