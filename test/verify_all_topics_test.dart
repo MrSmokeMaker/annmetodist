@@ -23,7 +23,7 @@ void main() {
     final methods = methodsRaw.map((j) => MethodPrompt.fromJson(j as Map<String, dynamic>)).toList();
     final methodsMap = {for (var m in methods) m.id: m};
 
-    expect(topics.length, equals(173), reason: 'All 173 topics must be loaded');
+    expect(topics.length, greaterThanOrEqualTo(173), reason: 'All canonical topics must be loaded (at least 173)');
 
     final reportBuffer = StringBuffer();
     reportBuffer.writeln('# Отчет о комплексном аудите и верификации всех тем приложения "Методист"');

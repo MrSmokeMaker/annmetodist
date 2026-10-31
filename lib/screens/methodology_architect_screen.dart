@@ -1,3 +1,4 @@
+import '../services/methodology_architect_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,6 +31,18 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
   late TextEditingController _webhookUrlCtrl;
   late TextEditingController _inviteEmailCtrl;
 
+  // Двухэтапный поиск тем из книги (Stage 1 & Stage 2)
+  late TextEditingController _bookTitleCtrl;
+  late TextEditingController _bookAuthorCtrl;
+  late TextEditingController _bookSubjectCtrl;
+  late TextEditingController _bookGradeCtrl;
+  late TextEditingController _bookTocCtrl;
+  bool _isExtractingStage1 = false;
+  bool _isEnrichingStage2 = false;
+  List<Stage1CurriculumTopic> _extractedTopics = [];
+  List<Stage2EnrichedTopic> _enrichedTopics = [];
+  String _bookStatusMsg = '';
+
   // Bulk Generator State
   int _bulkLessonCount = 20;
   String _bulkSubject = 'Математика';
@@ -44,7 +57,7 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _methodology = CustomMethodology.defaultLyceumMethodology();
     _team = DepartmentTeam.createDefault();
 
@@ -54,6 +67,12 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
     _systemPromptCtrl = TextEditingController(text: _methodology.customSystemPromptOverride);
     _webhookUrlCtrl = TextEditingController(text: 'https://lyceum1.edu.ru/api/webhooks/metodist');
     _inviteEmailCtrl = TextEditingController();
+
+    _bookTitleCtrl = TextEditingController(text: 'Методика преподавания арифметики в начальной школе');
+    _bookAuthorCtrl = TextEditingController(text: 'А. С. Пчёлко, Г. Б. Поляк');
+    _bookSubjectCtrl = TextEditingController(text: 'Математика');
+    _bookGradeCtrl = TextEditingController(text: '1-2 класс');
+    _bookTocCtrl = TextEditingController();
   }
 
   @override
@@ -65,6 +84,11 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
     _systemPromptCtrl.dispose();
     _webhookUrlCtrl.dispose();
     _inviteEmailCtrl.dispose();
+    _bookTitleCtrl.dispose();
+    _bookAuthorCtrl.dispose();
+    _bookSubjectCtrl.dispose();
+    _bookGradeCtrl.dispose();
+    _bookTocCtrl.dispose();
     super.dispose();
   }
 
@@ -267,6 +291,7 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
                 labelStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                 tabs: const [
                   Tab(icon: Icon(Icons.tune_rounded, size: 16), text: 'Методика'),
+                  Tab(icon: Icon(Icons.auto_stories_rounded, size: 16), text: 'Поиск тем из книги (2 этапа)'),
                   Tab(icon: Icon(Icons.api_rounded, size: 16), text: 'REST API & LMS'),
                   Tab(icon: Icon(Icons.inventory_2_rounded, size: 16), text: 'Генератор четверти'),
                   Tab(icon: Icon(Icons.science_rounded, size: 16), text: 'Инспектор токенов'),
@@ -281,6 +306,7 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
                 controller: _tabController,
                 children: [
                   _buildMethodologyTab(isDark),
+                  _buildBookTopicsExtractionTab(isDark),
                   _buildRestApiTab(isDark),
                   _buildQuarterCurriculumTab(isDark),
                   _buildTokenInspectorTab(isDark),
@@ -978,6 +1004,454 @@ class _MethodologyArchitectScreenState extends State<MethodologyArchitectScreen>
       ),
     );
   }
+
+  // Методы двухэтапного конвейера поиска тем из книги
+  Future<void> _runStage1Extraction() async {
+    setState(() {
+      _isExtractingStage1 = true;
+      _bookStatusMsg = 'Этап 1: Макро-картирование всех тем книги через YandexGPT Pro...';
+      _extractedTopics.clear();
+      _enrichedTopics.clear();
+    });
+
+    try {
+      final topics = await MethodologyArchitectService.extractAllCourseTopicsFromBook(
+        bookTitle: _bookTitleCtrl.text.trim(),
+        author: _bookAuthorCtrl.text.trim(),
+        subject: _bookSubjectCtrl.text.trim(),
+        grade: _bookGradeCtrl.text.trim(),
+        tocText: _bookTocCtrl.text.trim(),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isExtractingStage1 = false;
+        _extractedTopics = topics;
+        _bookStatusMsg = 'Этап 1 успешно завершён: найдено ВСЕГО ${topics.length} тем без ограничений! Отметьте нужные темы и перейдите к Этапу 2.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isExtractingStage1 = false;
+        _bookStatusMsg = 'Ошибка Этапа 1: $e';
+      });
+    }
+  }
+
+  Future<void> _runStage2Enrichment() async {
+    final selected = _extractedTopics.where((t) => t.isSelected).toList();
+    if (selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите хотя бы одну тему для обогащения')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isEnrichingStage2 = true;
+      _bookStatusMsg = 'Этап 2: Педагогическое микро-обогащение выбранных ${selected.length} тем...';
+      _enrichedTopics.clear();
+    });
+
+    for (int i = 0; i < selected.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 60));
+      final enriched = MethodologyArchitectService.enrichSingleTopic(
+        topic: selected[i],
+        methodologyName: _bookTitleCtrl.text.trim(),
+        author: _bookAuthorCtrl.text.trim(),
+      );
+      _enrichedTopics.add(enriched);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isEnrichingStage2 = false;
+      _bookStatusMsg = 'Этап 2 успешно завершён: ${_enrichedTopics.length} тем полностью обогащены ФГОС-целями, «Ловушками Незнайки», ТРИЗ и 3 уровнями заданий!';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🎉 Успешно добавлены и обогащены ${_enrichedTopics.length} тем из книги!'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  // 1.1 Поиск тем из книги (Двухэтапный конвейер без ограничений)
+  Widget _buildBookTopicsExtractionTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GlassCard(
+            padding: const EdgeInsets.all(18),
+            borderRadius: AppRadii.lg,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.auto_stories_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '📚 Двухэтапный поиск тем из книги/методики',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Без лимитов на 10-20 тем: извлекаются ВСЕ темы учебника или программы',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Book Details Inputs
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: TextField(
+                        controller: _bookTitleCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Название книги или методики',
+                          filled: true,
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 4,
+                      child: TextField(
+                        controller: _bookAuthorCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Автор(ы) книги',
+                          filled: true,
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _bookSubjectCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Предметная область',
+                          filled: true,
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _bookGradeCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Класс / возраст',
+                          filled: true,
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                TextField(
+                  controller: _bookTocCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Оглавление книги или фрагмент программы (необязательно)',
+                    hintText: 'Вставьте оглавление учебника или оставьте пустым для канонического поиска по автору...',
+                    filled: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Button Stage 1
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: _isExtractingStage1
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.search_rounded, size: 18),
+                    label: Text(
+                      _isExtractingStage1 ? 'Анализ книги YandexGPT Pro...' : '🚀 Этап 1: Найти ВСЕ темы книги без ограничений',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                    ),
+                    onPressed: _isExtractingStage1 ? null : _runStage1Extraction,
+                  ),
+                ),
+
+                if (_bookStatusMsg.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1B4B) : const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFF6366F1), size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _bookStatusMsg,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // Stage 1 Extracted Topics Cards
+          if (_extractedTopics.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            GlassCard(
+              padding: const EdgeInsets.all(18),
+              borderRadius: AppRadii.lg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            '📋 Извлечённые темы курса',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Найдено: ${_extractedTopics.length} тем',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            final allSelected = _extractedTopics.every((t) => t.isSelected);
+                            for (var t in _extractedTopics) {
+                              t.isSelected = !allSelected;
+                            }
+                          });
+                        },
+                        child: Text(_extractedTopics.every((t) => t.isSelected) ? 'Снять все' : 'Выбрать все'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _extractedTopics.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final t = _extractedTopics[index];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: t.isSelected ? const Color(0xFF6366F1).withOpacity(0.4) : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: t.isSelected,
+                              activeColor: const Color(0xFF6366F1),
+                              onChanged: (val) {
+                                setState(() {
+                                  t.isSelected = val ?? false;
+                                });
+                              },
+                            ),
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${t.number}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.title,
+                                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.white12 : Colors.black12,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(t.section, style: const TextStyle(fontSize: 9.5)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          'Навык: ${t.focusSkill}',
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Button Stage 2
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: _isEnrichingStage2
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.auto_awesome_rounded, size: 18),
+                      label: Text(
+                        _isEnrichingStage2
+                            ? 'Обогащение выбранных тем...'
+                            : '✨ Этап 2: Педагогическое обогащение и сохранение (${_extractedTopics.where((t) => t.isSelected).length} тем)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      ),
+                      onPressed: _isEnrichingStage2 ? null : _runStage2Enrichment,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Stage 2 Enriched Previews
+          if (_enrichedTopics.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            GlassCard(
+              padding: const EdgeInsets.all(18),
+              borderRadius: AppRadii.lg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '🏆 Педагогический паспорт обогащённых тем (ФГОС + ТРИЗ)',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  ..._enrichedTopics.take(3).map((et) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Урок ${et.number}. ${et.title}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(height: 4),
+                          Text('🎯 ФГОС: ${et.subjectGoal}', style: const TextStyle(fontSize: 11)),
+                          Text('⚠️ Ловушка Незнайки: ${et.neznaykaTrap}', style: const TextStyle(fontSize: 11, color: Colors.amber)),
+                          Text('📋 3 уровня: ${et.tier1Start} | ${et.tier3DetectivePro}', style: const TextStyle(fontSize: 10.5, color: Colors.grey)),
+                        ],
+                      ),
+                    );
+                  }),
+                  if (_enrichedTopics.length > 3)
+                    Text(
+                      '... и ещё ${_enrichedTopics.length - 3} тем сохранены в базу данных.',
+                      style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
-
-

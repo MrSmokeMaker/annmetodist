@@ -18,6 +18,9 @@ import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
 import '../widgets/what_can_ai_do_widget.dart';
 import '../widgets/telegram_bots_sheet.dart';
+import '../widgets/animated_owl_widget.dart';
+import '../widgets/metodist_assistant_dialog.dart';
+import '../widgets/stories_tray_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -138,12 +141,12 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(context, isDark),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xs),
+                const StoriesTrayWidget(),
+                const SizedBox(height: AppSpacing.xs),
                 _buildBentoHero(context, isDark),
                 const SizedBox(height: AppSpacing.lg),
-                _buildSearchBar(isDark),
-                const SizedBox(height: AppSpacing.sm),
-                _buildSubjectFilterBar(isDark),
+                _buildSavedLessonsToolbar(context, provider, filteredList, isDark),
                 const SizedBox(height: AppSpacing.md),
                 Expanded(
                   child: filteredList.isEmpty
@@ -167,8 +170,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   const WhatCanAiDoWidget(isCompact: false),
                   const SizedBox(height: AppSpacing.md),
                   _buildAnalyticsMetrics(provider, isDark),
-                  const SizedBox(height: AppSpacing.md),
-                  _buildAgeGroupSelector(provider, isDark),
                   const SizedBox(height: AppSpacing.md),
                   if (provider.recentPdfs.isNotEmpty) ...[
                     _buildRecentPdfsSection(context, provider, isDark),
@@ -205,50 +206,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const StoriesTrayWidget(),
                       _buildNewsHighlightBanner(context, isDark),
                       _buildBentoHero(context, isDark),
                       const SizedBox(height: AppSpacing.md),
                       const WhatCanAiDoWidget(isCompact: true),
                       const SizedBox(height: AppSpacing.md),
                       _buildAnalyticsMetrics(provider, isDark),
-                      const SizedBox(height: AppSpacing.md),
-                      _buildAgeGroupSelector(provider, isDark),
                       if (provider.recentPdfs.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.md),
                         _buildRecentPdfsSection(context, provider, isDark),
                       ],
-                      const SizedBox(height: AppSpacing.md),
-                      _buildSearchBar(isDark),
-                      const SizedBox(height: AppSpacing.sm),
-                      _buildSubjectFilterBar(isDark),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Сохранённые уроки',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.2,
-                                ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${filteredList.length}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryIndigo,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildSavedLessonsToolbar(context, provider, filteredList, isDark),
                       const SizedBox(height: AppSpacing.sm),
                     ],
                   ),
@@ -416,28 +386,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-              IconButton(
-                tooltip: 'Настройки',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+              InkWell(
+                onTap: () {
+                  MetodistAssistantDialog.show(context);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Tooltip(
+                  message: 'Совёнок-Помощник AI',
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [Color(0xFF047857), Color(0xFF064E3B)],
+                      ),
+                      border: Border.all(color: const Color(0xFFF59E0B), width: 1.4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withOpacity(0.35),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const AnimatedOwlWidget(
+                      state: OwlState.idle,
+                      size: 26,
                     ),
                   ),
-                  child: Icon(
-                    Icons.settings_outlined,
-                    size: 19,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
                 ),
-                onPressed: () {
-                  Navigator.of(context).push(FadeSlidePageRoute(page: const SettingsScreen()));
-                },
               ),
             ],
           ),
@@ -503,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'v0.5.6',
+                          'v0.5.7',
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
@@ -515,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Меню ботов, маскоты и умные подсказки ИИ',
+                    'Stories, двухэтапный поиск тем и 224 урока',
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -997,6 +973,115 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSavedLessonsToolbar(
+    BuildContext context,
+    AppProvider provider,
+    List<Conspect> filteredList,
+    bool isDark,
+  ) {
+    final hasActiveFilter = _searchQuery.isNotEmpty || _selectedSubjectFilter != 'all';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Row with Title, Pill Counter and Reset Action
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryIndigo.withOpacity(0.2),
+                        AppColors.primaryViolet.withOpacity(0.2),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primaryIndigo.withOpacity(0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.auto_stories_rounded,
+                    size: 16,
+                    color: AppColors.primaryIndigo,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Сохранённые уроки',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.indigoViolet,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: AppShadows.glowPrimary,
+                  ),
+                  child: Text(
+                    '${filteredList.length}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (hasActiveFilter)
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _selectedSubjectFilter = 'all';
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.filter_alt_off_rounded, size: 14, color: AppColors.error),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Сбросить',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Modern Glass Search Bar
+        _buildSearchBar(isDark),
+
+        const SizedBox(height: 10),
+
+        // Modern Segmented Filter Pills Carousel with Emojis
+        _buildSubjectFilterBar(isDark),
+      ],
+    );
+  }
+
   Widget _buildSearchBar(bool isDark) {
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
@@ -1046,11 +1131,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSubjectFilterBar(bool isDark) {
     final filters = [
-      {'id': 'all', 'label': 'Все'},
-      {'id': 'математика', 'label': 'Математика'},
-      {'id': 'чтение', 'label': 'Чтение / Грамота'},
-      {'id': 'окружающий', 'label': 'Окружающий мир'},
-      {'id': 'чистописание', 'label': 'Письмо'},
+      {'id': 'all', 'label': '✦ Все'},
+      {'id': 'математика', 'label': '📐 Математика'},
+      {'id': 'чтение', 'label': '📖 Чтение / Грамота'},
+      {'id': 'окружающий', 'label': '🌍 Окружающий мир'},
+      {'id': 'чистописание', 'label': '✍️ Письмо'},
     ];
 
     return SizedBox(
@@ -1069,10 +1154,12 @@ class _HomeScreenState extends State<HomeScreen> {
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
+                gradient: isSelected ? AppGradients.indigoViolet : null,
                 color: isSelected
-                    ? (isDark ? AppColors.primaryIndigo : AppColors.primaryIndigo)
+                    ? null
                     : (isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04)),
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: isSelected ? AppShadows.glowPrimary : null,
                 border: Border.all(
                   color: isSelected
                       ? Colors.transparent
