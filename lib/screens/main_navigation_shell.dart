@@ -11,6 +11,8 @@ import 'methodology_architect_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
 import '../services/telegram/telegram_web_app_service.dart';
+import '../widgets/animated_owl_widget.dart';
+import '../widgets/metodist_assistant_dialog.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -38,6 +40,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         _currentIndex = 1;
       } else if (param == 'profile') {
         _currentIndex = 4;
+      } else if (param == 'assistant' || param == 'owl' || param == 'ai') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _openAssistant(context);
+        });
       }
     }
   }
@@ -51,6 +57,49 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     WorldStudioScreen(),
     ProfileScreen(),
   ];
+
+  void _openAssistant(BuildContext context) {
+    TelegramWebAppService().hapticSelection();
+    MetodistAssistantDialog.show(context);
+  }
+
+  Widget _buildOwlCompanionFab(bool isDark, {bool isMobile = false}) {
+    return Container(
+      margin: EdgeInsets.only(
+        bottom: isMobile ? 74 : 16,
+        right: isMobile ? 8 : 16,
+      ),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const RadialGradient(
+          colors: [Color(0xFF047857), Color(0xFF064E3B)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withOpacity(0.35),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF59E0B), width: 1.8),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(32),
+          onTap: () => _openAssistant(context),
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 5.0 : 6.0),
+            child: AnimatedOwlWidget(
+              state: OwlState.idle,
+              size: isMobile ? 44 : 50,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _openCreateSheet(BuildContext context) {
     showModalBottomSheet(
@@ -389,6 +438,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ],
           ),
         ),
+        floatingActionButton: _buildOwlCompanionFab(isDark, isMobile: false),
       );
     }
 
@@ -441,6 +491,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   },
                 ),
                 IconButton(
+                  icon: const Text('🦉', style: TextStyle(fontSize: 18)),
+                  tooltip: 'Совёнок-Методист AI',
+                  onPressed: () => _openAssistant(context),
+                ),
+                IconButton(
                   icon: const Icon(Icons.settings_outlined, size: 22),
                   tooltip: 'Настройки',
                   onPressed: () {
@@ -462,6 +517,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           children: _pages,
         ),
       ),
+      floatingActionButton: _buildOwlCompanionFab(isDark, isMobile: true),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: ClipRRect(

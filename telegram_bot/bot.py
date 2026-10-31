@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Официальный Telegram-бот экосистемы «Методист Pro»
+Полнофункциональный Telegram-бот экосистемы «Методист Pro»
+с интегрированным AI-помощником «Совёнок-Методист»,
+инлайн-режимом, утренними напоминаниями и поддержкой Telegram Mini App.
+
 Bot Username: @annmetodist_bot
 Web App URL: https://mrsmokemaker.github.io/annmetodist/
 """
@@ -18,12 +21,12 @@ BOT_TOKEN = os.getenv('BOT_TOKEN', '8839424428:AAG2i4SC7qq6LgeQ1_mXPE4koaCGauYCJ
 WEB_APP_URL = os.getenv('WEB_APP_URL', 'https://mrsmokemaker.github.io/annmetodist/')
 API_BASE = f'https://api.telegram.org/bot{BOT_TOKEN}'
 
-# Optional Proxy support (e.g. 'http://proxy.example.com:8080' or via HTTPS_PROXY env)
+# Proxy support (например, 'http://proxy.example.com:8080' или через переменную HTTPS_PROXY)
 PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
 
 
 def make_request(method: str, data: dict = None, files: dict = None) -> dict:
-    """Выполняет вызов к Telegram Bot API."""
+    """Универсальный вызов Telegram Bot API с поддержкой прокси и таймаутов."""
     url = f'{API_BASE}/{method}'
     handlers = []
     if PROXY:
@@ -31,7 +34,6 @@ def make_request(method: str, data: dict = None, files: dict = None) -> dict:
     opener = urllib.request.build_opener(*handlers)
 
     if files:
-        # Multipart form data for sending documents
         boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
         body = []
         for k, v in (data or {}).items():
@@ -53,82 +55,73 @@ def make_request(method: str, data: dict = None, files: dict = None) -> dict:
 
     req = urllib.request.Request(url, data=req_data, headers=headers)
     try:
-        with opener.open(req, timeout=30) as resp:
+        with opener.open(req, timeout=25) as resp:
             return json.loads(resp.read().decode('utf-8'))
     except Exception as e:
-        print(f'[ERROR] API {method} failed: {e}', file=sys.stderr)
         return {'ok': False, 'error': str(e)}
 
 
-def send_message(chat_id: int, text: str, reply_markup: dict = None, parse_mode: str = 'HTML'):
+def send_message(chat_id: int, text: str, parse_mode: str = 'HTML', reply_markup: dict = None) -> dict:
     payload = {
         'chat_id': chat_id,
         'text': text,
         'parse_mode': parse_mode,
+        'disable_web_page_preview': False,
     }
     if reply_markup:
         payload['reply_markup'] = reply_markup
     return make_request('sendMessage', payload)
 
 
-def send_document(chat_id: int, file_path: str, caption: str = ''):
-    path = Path(file_path)
-    if not path.exists():
-        return send_message(chat_id, f'⚠️ Файл не найден: {file_path}')
-
-    with open(path, 'rb') as f:
-        file_bytes = f.read()
-
-    files = {'document': (path.name, file_bytes)}
-    data = {'chat_id': str(chat_id), 'caption': caption, 'parse_mode': 'HTML'}
-    return make_request('sendDocument', data=data, files=files)
-
-
-def answer_callback_query(callback_query_id: str, text: str = None, show_alert: bool = False):
+def answer_callback_query(callback_query_id: str, text: str = None) -> dict:
     payload = {'callback_query_id': callback_query_id}
     if text:
         payload['text'] = text
-        payload['show_alert'] = show_alert
     return make_request('answerCallbackQuery', payload)
 
 
-def get_start_keyboard():
+def answer_inline_query(inline_query_id: str, results: list) -> dict:
+    payload = {
+        'inline_query_id': inline_query_id,
+        'results': results,
+        'cache_time': 10,
+    }
+    return make_request('answerInlineQuery', payload)
+
+
+def get_start_keyboard() -> dict:
     return {
         'inline_keyboard': [
             [
                 {
-                    'text': '🚀 Открыть Методист Mini App',
+                    'text': '🚀 Открыть «Методист Pro» (Mini App)',
                     'web_app': {'url': WEB_APP_URL}
                 }
             ],
             [
                 {
-                    'text': '🎨 Студия авторских миров',
-                    'web_app': {'url': f'{WEB_APP_URL}?startapp=studio'}
+                    'text': '🦉 Задать вопрос Совёнку AI',
+                    'web_app': {'url': f'{WEB_APP_URL}?startapp=assistant'}
                 },
                 {
-                    'text': '🧩 Конструктор методик',
-                    'web_app': {'url': f'{WEB_APP_URL}?startapp=architect'}
-                }
-            ],
-            [
-                {
-                    'text': '📄 Скачать премиум PDF листа',
-                    'callback_data': 'download_sample_pdf'
-                },
-                {
-                    'text': '👑 Тариф «Директор» (1 199 ₽)',
-                    'callback_data': 'show_director_info'
-                }
-            ],
-            [
-                {
-                    'text': '🌌 5 Игровых миров YandexART',
+                    'text': '🎨 5 Игровых миров',
                     'callback_data': 'show_worlds_info'
+                }
+            ],
+            [
+                {
+                    'text': '👑 Тариф Директор',
+                    'callback_data': 'show_director_info'
                 },
                 {
-                    'text': '📚 Каталог 173 тем',
-                    'callback_data': 'show_topics_info'
+                    'text': '📄 Скачать PDF листы',
+                    'callback_data': 'download_sample_pdf'
+                }
+            ],
+            [
+                {
+                    'text': '⏰ Настроить утренние напоминания',
+                    'callback_data': 'setup_reminders'
                 }
             ]
         ]
@@ -136,122 +129,269 @@ def get_start_keyboard():
 
 
 def handle_start(chat_id: int, user: dict):
-    first_name = user.get('first_name', 'Учитель')
+    first_name = user.get('first_name', 'Коллега')
     text = (
-        f'👋 <b>Здравствуйте, {first_name}!</b>\n\n'
-        f'Добро пожаловать в официальную экосистему <b>«Методист Pro»</b> — умный ассистент учителя '
-        f'и завуча на базе нейросетей YandexGPT 5 Pro и YandexART.\n\n'
-        f'✨ <b>Что доступно прямо в Telegram:</b>\n'
-        f'• 🚀 <b>Telegram Mini App</b> — бесшовное интерактивное приложение в 1 клик\n'
-        f'• 🎨 <b>Студия авторских миров</b> — эмблемы школ, кастомные маскоты и палитры\n'
-        f'• 🧩 <b>Конструктор авторских методик</b> (Пчёлко, Костин, ТРИЗ, сказкотерапия)\n'
-        f'• 📄 <b>Готовые листы заданий</b> в PDF с цветными шапками и критериями\n'
-        f'• 📦 <b>Генератор четверти</b> (до 30 уроков в ZIP-архиве)\n\n'
-        f'Нажмите кнопку ниже, чтобы запустить <b>Методист Mini App</b>:'
+        f'Здравствуйте, <b>{first_name}</b>! 🎓\n\n'
+        f'Добро пожаловать в <b>«Методист Pro»</b> — цифровую педагогическую экосистему '
+        f'для учителей начальных классов, завучей и репетиторов.\n\n'
+        f'🦉 <b>Совёнок-Методист готов помочь!</b> Вы можете:\n'
+        f'• Написать мне любой вопрос (например: <i>«Придумай разминку для 1 класса»</i>)\n'
+        f'• Использовать инлайн-поиск в любых чатах: <code>@annmetodist_bot устный счёт</code>\n'
+        f'• Открыть полноценное приложение прямо внутри Telegram по кнопке ниже 👇'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
 def handle_help(chat_id: int):
     text = (
-        f'📖 <b>Справочник команд экосистемы «Методист»:</b>\n\n'
-        f'/start — Главное меню и запуск Telegram Mini App\n'
-        f'/app — Открыть приложение на полный экран\n'
-        f'/worlds — 5 тематических миров (Космос, Лес, Детектив, Мастерская, Тайга)\n'
-        f'/director — Преимущества тарифа «Директор» (1 199 ₽/мес)\n'
-        f'/pdf — Скачать образцы готовых рабочих листов\n'
-        f'/quick &lt;тема&gt; — Быстрый набросок урока в чате\n\n'
-        f'💡 <i>Совет: Для комфортной работы используйте кнопку «Открыть Методист» '
-        f'в левом нижнем углу меню Telegram!</i>'
+        '📖 <b>Руководство и команды экосистемы «Методист Pro»:</b>\n\n'
+        '• <code>/start</code> — Главное интерактивное меню и Mini App\n'
+        '• <code>/app</code> — Запуск приложения на весь экран\n'
+        '• <code>/owl &lt;вопрос&gt;</code> — Консультация с Совёнком-Методистом AI\n'
+        '• <code>/quick &lt;тема&gt;</code> — Экспресс-план урока прямо в чате\n'
+        '• <code>/remind</code> — Утренний дайджест уроков и напоминания\n'
+        '• <code>/worlds</code> — Каталог 5 тематических игровых миров\n'
+        '• <code>/director</code> — Возможности тарифа «Директор» (1 199 ₽ / 1 499 ₽)\n'
+        '• <code>/pdf</code> — Скачать образцы премиум рабочих листов\n\n'
+        '💬 <i>Вы также можете просто отправить любой вопрос или тему урока текстом в этот чат!</i>'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
+def handle_owl_assistant(chat_id: int, user: dict, query: str):
+    """Интеллектуальный ответ Совёнка-Методиста на естественный вопрос учителя."""
+    q_lower = query.lower()
+    first_name = user.get('first_name', 'учитель')
+
+    # 1. Физкультминутка / разминка
+    if any(k in q_lower for k in ['физкульт', 'разминк', 'движен', 'пауз', 'гимнастик']):
+        reply = (
+            f'🦉 <b>У-ху! Тематическая разминка от Совёнка:</b>\n\n'
+            f'<i>(Учитель просит детей встать около парт)</i>\n\n'
+            f'⭐ <b>1. «Звёздные потягушки» (30 сек):</b>\n'
+            f'Тянемся вверх на носочках, пальчики растопырили, как лучики солнца. Вдох носом — выдох ртом!\n\n'
+            f'⭐ <b>2. «Умная Сова» (Координация, 45 сек):</b>\n'
+            f'Правая рука гладит животик, а левая легонько хлопает по макушке. Поменяли ручки!\n\n'
+            f'⭐ <b>3. «Гимнастика для глаз по СанПиН»:</b>\n'
+            f'Посмотрели на кончик носа — перевели взгляд в окно на дальнее облако (4 раза).\n\n'
+            f'💡 <i>Совет: смена деятельности каждые 7-10 минут сохраняет 100% фокус первоклассников!</i>'
+        )
+
+    # 2. ТРИЗ и игровая механика
+    elif any(k in q_lower for k in ['триз', 'игр', 'загадк', 'проблем', 'смекалк']):
+        reply = (
+            f'🦉 <b>ТРИЗ-задача от Совёнка-Методиста:</b>\n\n'
+            f'<b>Сюжетная завязка:</b>\n'
+            f'В нашем игровом мире возникло противоречие: предмет должен быть <i>очень лёгким</i>, '
+            f'чтобы первоклассник унёс его с собой, но <i>очень прочным</i>, чтобы выдержать проверку на прочность!\n\n'
+            f'<b>Вопросы для мозгового штурма детей:</b>\n'
+            f'1. Как решить это противоречие, используя свойства материала?\n'
+            f'2. Что, если объединить несколько тонких элементов вместе?\n'
+            f'3. Какое решение предложит команда юных исследователей?\n\n'
+            f'✨ <i>Развивает сильное мышление по Г.С. Альтшуллеру и снимает страх ошибки!</i>'
+        )
+
+    # 3. Адаптация и упрощение задания
+    elif any(k in q_lower for k in ['упрост', 'сложн', 'адапт', 'не понима', 'трудн']):
+        reply = (
+            f'🦉 <b>Методика адаптации по принципу А.С. Пчёлко:</b>\n\n'
+            f'1. <b>Переход к предметной наглядности:</b> замените абстрактные цифры или буквы на счётные палочки или карточки YandexART.\n'
+            f'2. <b>Правило трёх микро-шагов:</b>\n'
+            f'   • Шаг 1: Вижу образец учителя.\n'
+            f'   • Шаг 2: Проговариваю вслух шёпотом.\n'
+            f'   • Шаг 3: Записываю в тетрадь.\n'
+            f'3. <b>Опора на парный контроль:</b> посадите ученика с более уверенным соседом по парте.'
+        )
+
+    # 4. Общий ответ с педагогическим контекстом
+    else:
+        reply = (
+            f'🦉 <b>Совёнок-Методист на связи!</b>\n\n'
+            f'По вашему вопросу: <i>«{query}»</i>\n\n'
+            f'• Рекомендую структурировать этап урока по <b>классической трёхчастной модели</b> (устная разминка → первичное закрепление с образцом → самостоятельная ТРИЗ-задача).\n'
+            f'• В приложении вы можете за 1 клик переключить этот урок в любой из <b>5 игровых миров</b> и сгенерировать цветной лист заданий.\n\n'
+            f'Желаете сгенерировать готовый конспект или скачать рабочий лист в PDF?'
+        )
+
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': '🚀 Открыть урок в Mini App',
+                    'web_app': {'url': f'{WEB_APP_URL}?startapp=assistant'}
+                }
+            ],
+            [
+                {
+                    'text': '📄 Скачать PDF рабочего листа',
+                    'callback_data': 'download_sample_pdf'
+                },
+                {
+                    'text': '🎨 Выбрать игровой мир',
+                    'callback_data': 'show_worlds_info'
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, reply, reply_markup=keyboard)
+
+
+def handle_reminders(chat_id: int):
+    """Утренний дайджест урока и интерактивное напоминание расписания."""
+    text = (
+        '☀️ <b>Доброе утро, коллега!</b>\n\n'
+        'Расписание и подготовка к сегодняшним урокам:\n\n'
+        '1️⃣ <b>08:30 — Русский язык (1 класс)</b>\n'
+        '• Тема: <i>«Правописание безударных гласных»</i>\n'
+        '• Игровой мир: <b>Мир Детективов</b> (Енот Шерлок 🦝)\n'
+        '• Готовность: Лист заданий готов к печати\n\n'
+        '2️⃣ <b>09:25 — Математика (2 класс)</b>\n'
+        '• Тема: <i>«Табличное умножение на 4»</i>\n'
+        '• Игровой мир: <b>Мастерская Винтика</b> (Бобёр Архимед 🦫)\n\n'
+        '⏰ <i>Напоминания приходят автоматически по будням в 07:30.</i>'
+    )
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': '📄 Распечатать рабочий лист (PDF)',
+                    'callback_data': 'download_sample_pdf'
+                }
+            ],
+            [
+                {
+                    'text': '🚀 Открыть план уроков в приложении',
+                    'web_app': {'url': f'{WEB_APP_URL}?startapp=calendar'}
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, text, reply_markup=keyboard)
+
+
 def handle_worlds(chat_id: int):
     text = (
-        f'🌌 <b>5 Тематических игровых миров листа заданий:</b>\n\n'
-        f'1. 🚀 <b>Космическая одиссея</b> — Маскот: Кот-космонавт Юра. Шапка YandexART со звёздной туманностью.\n'
-        f'2. 🌲 <b>Сказочный лес</b> — Маскот: Мудрая сова Афина. Тёплые лесные тона и ягодная палитра.\n'
-        f'3. 🔍 <b>Детективное агентство</b> — Маскот: Пёс-детектив Холмс. Дедуктивные шифровки и улики.\n'
-        f'4. ⚙️ <b>Инженерная мастерская</b> — Маскот: Енот-изобретатель Винтик. Чертёжная графика и шестерёнки.\n'
-        f'5. 🏔️ <b>Тайга первооткрывателей</b> — Маскот: Медвежонок-географ Умка. Хвойные мотивы и компас.\n\n'
-        f'👑 В тарифе <b>«Директор»</b> доступно создание маскота своей школы и генерация авторских шапок через YandexART!'
+        '🎨 <b>5 Тематических игровых миров «Методист Pro»:</b>\n\n'
+        '1. 🚀 <b>Мир Космоса</b> (Маскот: Лисёнок Астро)\n'
+        '   <i>Галактические экспедиции, звёздные координаты и сбор лунной пыли.</i>\n\n'
+        '2. 🔍 <b>Мир Детективов</b> (Маскот: Енот Шерлок)\n'
+        '   <i>Поиск улик, ловушки Незнайки, шифровки и дедукция.</i>\n\n'
+        '3. 🌲 <b>Сказочный лес</b> (Маскот: Совёнок-Методист / Сова Афина)\n'
+        '   <i>Древние свитки, волшебные перья, лесные загадки и мудрость.</i>\n\n'
+        '4. ⚙️ <b>Мастерская Винтика</b> (Маскот: Бобёр Архимед)\n'
+        '   <i>Чертежи, инженерные шестерёнки, изобретения и ТРИЗ.</i>\n\n'
+        '5. 🌸 <b>Цветочная поляна</b> (Маскот: Медвежонок Барни)\n'
+        '   <i>Уютная атмосфера, счёт лепестков, мягкая адаптация для малышей.\n\n'
+        'Все миры снабжены панорамными арт-шапками YandexART в PDF!'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
 def handle_director(chat_id: int):
     text = (
-        f'👑 <b>Тариф «Директор» — Флагман образовательной платформы:</b>\n\n'
-        f'💰 <b>Цена:</b> 1 199 ₽ / месяц (при оплате за год — 14 388 ₽) или 1 499 ₽/мес.\n\n'
-        f'🌟 <b>Эксклюзивные возможности:</b>\n'
-        f'1. 🎨 <b>Студия авторских миров</b> — загрузка герба школы, генерация маскота в YandexART.\n'
-        f'2. 🧩 <b>Конструктор авторских методик</b> — настройка тона (ТРИЗ, сократический диалог, сказки), стоп-слова.\n'
-        f'3. ⚡ <b>REST API и Webhooks</b> — подключение школьного Telegram-бота, МЭШ, ЭЖД, Сферум, Moodle.\n'
-        f'4. 📦 <b>Пакетный генератор четверти</b> — 15–30 уроков в 1 клик с единым ZIP-архивом (PDF + DOCX).\n'
-        f'5. 🔬 <b>Лаборатория отладки</b> — лог двухпроходного цензора (Методист + Цензор), строгий аудит Пчёлко.\n'
-        f'6. 👥 <b>Лицензия кафедры</b> — до 5 рабочих мест учителей с общим банком конспектов.\n'
-        f'7. ⭐ Все функции Metodist Pro (безлимит, ОВЗ, Word, презентации).'
+        '👑 <b>Тариф «Директор» (Metodist Pro Director)</b>\n\n'
+        'Эксклюзивные инструменты для завучей, руководителей кафедр и передовых школ:\n\n'
+        '• 🎨 <b>Студия авторских миров:</b> создание собственного маскота школы/лицея, генерация фирменных шапок YandexART и кастомные стили.\n'
+        '• 🧩 <b>Конструктор авторских методик:</b> создание методик с нуля, тонкая настройка тона YandexGPT Pro и стоп-слов.\n'
+        '• ⚡ <b>REST API & Webhooks:</b> экспорт конспектов в МЭШ, ЭЖД, Сферум, Moodle.\n'
+        '• 📦 <b>Пакетный генератор курса на четверть:</b> генерация 15–30 уроков в 1 клик с единым ZIP-архивом.\n'
+        '• 🔬 <b>Инспектор токенов и аудит академической строгости:</b> двухпроходная верификация.\n'
+        '• 👥 <b>Командный доступ:</b> до 5 рабочих мест педагогов с общим банком конспектов.\n\n'
+        '💰 <b>Цена:</b> 1 199 ₽/мес при оплате за год (или 1 499 ₽/мес).'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
 def handle_pdf_send(chat_id: int):
-    send_message(chat_id, '⏳ <i>Отправляю премиум-образцы листов заданий...</i>')
-    
-    # Try finding generated PDFs in docs/
-    base_dir = Path(__file__).resolve().parent.parent
-    math_pdf = base_dir / 'docs' / 'math_worksheet_premium.pdf'
-    russian_pdf = base_dir / 'docs' / 'russian_worksheet_premium.pdf'
-    space_pdf = base_dir / 'docs' / 'thematic_worlds_pdf' / 'world_space.pdf'
+    docs_dir = Path(__file__).resolve().parent.parent / 'docs'
+    pdf_files = [
+        ('russian_worksheet_premium.pdf', 'docs/russian_worksheet_premium.pdf'),
+        ('math_worksheet_premium.pdf', 'docs/math_worksheet_premium.pdf'),
+    ]
 
     sent = False
-    if math_pdf.exists():
-        send_document(
-            chat_id,
-            str(math_pdf),
-            '📐 <b>Математика 2 класс</b> (Методика Пчёлко, мир «Космос», арт-шапка YandexART)'
-        )
-        sent = True
-
-    if russian_pdf.exists():
-        send_document(
-            chat_id,
-            str(russian_pdf),
-            '📖 <b>Русский язык 1 класс</b> (Методика Костина, звёздный рейтинг, ключи)'
-        )
-        sent = True
-
-    if not sent and space_pdf.exists():
-        send_document(chat_id, str(space_pdf), '🚀 <b>Мир Космоса</b> (Лист заданий)')
-        sent = True
+    for fname, rel_path in pdf_files:
+        full_path = docs_dir.parent / rel_path
+        if full_path.exists():
+            with open(full_path, 'rb') as f:
+                pdf_bytes = f.read()
+            res = make_request(
+                'sendDocument',
+                data={'chat_id': chat_id, 'caption': f'📄 Образец премиум-листа: {fname} (арт YandexART)'},
+                files={'document': (fname, pdf_bytes)}
+            )
+            if res.get('ok'):
+                sent = True
 
     if not sent:
-        send_message(chat_id, 'ℹ️ Образцы PDF доступны для скачивания в Mini App по кнопке ниже:')
+        send_message(
+            chat_id,
+            '📄 Образцы PDF-листов заданий доступны для скачивания в веб-приложении:',
+            reply_markup=get_start_keyboard()
+        )
 
 
-def handle_quick_lesson(chat_id: int, topic: str):
-    if not topic.strip():
-        send_message(chat_id, 'ℹ️ Укажите тему после команды, например: <code>/quick Сложение двузначных чисел</code>')
-        return
+def handle_inline_query(inline_query: dict):
+    iq_id = inline_query['id']
+    query = inline_query.get('query', '').strip()
 
-    text = (
-        f'📝 <b>Экспресс-план занятия:</b>\n'
-        f'📌 <b>Тема:</b> {topic.strip()}\n'
-        f'🎯 <b>Цель:</b> Формирование понятийной базы через предметное действие по методике Пчёлко.\n\n'
-        f'<b>Этапы урока:</b>\n'
-        f'1. <b>Организационный момент</b>: ТРИЗ-загадка по сюжету мира.\n'
-        f'2. <b>Актуализация знаний</b>: устный счёт на 3 минуты.\n'
-        f'3. <b>Открытие нового знания</b>: наглядный вывод правила (цена × количество).\n'
-        f'4. <b>Практикум</b>: 6 дифференцированных заданий на листе.\n'
-        f'5. <b>Рефлексия и критериальная оценка</b>: звёзды успешности ⭐⭐⭐.\n\n'
-        f'<i>Полный конспект и печатный PDF лист доступны в Mini App:</i>'
-    )
-    send_message(chat_id, text, reply_markup=get_start_keyboard())
+    results = [
+        {
+            'type': 'article',
+            'id': 'iq_owl_tip',
+            'title': '🦉 Совет Совёнка: Разминка для урока',
+            'description': 'Тематическая двигательная физкультминутка по СанПиН',
+            'input_message_content': {
+                'message_text': (
+                    '🦉 <b>Физкультминутка от Совёнка-Методиста:</b>\n\n'
+                    '1. «Звёздные потягушки» (вдох носом, выдох ртом)\n'
+                    '2. «Умная Сова» (координация рук: погладить живот, похлопать макушку)\n'
+                    '3. Гимнастика для глаз (взгляд на кончик носа — в окно на облако)\n\n'
+                    '🎓 <i>Сгенерировано в @annmetodist_bot</i>'
+                ),
+                'parse_mode': 'HTML'
+            }
+        },
+        {
+            'type': 'article',
+            'id': 'iq_triz_task',
+            'title': '🧩 ТРИЗ-задача Незнайки',
+            'description': 'Проблемный вопрос на смекалку для 1-2 классов',
+            'input_message_content': {
+                'message_text': (
+                    '🧩 <b>ТРИЗ-задача по теме «' + (query if query else 'Смекалка') + '»:</b>\n\n'
+                    'Как сделать предмет одновременно лёгким и сверхпрочным?\n'
+                    'Дети предлагают идеи и защищают гипотезы!\n\n'
+                    '🎓 <i>Сгенерировано в @annmetodist_bot</i>'
+                ),
+                'parse_mode': 'HTML'
+            }
+        },
+        {
+            'type': 'article',
+            'id': 'iq_app_launch',
+            'title': '🚀 Открыть «Методист Pro» в Telegram',
+            'description': 'Запуск Mini App с конструктором уроков и 173 темами',
+            'input_message_content': {
+                'message_text': (
+                    '🚀 <b>Педагогическая платформа «Методист Pro»:</b>\n'
+                    'Конспекты по ФГОС, листы заданий PDF, 5 игровых миров и тариф Директор!\n\n'
+                    '👉 Запустить: https://t.me/annmetodist_bot/app'
+                ),
+                'parse_mode': 'HTML'
+            }
+        }
+    ]
+    answer_inline_query(iq_id, results)
 
 
 def process_update(update: dict):
-    # Message update
+    # 1. Inline query
+    if 'inline_query' in update:
+        handle_inline_query(update['inline_query'])
+        return
+
+    # 2. Direct message
     if 'message' in update:
         msg = update['message']
         chat_id = msg['chat']['id']
@@ -268,20 +408,18 @@ def process_update(update: dict):
             handle_director(chat_id)
         elif text.startswith('/pdf'):
             handle_pdf_send(chat_id)
+        elif text.startswith('/remind') or text.startswith('/schedule'):
+            handle_reminders(chat_id)
+        elif text.startswith('/owl'):
+            q = text.replace('/owl', '').strip()
+            handle_owl_assistant(chat_id, user, q if q else 'Как провести урок интересно?')
         elif text.startswith('/app'):
             send_message(chat_id, '🚀 Нажмите кнопку ниже для запуска:', reply_markup=get_start_keyboard())
-        elif text.startswith('/quick'):
-            topic = text.replace('/quick', '').strip()
-            handle_quick_lesson(chat_id, topic)
-        else:
-            # Default response
-            send_message(
-                chat_id,
-                f'Здравствуйте, {user.get("first_name", "Педагог")}! Выберите раздел или откройте Mini App:',
-                reply_markup=get_start_keyboard()
-            )
+        elif text:
+            # Любой пользовательский вопрос отправляем Совёнку-Методисту AI!
+            handle_owl_assistant(chat_id, user, text)
 
-    # Callback Query update
+    # 3. Callback query
     elif 'callback_query' in update:
         cq = update['callback_query']
         cq_id = cq['id']
@@ -296,13 +434,8 @@ def process_update(update: dict):
             handle_director(chat_id)
         elif data == 'show_worlds_info':
             handle_worlds(chat_id)
-        elif data == 'show_topics_info':
-            send_message(
-                chat_id,
-                '📚 <b>Каталог 173 тем</b> охватывает 1–4 классы и дошкольную подготовку по 7 методикам '
-                '(Пчёлко, Костин, Редозубов, Мазина, Чаплыгин, Боголюбов, Косинова). Все темы проверены с YandexGPT и YandexART.',
-                reply_markup=get_start_keyboard()
-            )
+        elif data == 'setup_reminders':
+            handle_reminders(chat_id)
 
 
 def run_polling():

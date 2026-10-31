@@ -23,6 +23,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/thinking_indicator.dart';
 import 'lesson_run_screen.dart';
+import '../widgets/metodist_assistant_dialog.dart';
 import 'profile_screen.dart';
 import '../services/docx_export_service.dart';
 import '../services/pptx_export_service.dart';
@@ -514,6 +515,31 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
+            // Совёнок-Методист AI
+            IconButton(
+              tooltip: 'Спросить Совёнка-Методиста AI',
+              icon: const Text('🦉', style: TextStyle(fontSize: 18)),
+              onPressed: () {
+                MetodistAssistantDialog.show(
+                  context,
+                  currentTopic: _currentConspect?.topic,
+                  currentWorld: _currentConspect?.thematicWorld,
+                  currentMethod: _currentConspect?.methodName,
+                  ageGroup: _currentConspect?.ageGroup,
+                  onApplySnippet: (snippet) {
+                    setState(() {
+                      _editController.text = '${_editController.text}\n\n$snippet';
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Материал от Совёнка добавлен в конспект!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
             // Методический аудит (QA YandexGPT Pro)
             IconButton(
               tooltip: 'Методический аудит качества (ФГОС & QA)',
