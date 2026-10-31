@@ -7,6 +7,8 @@ import '../theme.dart';
 import '../widgets/ambient_background.dart';
 import '../widgets/auth_dialog.dart';
 import '../widgets/glass_card.dart';
+import 'package:flutter/services.dart';
+import '../services/telegram/telegram_web_app_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -191,6 +193,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // Telegram Ecosystem Integration Card
+                  _buildTelegramEcosystemCard(context, isDark),
 
                   const SizedBox(height: 28),
 
@@ -843,4 +850,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return 'ТАРИФ СТАРТ';
     }
   }
+  Widget _buildTelegramEcosystemCard(BuildContext context, bool isDark) {
+    final tg = TelegramWebAppService();
+    final isTma = tg.isInsideTelegram;
+    final tgUser = tg.user;
+
+    return GlassCard(
+      borderRadius: AppRadii.lg,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF24A1DE), Color(0xFF0088CC)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF24A1DE).withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Telegram Экосистема',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isTma
+                                ? const Color(0xFF10B981).withOpacity(0.2)
+                                : const Color(0xFF24A1DE).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isTma ? 'TMA АКТИВНО' : '@annmetodist_bot',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: isTma ? const Color(0xFF10B981) : const Color(0xFF24A1DE),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isTma && tgUser != null
+                          ? 'Авторизован: ${tgUser.displayName} (${tgUser.id})'
+                          : 'Официальный бот и Mini App для учителей',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Бот присылает готовые PDF-листы заданий прямо в чат, сохраняет конспекты в облаке и открывает интерактивную Студию миров в 1 клик.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.35,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.copy_rounded, size: 15),
+                  label: const Text('Ссылка на Mini App', style: TextStyle(fontSize: 11.5)),
+                  onPressed: () {
+                    tg.hapticImpact('medium');
+                    Clipboard.setData(const ClipboardData(text: 'https://t.me/annmetodist_bot/app'));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ссылка на Telegram Mini App скопирована!')),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF24A1DE),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 15),
+                label: const Text('Бот в Telegram', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  tg.hapticImpact('light');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Бот: https://t.me/annmetodist_bot')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
 }

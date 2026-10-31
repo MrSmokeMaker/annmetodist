@@ -15,6 +15,7 @@ import 'services/storage_service.dart';
 import 'theme.dart';
 import 'widgets/ambient_background.dart';
 import 'widgets/glass_card.dart';
+import 'services/telegram/telegram_web_app_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -22,6 +23,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  TelegramWebAppService().init();
   try {
     if (SupabaseConfig.isConfigured) {
       await Supabase.initialize(

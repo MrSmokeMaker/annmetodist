@@ -18,6 +18,8 @@ import '../services/yandex_gpt_service.dart';
 import '../services/ai_service.dart';
 import '../services/yandex_art_service.dart';
 import '../services/surgical_ai_service.dart';
+import '../services/lesson_cache_service.dart';
+import '../services/lesson_rubric_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
@@ -294,7 +296,25 @@ class AppProvider with ChangeNotifier {
     String? batchGroupId,
     Set<GenerationType>? materials,
     bool useEnhancedPrompts = true, // Новый параметр для использования улучшенных промптов
+    bool isDeepLesson = false,
   }) async {
+    // Проверка кеша для одиночной генерации
+    final cacheKey = LessonCacheService.computeCacheKey(
+      methodId: method.id,
+      topic: topicTitle,
+      ageGroup: ageGroup,
+      duration: duration,
+      isDeepLesson: isDeepLesson,
+      materials: materials?.map((m) => m.name).toList(),
+    );
+
+    if (totalVariants == 1) {
+      final cachedConspect = LessonCacheService.get(cacheKey);
+      if (cachedConspect != null) {
+        return cachedConspect;
+      }
+    }
+
     _isGenerating = true;
     _errorMessage = null;
     notifyListeners();
@@ -325,6 +345,7 @@ class AppProvider with ChangeNotifier {
         situationTitle: situation?.title,
         variantIndex: totalVariants > 1 ? variantIndex : null,
         materials: materials,
+        isDeepLesson: isDeepLesson,
       );
 
       // Используем улучшенные промпты, если включено
@@ -346,16 +367,22 @@ class AppProvider with ChangeNotifier {
           variantIndex: variantIndex,
           totalVariants: totalVariants,
           materials: materials,
+          isDeepLesson: isDeepLesson,
         );
         
         finalSystemPrompt = enhancedPrompt['systemPrompt']!;
         finalUserPrompt = enhancedPrompt['userPrompt']!;
       }
 
-      final generatedText = await _aiService.generate(
-        systemPrompt: finalSystemPrompt,
-        userPrompt: finalUserPrompt,
-      );
+      final generatedText = isDeepLesson
+          ? await _aiService.generateDeepLesson(
+              systemPrompt: finalSystemPrompt,
+              userPrompt: finalUserPrompt,
+            )
+          : await _aiService.generate(
+              systemPrompt: finalSystemPrompt,
+              userPrompt: finalUserPrompt,
+            );
 
       final titleSuffix = totalVariants > 1 ? ' (Вариант $variantIndex)' : '';
 
@@ -424,6 +451,14 @@ class AppProvider with ChangeNotifier {
         } catch (_) {}
       }
 
+      final rubricEval = LessonRubricService.evaluateLesson(
+        content: effectiveContent,
+        topic: topicTitle,
+        ageGroup: ageGroup,
+        subject: method.subject,
+        methodName: method.name,
+      );
+
       final conspect = Conspect(
         id: '${DateTime.now().millisecondsSinceEpoch}_$variantIndex',
         title: '$topicTitle$titleSuffix',
@@ -445,8 +480,14 @@ class AppProvider with ChangeNotifier {
         illustrationMascot: illustrationMascot,
         illustrationColoring: illustrationColoring,
         illustrationReward: illustrationReward,
+        isDeepLesson: isDeepLesson,
+        rubricScore: rubricEval.overallScore,
         createdAt: DateTime.now(),
       );
+
+      if (totalVariants == 1) {
+        LessonCacheService.put(cacheKey, conspect);
+      }
 
       return conspect;
     } catch (e) {
@@ -470,6 +511,7 @@ class AppProvider with ChangeNotifier {
     List<ActivityTechnique>? activities,
     int variantsCount = 3,
     Set<GenerationType>? materials,
+    bool isDeepLesson = false,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
@@ -493,6 +535,7 @@ class AppProvider with ChangeNotifier {
           totalVariants: variantsCount,
           batchGroupId: batchGroupId,
           materials: materials,
+          isDeepLesson: isDeepLesson,
         );
         variants.add(variant);
         await saveConspect(variant);

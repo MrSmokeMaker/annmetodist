@@ -25,6 +25,8 @@ class Conspect {
   final String? illustrationColoring;
   final String? illustrationReward;
   final String? thematicWorldId;
+  final bool isDeepLesson;
+  final double? rubricScore;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -52,6 +54,8 @@ class Conspect {
     this.illustrationColoring,
     this.illustrationReward,
     this.thematicWorldId,
+    this.isDeepLesson = false,
+    this.rubricScore,
     required this.createdAt,
     this.updatedAt,
   });
@@ -65,6 +69,8 @@ class Conspect {
     String? promptVersionId, String? parentNotes,
     String? illustrationMascot, String? illustrationColoring, String? illustrationReward,
     String? thematicWorldId,
+    bool? isDeepLesson,
+    double? rubricScore,
     DateTime? createdAt, DateTime? updatedAt,
   }) {
     return Conspect(
@@ -83,6 +89,8 @@ class Conspect {
       illustrationColoring: illustrationColoring ?? this.illustrationColoring,
       illustrationReward: illustrationReward ?? this.illustrationReward,
       thematicWorldId: thematicWorldId ?? this.thematicWorldId,
+      isDeepLesson: isDeepLesson ?? this.isDeepLesson,
+      rubricScore: rubricScore ?? this.rubricScore,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -112,6 +120,8 @@ class Conspect {
     if (illustrationColoring != null) 'illustrationColoring': illustrationColoring,
     if (illustrationReward != null) 'illustrationReward': illustrationReward,
     if (thematicWorldId != null) 'thematicWorldId': thematicWorldId,
+    'isDeepLesson': isDeepLesson,
+    if (rubricScore != null) 'rubricScore': rubricScore,
     'createdAt': createdAt.toIso8601String(), 'updatedAt': updatedAt?.toIso8601String(),
   };
 
@@ -132,6 +142,8 @@ class Conspect {
     illustrationColoring: map['illustrationColoring'] as String?,
     illustrationReward: map['illustrationReward'] as String?,
     thematicWorldId: map['thematicWorldId'] as String?,
+    isDeepLesson: map['isDeepLesson'] as bool? ?? false,
+    rubricScore: (map['rubricScore'] as num?)?.toDouble(),
     createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
     updatedAt: map['updatedAt'] != null ? DateTime.tryParse(map['updatedAt'].toString()) : null,
   );

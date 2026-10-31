@@ -33,8 +33,8 @@ import '../widgets/block_action_toolbar.dart';
 import '../widgets/rno_dialog.dart';
 import '../services/worksheet_audit_service.dart';
 import '../widgets/task_audit_badge.dart';
-
-
+import '../services/lesson_rubric_service.dart';
+import '../services/lesson_context_service.dart';
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -49,6 +49,7 @@ class ConspectViewScreen extends StatefulWidget {
   final bool isNewGeneration;
   final int variantsCount;
   final Set<GenerationType>? materials;
+  final bool isDeepLesson;
 
   const ConspectViewScreen({
     super.key,
@@ -64,6 +65,7 @@ class ConspectViewScreen extends StatefulWidget {
     this.isNewGeneration = false,
     this.variantsCount = 1,
     this.materials,
+    this.isDeepLesson = false,
   });
 
   @override
@@ -182,6 +184,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           activities: widget.activities,
           variantsCount: widget.variantsCount,
           materials: widget.materials,
+          isDeepLesson: widget.isDeepLesson,
         );
 
         setState(() {
@@ -203,6 +206,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           situation: widget.situation,
           activities: widget.activities,
           materials: widget.materials,
+          isDeepLesson: widget.isDeepLesson,
         );
 
         setState(() {
@@ -510,6 +514,18 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
+            // Методический аудит (QA YandexGPT Pro)
+            IconButton(
+              tooltip: 'Методический аудит качества (ФГОС & QA)',
+              icon: const Icon(Icons.verified_rounded, color: Color(0xFF10B981)),
+              onPressed: () => _showRubricDialog(context),
+            ),
+            // Тесты и контрольный срез
+            IconButton(
+              tooltip: 'Контрольный срез (5 тестов + 3 открытых вопроса)',
+              icon: const Icon(Icons.quiz_rounded, color: AppColors.accentCyan),
+              onPressed: () => _showTestQuestionsModal(context),
+            ),
             // Отладочный режим YandexGPT
             IconButton(
               tooltip: _isDebugAuditMode ? 'Выключить отладку' : 'Отладка заданий (Оценка YandexGPT)',
@@ -823,6 +839,10 @@ ${_currentConspect!.content}
 
                     // Тематический игровой мир и маскот YandexART
                         _buildThematicWorldSelectorCard(context, isDark),
+                        const SizedBox(height: AppSpacing.sm),
+
+                        // Методический аудит качества YandexGPT Pro (QA)
+                        _buildQaRubricCard(context, isDark),
                         const SizedBox(height: AppSpacing.sm),
 
                         // Интерактивные кнопки быстрого экспорта только сгенерированных материалов
@@ -3045,6 +3065,480 @@ ${_currentConspect!.content}
     }
   }
 
+
+  LessonRubricEvaluation _getRubricEvaluation() {
+    if (_currentConspect == null) {
+      return LessonRubricService.evaluateLesson(
+        content: '',
+        topic: '',
+        ageGroup: '',
+        subject: '',
+      );
+    }
+    return LessonRubricService.evaluateLesson(
+      content: _currentConspect!.content,
+      topic: _currentConspect!.topic,
+      ageGroup: _currentConspect!.ageGroup,
+      subject: _currentConspect!.subject,
+      methodName: _currentConspect!.methodName,
+    );
+  }
+
+  Future<void> _exportChunkedPdf() async {
+    if (_currentConspect == null) return;
+    try {
+      final isPro = context.read<AppProvider>().isProUser;
+      await PdfExportService.exportAllMaterialsCombinedPdf(_currentConspect!, isPro: isPro);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Успешный экспорт урока по логическим частям в PDF!'),
+          backgroundColor: Color(0xFF10B981),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка экспорта: $e')),
+      );
+    }
+  }
+
+  void _showTestQuestionsModal(BuildContext context, [List<LessonTestQuestion>? testQuestions]) {
+    final rubric = _getRubricEvaluation();
+    final questions = testQuestions ?? rubric.testQuestions;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF161922) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.06),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppGradients.cyanBlue,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.quiz_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Контрольный срез (5 тестов + 3 вопроса)',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Сгенерировано YandexGPT Pro для проверки знаний',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: questions.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                itemBuilder: (ctx, idx) {
+                  final q = questions[idx];
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0x14FFFFFF) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: q.isOpenQuestion ? const Color(0xFF8B5CF6) : AppColors.primaryIndigo,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                q.isOpenQuestion ? 'Открытый вопрос ${q.index - 5}' : 'Тест ${q.index}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (q.isOpenQuestion)
+                              const Text('Эвристика / Рефлексия', style: TextStyle(fontSize: 11, color: Color(0xFF8B5CF6), fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          q.question,
+                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                        ),
+                        if (q.options.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          ...List.generate(q.options.length, (optIdx) {
+                            final isCorrect = optIdx == q.correctOptionIndex;
+                            final letter = String.fromCharCode(65 + optIdx);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: isCorrect
+                                    ? const Color(0xFF10B981).withOpacity(0.12)
+                                    : (isDark ? const Color(0x0EFFFFFF) : Colors.white),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isCorrect
+                                      ? const Color(0xFF10B981)
+                                      : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '$letter) ',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isCorrect ? const Color(0xFF10B981) : null,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      q.options[optIdx],
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isCorrect)
+                                    const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF10B981)),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.accentAmber),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Пояснение: ${q.explanation}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRubricDialog(BuildContext context) {
+    final rubric = _getRubricEvaluation();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF161922) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                gradient: AppGradients.indigoViolet,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.verified_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Аудит качества YandexGPT Pro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Итоговый балл: ${rubric.overallScore} / 10.0',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...rubric.criteria.map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0x14FFFFFF) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: c.isPassed
+                            ? const Color(0xFF10B981).withOpacity(0.3)
+                            : const Color(0xFFF59E0B).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(c.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: c.isPassed ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${c.score}/10',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(c.feedback, style: TextStyle(fontSize: 11.5, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                      ],
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQaRubricCard(BuildContext context, bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+    final rubric = _getRubricEvaluation();
+
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      borderRadius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.cyanBlue,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.verified_rounded, size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Методический аудит YandexGPT Pro',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, size: 14, color: Color(0xFF10B981)),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${rubric.overallScore} / 10.0',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Объем: ${rubric.wordCount} слов  •  ≈ ${rubric.estimatedTokens} токенов  •  ФГОС & отечественная педагогика',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: rubric.criteria.map((c) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0x14FFFFFF) : Colors.black.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        c.isPassed ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                        size: 12,
+                        color: c.isPassed ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${c.title}: ${c.score}/10',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    side: BorderSide(
+                      color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.quiz_rounded, size: 15, color: AppColors.accentCyan),
+                  label: Text(
+                    'Тесты и вопросы (${rubric.testQuestions.length})',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  onPressed: () => _showTestQuestionsModal(context, rubric.testQuestions),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryIndigo,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.view_carousel_rounded, size: 15),
+                  label: const Text(
+                    'Детали аудита',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () => _showRubricDialog(context),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildThematicWorldSelectorCard(BuildContext context, bool isDark) {
     if (_currentConspect == null) return const SizedBox.shrink();

@@ -9,6 +9,7 @@ import 'settings_screen.dart';
 import 'world_studio_screen.dart';
 import 'methodology_architect_screen.dart';
 import '../widgets/generation_type_sheet.dart';
+import '../widgets/app_news_modal.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -21,6 +22,24 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
   bool _isSidebarHovered = false;
   bool _isSidebarPinned = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final tg = TelegramWebAppService();
+    if (tg.isInsideTelegram) {
+      final param = tg.startParam;
+      if (param == 'studio' || param == 'worlds') {
+        _currentIndex = 3;
+      } else if (param == 'architect' || param == 'director') {
+        _currentIndex = 2;
+      } else if (param == 'calendar') {
+        _currentIndex = 1;
+      } else if (param == 'profile') {
+        _currentIndex = 4;
+      }
+    }
+  }
 
   bool get _isSidebarExpanded => _isSidebarPinned || _isSidebarHovered;
 
@@ -275,6 +294,34 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               ),
                             ),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: InkWell(
+                              onTap: () => AppNewsModal.show(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.info_outline_rounded,
+                                      color: AppColors.accentCyan,
+                                      size: 20,
+                                    ),
+                                    if (_isSidebarExpanded) ...[
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Что нового (i)',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
 
                           const Spacer(),
 
@@ -351,30 +398,59 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         preferredSize: const Size.fromHeight(40),
         child: SafeArea(
           bottom: false,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8, top: 2),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today_outlined, size: 20),
-                    tooltip: 'Расписание',
-                    onPressed: () => setState(() => _currentIndex = 1),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            child: Row(
+              children: [
+                if (TelegramWebAppService().isInsideTelegram)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF24A1DE).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF24A1DE).withOpacity(0.35),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.send_rounded, size: 12, color: Color(0xFF24A1DE)),
+                        const SizedBox(width: 5),
+                        Text(
+                          TelegramWebAppService().user != null
+                              ? TelegramWebAppService().user!.displayName
+                              : '@annmetodist_bot',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF24A1DE),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, size: 22),
-                    tooltip: 'Настройки',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.calendar_today_outlined, size: 20),
+                  tooltip: 'Расписание',
+                  onPressed: () {
+                    TelegramWebAppService().hapticSelection();
+                    setState(() => _currentIndex = 1);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, size: 22),
+                  tooltip: 'Настройки',
+                  onPressed: () {
+                    TelegramWebAppService().hapticImpact('light');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),

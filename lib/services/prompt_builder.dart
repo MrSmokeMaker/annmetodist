@@ -291,6 +291,7 @@ class PromptBuilder {
     String? situationTitle,
     int? variantIndex,
     Set<GenerationType>? materials,
+    bool isDeepLesson = false,
   }) {
     final hasConspect = materials == null || materials.isEmpty || materials.contains(GenerationType.conspect);
     final hasWorksheet = materials == null || materials.isEmpty || materials.contains(GenerationType.worksheet);
@@ -312,9 +313,19 @@ class PromptBuilder {
     } else if (!hasConspect && !hasWorksheet && hasHomework) {
       materialsDirective = '\n\nВАЖНО: Пользователь выбрал ТОЛЬКО ДОМАШНЮЮ РАБОТУ. Сгенерируй только раздел "# Домашняя работа" с памяткой родителям и заданиями.';
     }
+
+    final deepLessonDirective = isDeepLesson
+        ? '''
+\n\n⭐ СПЕЦИАЛЬНАЯ ДИРЕКТИВА: ГЛУБОКИЙ РАЗВЕРНУТЫЙ УРОК (2000–3000+ СЛОВ)
+1. ОБЪЕМ И ПОЛНОТА: Твой ответ ОБЯЗАН быть исчерпывающим педагогическим трактатом объемом не менее 2000–3000 слов! Категорически запрещена краткость, тезисность и общие фразы.
+2. ПОМИНУТНАЯ ДРАМАТУРГИЯ: Пошагово опиши каждую минуту урока [Тайминг: ХХ мин] с дословной живой речью учителя и многоголосыми репликами детей.
+3. 2-3 СЮЖЕТНЫЕ ИГРЫ: Включи минимум две развернутые дидактические игры с полными правилами, ролями и словами речевки для физминутки.
+4. КОНТРОЛЬНЫЙ СРЕЗ (ОБЯЗАТЕЛЬНО ВКЛЮЧИ): Включи раздел "# 🎯 Контрольный срез и тесты", содержащий ровно 5 тестов с 4 вариантами ответов (A, B, C, D) и 3 открытых эвристических вопроса с эталонами ответов.
+'''
+        : '';
     
     return '''
-Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".$materialsDirective
+Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".$materialsDirective$deepLessonDirective
 
 🎨 ДЛЯ УЛУЧШЕННОГО ВИЗУАЛЬНОГО ФОРМАТА ИСПОЛЬЗУЙ:
 
@@ -508,6 +519,7 @@ ${conspectContent.length > 1200 ? conspectContent.substring(0, 1200) : conspectC
     int? variantIndex,
     int? totalVariants,
     Set<GenerationType>? materials,
+    bool isDeepLesson = false,
   }) {
     final baseSystemPrompt = buildSystemPrompt(
       methodBlock: methodBlock,
@@ -613,6 +625,7 @@ $materialIcon МАТЕРИАЛ БУДЕТ АВТОМАТИЧЕСКИ ПРЕОБ�
       situationTitle: situationRules,
       variantIndex: variantIndex,
       materials: materials,
+      isDeepLesson: isDeepLesson,
     );
 
     return {

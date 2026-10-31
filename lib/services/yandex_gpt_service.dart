@@ -114,7 +114,7 @@ class YandexGptService {
     required String userPrompt,
     String model = defaultModel,
     double temperature = 0.6,
-    int maxTokens = 4000,
+    int maxTokens = 8000,
   }) async {
     // Retrieve proxy URL from storage.
     final proxyUrl = await _storageService.getProxyUrl();
@@ -140,7 +140,7 @@ class YandexGptService {
             headers: {'Content-Type': 'application/json'},
             body: body,
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 120));
 
       // Diagnostic logging.
       print('generateConspect -> URL: $proxyUrl, status: ${response.statusCode}');

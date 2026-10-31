@@ -6,6 +6,7 @@ import '../models/tariff.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
 import '../widgets/glass_card.dart';
+import '../services/telegram/telegram_web_app_service.dart';
 
 class WorldStudioScreen extends StatefulWidget {
   const WorldStudioScreen({super.key});
@@ -109,6 +110,7 @@ class _WorldStudioScreenState extends State<WorldStudioScreen> {
         isCustomHeaderGenerated: true,
       );
     });
+    TelegramWebAppService().hapticNotification('success');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Применён шаблон: ${preset['school']}'),
@@ -348,7 +350,10 @@ class _WorldStudioScreenState extends State<WorldStudioScreen> {
   Widget _buildTabButton(String tabId, IconData icon, String label) {
     final isSelected = _activeTab == tabId;
     return InkWell(
-      onTap: () => setState(() => _activeTab = tabId),
+      onTap: () {
+        TelegramWebAppService().hapticSelection();
+        setState(() => _activeTab = tabId);
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
