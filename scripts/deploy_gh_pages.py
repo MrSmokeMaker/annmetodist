@@ -30,7 +30,10 @@ def main():
 
     run('git checkout gh-pages')
 
-    # Overwrite / copy files into repo_dir
+    # Remove all tracked files in gh-pages to clear out old symlinks and non-web dirs
+    subprocess.run('git rm -rf .', shell=True, check=True)
+
+    # Overwrite / copy files from build/web into repo_dir
     for root, dirs, files in os.walk(temp_dir):
         rel_path = os.path.relpath(root, temp_dir)
         target_dir = repo_dir if rel_path == '.' else os.path.join(repo_dir, rel_path)
@@ -38,19 +41,20 @@ def main():
         for f in files:
             src_f = os.path.join(root, f)
             dst_f = os.path.join(target_dir, f)
-            if os.path.exists(dst_f):
-                try:
-                    os.chmod(dst_f, stat.S_IWRITE)
-                except Exception:
-                    pass
             shutil.copy2(src_f, dst_f)
 
-    print("Overwrote all web files in gh-pages!")
+    # Ensure .nojekyll exists
+    nojekyll_path = os.path.join(repo_dir, '.nojekyll')
+    if not os.path.exists(nojekyll_path):
+        with open(nojekyll_path, 'w') as f:
+            pass
+
+    print("Overwrote all web files in gh-pages cleanly!")
     
     subprocess.run('git add -A', shell=True, check=True)
     status = subprocess.run('git status --porcelain', shell=True, text=True, capture_output=True)
     if status.stdout.strip():
-        subprocess.run('git commit -m "deploy: update Telegram Web App with Metodist Pro AI Assistant & Animated Owl"', shell=True, check=True)
+        subprocess.run('git commit -m "deploy: update GitHub Pages with Director tier, Lesson Summary Card & MetodistAI bot"', shell=True, check=True)
         print("Committed changes to gh-pages")
         subprocess.run('git push origin gh-pages', shell=True, check=True)
         print("Pushed gh-pages to origin")
@@ -61,8 +65,7 @@ def main():
     
     # Return to master
     subprocess.run('git checkout master', shell=True, check=True)
-    subprocess.run('git push origin master', shell=True, check=True)
-    print("Master pushed successfully!")
+    print("Returned to master successfully!")
 
 if __name__ == '__main__':
     main()
