@@ -127,6 +127,25 @@
       }
     })() ? 'canvaskit' : 'html';
   </script>
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      try {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        if (window.Telegram.WebApp.setHeaderColor) {
+          window.Telegram.WebApp.setHeaderColor('#0D0F14');
+        }
+        if (window.Telegram.WebApp.setBackgroundColor) {
+          window.Telegram.WebApp.setBackgroundColor('#0D0F14');
+        }
+      } catch (e) {
+        console.warn('Telegram WebApp init error:', e);
+      }
+    }
+  </script>
 </head>
 <body>
     <div class="ambient-glow"></div>
