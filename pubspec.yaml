@@ -9,6 +9,26 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  provider: ^6.1.2
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.2.2
+  pdf: ^3.11.1
+  http: ^1.1.0
+  printing: ^5.13.2
+  share_plus: ^10.1.2
+  flutter_animate: ^4.5.2
+  flutter_markdown: ^0.7.4+1
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  archive: ^4.5.2
+  file_picker: ^11.0.3
+  lottie: ^2.4.0
+  flutter_riverpod: ^2.4.0
+  google_fonts: ^6.2.1
+  desktop_ui:
+    path: packages/desktop_ui
+  flutter:
+    sdk: flutter
 
   # State Management
   provider: ^6.1.2
@@ -37,6 +57,26 @@ dependencies:
   file_picker: ^11.0.3
 
 dev_dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.2.2
+  pdf: ^3.11.1
+  http: ^1.1.0
+  printing: ^5.13.2
+  share_plus: ^10.1.2
+  flutter_animate: ^4.5.2
+  flutter_markdown: ^0.7.4+1
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  archive: ^4.5.2
+  file_picker: ^11.0.3
+  lottie: ^2.4.0
+  flutter_riverpod: ^2.4.0
+  google_fonts: ^6.2.1
+  desktop_ui:
+    path: packages/desktop_ui
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
