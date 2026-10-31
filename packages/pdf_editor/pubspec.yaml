@@ -1,0 +1,26 @@
+name: pdf_editor
+description: PDF editor package for Metodist desktop app
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pdf: ^3.11.1
+  pdfx: ^1.0.4
+  flutter_colorpicker: ^1.0.0
+  file_picker: ^11.0.3
+  google_fonts: ^6.2.1
+  flutter_riverpod: ^2.4.0
+  flutter_animate: ^4.5.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

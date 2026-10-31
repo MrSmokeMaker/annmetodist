@@ -6,7 +6,10 @@ import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'world_studio_screen.dart';
+import 'methodology_architect_screen.dart';
 import '../widgets/generation_type_sheet.dart';
+import '../widgets/app_news_modal.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -20,13 +23,32 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   bool _isSidebarHovered = false;
   bool _isSidebarPinned = false;
 
+  @override
+  void initState() {
+    super.initState();
+    final tg = TelegramWebAppService();
+    if (tg.isInsideTelegram) {
+      final param = tg.startParam;
+      if (param == 'studio' || param == 'worlds') {
+        _currentIndex = 3;
+      } else if (param == 'architect' || param == 'director') {
+        _currentIndex = 2;
+      } else if (param == 'calendar') {
+        _currentIndex = 1;
+      } else if (param == 'profile') {
+        _currentIndex = 4;
+      }
+    }
+  }
+
   bool get _isSidebarExpanded => _isSidebarPinned || _isSidebarHovered;
 
   final List<Widget> _pages = const [
     HomeScreen(),
     CalendarScreen(),
+    MethodologyArchitectScreen(),
+    WorldStudioScreen(),
     ProfileScreen(),
-    SettingsScreen(),
   ];
 
   void _openCreateSheet(BuildContext context) {
@@ -220,17 +242,85 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           ),
                           _buildDesktopNavItem(
                             index: 2,
+                            icon: Icons.psychology_outlined,
+                            activeIcon: Icons.psychology_rounded,
+                            label: '👑 Конструктор методик [ДИРЕКТОР]',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 3,
+                            icon: Icons.palette_outlined,
+                            activeIcon: Icons.palette_rounded,
+                            label: '🎨 Студия миров [ДИРЕКТОР]',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 4,
                             icon: Icons.badge_outlined,
                             activeIcon: Icons.badge_rounded,
                             label: 'Тарифы & Квоты',
                             isDark: isDark,
                           ),
-                          _buildDesktopNavItem(
-                            index: 3,
-                            icon: Icons.tune_rounded,
-                            activeIcon: Icons.tune_rounded,
-                            label: 'Настройки',
-                            isDark: isDark,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.settings_outlined,
+                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      size: 20,
+                                    ),
+                                    if (_isSidebarExpanded) ...[
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Настройки',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: InkWell(
+                              onTap: () => AppNewsModal.show(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.info_outline_rounded,
+                                      color: AppColors.accentCyan,
+                                      size: 20,
+                                    ),
+                                    if (_isSidebarExpanded) ...[
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Что нового (i)',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
 
                           const Spacer(),
@@ -304,6 +394,67 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     // Mobile layout with Floating Glass Bottom Navigation
     return Scaffold(
       extendBody: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(40),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            child: Row(
+              children: [
+                if (TelegramWebAppService().isInsideTelegram)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF24A1DE).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF24A1DE).withOpacity(0.35),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.send_rounded, size: 12, color: Color(0xFF24A1DE)),
+                        const SizedBox(width: 5),
+                        Text(
+                          TelegramWebAppService().user != null
+                              ? TelegramWebAppService().user!.displayName
+                              : '@annmetodist_bot',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF24A1DE),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.calendar_today_outlined, size: 20),
+                  tooltip: 'Расписание',
+                  onPressed: () {
+                    TelegramWebAppService().hapticSelection();
+                    setState(() => _currentIndex = 1);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined, size: 22),
+                  tooltip: 'Настройки',
+                  onPressed: () {
+                    TelegramWebAppService().hapticImpact('light');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: AmbientBackground(
         child: IndexedStack(
           index: _currentIndex,
@@ -341,10 +492,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
 
                   _buildMobileNavItem(
-                    index: 1,
-                    icon: Icons.calendar_today_outlined,
-                    activeIcon: Icons.calendar_month_rounded,
-                    label: 'План',
+                    index: 2,
+                    icon: Icons.psychology_outlined,
+                    activeIcon: Icons.psychology_rounded,
+                    label: 'Методики 👑',
                     isDark: isDark,
                   ),
 
@@ -352,8 +503,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   GestureDetector(
                     onTap: () => _openCreateSheet(context),
                     child: Container(
-                      width: 48,
-                      height: 48,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         gradient: AppGradients.indigoViolet,
                         shape: BoxShape.circle,
@@ -372,18 +523,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
 
                   _buildMobileNavItem(
-                    index: 2,
-                    icon: Icons.badge_outlined,
-                    activeIcon: Icons.badge_rounded,
-                    label: 'Профиль',
+                    index: 3,
+                    icon: Icons.palette_outlined,
+                    activeIcon: Icons.palette_rounded,
+                    label: 'Студия',
                     isDark: isDark,
                   ),
 
                   _buildMobileNavItem(
-                    index: 3,
-                    icon: Icons.tune_rounded,
-                    activeIcon: Icons.tune_rounded,
-                    label: 'Опции',
+                    index: 4,
+                    icon: Icons.badge_outlined,
+                    activeIcon: Icons.badge_rounded,
+                    label: 'Профиль',
                     isDark: isDark,
                   ),
                 ],

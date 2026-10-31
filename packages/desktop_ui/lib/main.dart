@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'theme/theme_manager.dart';
-import 'screens/home_screen.dart';
+import 'package:pdf_editor/editor_screen.dart';
+import 'package:desktop_ui/theme/theme_manager.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,11 @@ class DesktopApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Metodist Desktop',
       theme: theme,
-      home: const HomeScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const MainScreen(),
+        '/pdf-editor': (_) => const EditorScreen(),
+      },
     );
   }
 }

@@ -15,6 +15,7 @@ import 'new_conspect_screen.dart';
 import '../screens/worksheet_screen.dart';
 import '../screens/homework_screen.dart';
 import '../widgets/generation_type_sheet.dart';
+import '../widgets/app_news_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -335,26 +336,50 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          IconButton(
-            tooltip: 'Настройки',
-            icon: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Что нового (Новости приложения)',
+                icon: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: AppColors.accentCyan,
+                  ),
                 ),
+                onPressed: () => AppNewsModal.show(context),
               ),
-              child: Icon(
-                Icons.settings_outlined,
-                size: 20,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: 'Настройки',
+                icon: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.settings_outlined,
+                    size: 20,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(FadeSlidePageRoute(page: const SettingsScreen()));
+                },
               ),
-            ),
-            onPressed: () {
-              Navigator.of(context).push(FadeSlidePageRoute(page: const SettingsScreen()));
-            },
+            ],
           ),
         ],
       ),

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 import 'yandex_gpt_service.dart';
+import 'lesson_context_service.dart';
+import 'lesson_rubric_service.dart';
 
 class AiServiceException implements Exception {
   final String message;
@@ -241,6 +243,68 @@ class AiService {
     } finally {
       client.close();
     }
+  }
+
+  /// Генерация глубокого развернутого урока (2000-3000+ слов)
+  /// с автоматическим контролем контекста и адаптивной чанк-генерацией при необходимости.
+  Future<String> generateDeepLesson({
+    required String systemPrompt,
+    required String userPrompt,
+    String? yandexModel,
+  }) async {
+    final provider = activeProvider;
+    final String activeModel = provider == 'openrouter'
+        ? openRouterModel
+        : (provider == 'mistral' ? mistralModel : (yandexModel ?? YandexGptService.defaultModel));
+
+    final estimate = LessonContextService.evaluateLessonParams(
+      modelName: activeModel,
+      isDeepLesson: true,
+      variantsCount: 1,
+    );
+
+    // Если модель поддерживает объем напрямую (YandexGPT Pro, Gemini Flash, Mistral Large)
+    if (!estimate.requiresChunking || estimate.modelContextLimit >= 16000) {
+      return generate(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        yandexModel: yandexModel,
+      );
+    }
+
+    // Иначе выполняем адаптивную 2-фазную чанк-генерацию для гарантированного укладывания в лимит
+    final part1Prompt = '$userPrompt\n\n[ЭТАП 1/2: Сгенерируй ТОЛЬКО Цели, Теорию и подробнейший развернутый Ход Занятия с репликами и таймингом. Не генерируй рабочий лист и домашку.]';
+    final part1 = await generate(
+      systemPrompt: systemPrompt,
+      userPrompt: part1Prompt,
+      yandexModel: yandexModel,
+    );
+
+    final part2Prompt = '$userPrompt\n\n[ЭТАП 2/2: На основе предыдущей части урока сгенерируй РАЗДАТОЧНЫЙ ЛИСТ (Уровни 1, 2, 3), ДОМАШНЮЮ РАБОТУ, а также 5 ТЕСТОВЫХ ВОПРОСОВ и 3 ОТКРЫТЫХ ВОПРОСА с ключами для учителя.]';
+    final part2 = await generate(
+      systemPrompt: systemPrompt,
+      userPrompt: part2Prompt,
+      yandexModel: yandexModel,
+    );
+
+    return LessonContextService.assembleChunks([part1, part2]);
+  }
+
+  /// Проводит методический аудит урока по 5 критериям ФГОС
+  LessonRubricEvaluation runRubricCheck(
+    String content, {
+    required String topic,
+    required String ageGroup,
+    required String subject,
+    String? methodName,
+  }) {
+    return LessonRubricService.evaluateLesson(
+      content: content,
+      topic: topic,
+      ageGroup: ageGroup,
+      subject: subject,
+      methodName: methodName,
+    );
   }
 
   /// Генерация конспекта/материалов через выбранный провайдер
