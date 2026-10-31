@@ -13,6 +13,7 @@ import '../widgets/app_news_modal.dart';
 import '../services/telegram/telegram_web_app_service.dart';
 import '../widgets/animated_owl_widget.dart';
 import '../widgets/metodist_assistant_dialog.dart';
+import '../widgets/telegram_bots_sheet.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -372,6 +373,45 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               ),
                             ),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: InkWell(
+                              onTap: () => TelegramBotsSheet.show(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF24A1DE).withOpacity(isDark ? 0.12 : 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFF24A1DE).withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: _isSidebarExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.send_rounded,
+                                      color: Color(0xFF24A1DE),
+                                      size: 20,
+                                    ),
+                                    if (_isSidebarExpanded) ...[
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Telegram боты (2)',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF24A1DE),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
 
                           const Spacer(),
 
@@ -482,6 +522,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ),
                   ),
                 const Spacer(),
+                const TelegramBotsMenuButton(isCompact: true),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.calendar_today_outlined, size: 20),
                   tooltip: 'Расписание',

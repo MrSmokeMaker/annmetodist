@@ -24,4 +24,6 @@ class TelegramWebAppPlatform {
   void hapticSelection() {}
 
   void sendData(String data) {}
+  void openTelegramLink(String url) {}
+  void openLink(String url) {}
 }

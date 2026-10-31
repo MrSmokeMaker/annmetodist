@@ -17,6 +17,7 @@ import '../screens/homework_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
 import '../widgets/what_can_ai_do_widget.dart';
+import '../widgets/telegram_bots_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -280,6 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
       child: Row(
@@ -343,6 +345,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Row(
             children: [
+              TelegramBotsMenuButton(isCompact: !isDesktop),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: 'Что нового (Новости приложения)',
                 icon: Container(
@@ -560,6 +564,91 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        // Telegram Bots Quick Banner
+        InkWell(
+          onTap: () => TelegramBotsSheet.show(context),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF131B2E), const Color(0xFF0F172A)]
+                    : [const Color(0xFFF0F9FF), const Color(0xFFEEF2FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF24A1DE).withOpacity(0.4),
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 30,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset('assets/images/pdf_icons/bot_main_miniapp.png', width: 28, height: 28),
+                        ),
+                      ),
+                      Positioned(
+                        left: 16,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset('assets/images/pdf_icons/bot_ai_director.png', width: 28, height: 28),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Telegram боты',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF24A1DE).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '2 БОТА ▾',
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF0284C7)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Mini App (@annmetodist) • AI Чат (@MetodistAI)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF24A1DE)),
+              ],
+            ),
+          ),
         ),
       ],
     );

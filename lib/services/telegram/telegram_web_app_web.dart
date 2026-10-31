@@ -135,4 +135,28 @@ class TelegramWebAppPlatform {
       _wa?.callMethod('sendData', [data]);
     } catch (_) {}
   }
+
+  void openTelegramLink(String url) {
+    try {
+      if (isTelegramWebApp && _wa != null) {
+        _wa.callMethod('openTelegramLink', [url]);
+        return;
+      }
+    } catch (_) {}
+    try {
+      js.context.callMethod('open', [url, '_blank']);
+    } catch (_) {}
+  }
+
+  void openLink(String url) {
+    try {
+      if (isTelegramWebApp && _wa != null) {
+        _wa.callMethod('openLink', [url]);
+        return;
+      }
+    } catch (_) {}
+    try {
+      js.context.callMethod('open', [url, '_blank']);
+    } catch (_) {}
+  }
 }
