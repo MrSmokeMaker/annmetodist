@@ -8,13 +8,31 @@
 import os
 import sys
 import json
+import socket
 import urllib.request
+
+# Safe encoding on Windows console
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+# Patch DNS for Telegram API to bypass ISP blocks on 149.154.166.110
+_orig_getaddrinfo = socket.getaddrinfo
+def _patched_getaddrinfo(host, port, *args, **kwargs):
+    if host == 'api.telegram.org':
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('149.154.167.220', port))]
+    return _orig_getaddrinfo(host, port, *args, **kwargs)
+socket.getaddrinfo = _patched_getaddrinfo
 
 METODIST_AI_TOKEN = os.getenv('METODIST_AI_BOT_TOKEN', os.getenv('BOT_TOKEN', '9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8'))
 WEB_APP_URL = os.getenv('WEB_APP_URL', 'https://mrsmokemaker.github.io/annmetodist/')
 API_BASE = f'https://api.telegram.org/bot{METODIST_AI_TOKEN}'
 
-PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY') or os.getenv('AG_LS_PROXY')
+PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
 
 
 def call_api(method: str, data: dict):
@@ -37,7 +55,7 @@ def call_api(method: str, data: dict):
 
 
 def configure_metodist_ai_bot():
-    print(f'Настройка бота MetodistAI...')
+    print('Настройка бота MetodistAI...')
 
     # 1. Menu Button (Кнопка меню с запуском Mini App)
     print('\n1. Установка кнопки меню (Telegram Mini App)...')
@@ -79,16 +97,15 @@ def configure_metodist_ai_bot():
     print('\n3. Описание бота...')
     call_api('setMyDescription', {
         'description': (
-            '🦉 MetodistAI — ваш персональный AI-помощник учителя начальных классов и завуча.\n\n'
-            '✨ Ключевые возможности:\n'
+            '🦉 MetodistAI — персональный AI-помощник учителя начальных классов и завуча.\n\n'
+            '✨ Возможности:\n'
             '• 💬 Посты для родительских чатов WhatsApp/Telegram в 1 клик\n'
             '• 📚 Дифференцированное ДЗ на 3 уровня (ФГОС, практика, ТРИЗ)\n'
-            '• 🎮 Сюжетные квесты и обучающие игры с маскотами 5 миров\n'
-            '• 📝 Экспресс-тесты с ключами проверки и критериями\n'
-            '• 🤸 Разминки и физкультминутки по нормам СанПиН\n'
-            '• 🪤 Задания-ловушки Незнайки для развития критического мышления\n'
-            '• 🚀 Telegram Mini App с конструктором PDF листов и 173 готовыми темами уроков\n'
-            '• 👑 Премиум тариф «Директор» для кафедр и школ'
+            '• 🎮 Сюжетные квесты и игры с маскотами 5 миров\n'
+            '• 📝 Экспресс-тесты с ключами проверки\n'
+            '• 🤸 Разминки по нормам СанПиН и ловушки Незнайки\n'
+            '• 🚀 Telegram Mini App: конструктор PDF и 173 готовые темы\n'
+            '• 👑 Эксклюзив тарифа «Директор» для передовых школ'
         )
     })
 

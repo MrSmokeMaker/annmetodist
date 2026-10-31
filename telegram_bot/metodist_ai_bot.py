@@ -32,7 +32,38 @@ import json
 import time
 import urllib.request
 import urllib.parse
+import socket
+
+# Safe encoding on Windows console
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+# Patch DNS for Telegram API to bypass ISP blocks on 149.154.166.110
+_orig_getaddrinfo = socket.getaddrinfo
+def _patched_getaddrinfo(host, port, *args, **kwargs):
+    if host == 'api.telegram.org':
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('149.154.167.220', port))]
+    return _orig_getaddrinfo(host, port, *args, **kwargs)
+socket.getaddrinfo = _patched_getaddrinfo
 from pathlib import Path
+
+# Загрузка .env файла (если есть)
+env_path = Path(__file__).resolve().parent / '.env'
+if env_path.exists():
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+    except Exception:
+        pass
 
 # Токен отдельного бота помощника MetodistAI
 METODIST_AI_TOKEN = os.getenv('METODIST_AI_BOT_TOKEN', os.getenv('BOT_TOKEN', '9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8'))
@@ -52,7 +83,7 @@ DEFAULT_ACTIONS = {
 }
 
 # Поддержка локального прокси при необходимости
-PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY') or os.getenv('AG_LS_PROXY')
+PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
 
 
 def make_request(method: str, data: dict = None, files: dict = None) -> dict:

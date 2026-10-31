@@ -15,6 +15,24 @@ import json
 import time
 import urllib.request
 import urllib.parse
+import socket
+
+# Safe encoding on Windows console
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+# Patch DNS for Telegram API to bypass ISP blocks on 149.154.166.110
+_orig_getaddrinfo = socket.getaddrinfo
+def _patched_getaddrinfo(host, port, *args, **kwargs):
+    if host == 'api.telegram.org':
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('149.154.167.220', port))]
+    return _orig_getaddrinfo(host, port, *args, **kwargs)
+socket.getaddrinfo = _patched_getaddrinfo
 from pathlib import Path
 
 BOT_TOKEN = os.getenv('BOT_TOKEN', '8839424428:AAG2i4SC7qq6LgeQ1_mXPE4koaCGauYCJlE')

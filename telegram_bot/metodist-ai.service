@@ -1,0 +1,17 @@
+[Unit]
+Description=Metodist AI Pro Telegram Bot Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/metodist/telegram_bot
+ExecStart=/usr/bin/python3 /var/www/metodist/telegram_bot/metodist_ai_bot.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=METODIST_AI_BOT_TOKEN=9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8
+Environment=WEB_APP_URL=https://mrsmokemaker.github.io/annmetodist/
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  metodist-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metodist_ai_bot
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+      - METODIST_AI_BOT_TOKEN=9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8
+      - WEB_APP_URL=https://mrsmokemaker.github.io/annmetodist/
+    volumes:
+      - ./data:/app/telegram_bot/data
