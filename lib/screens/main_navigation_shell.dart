@@ -10,6 +10,7 @@ import 'world_studio_screen.dart';
 import 'methodology_architect_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
+import '../services/telegram/telegram_web_app_service.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
