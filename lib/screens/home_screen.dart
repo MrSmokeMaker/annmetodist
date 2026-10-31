@@ -16,6 +16,7 @@ import '../screens/worksheet_screen.dart';
 import '../screens/homework_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
+import '../widgets/what_can_ai_do_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -162,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
+                  const WhatCanAiDoWidget(isCompact: false),
+                  const SizedBox(height: AppSpacing.md),
                   _buildAnalyticsMetrics(provider, isDark),
                   const SizedBox(height: AppSpacing.md),
                   _buildAgeGroupSelector(provider, isDark),
@@ -202,6 +205,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildBentoHero(context, isDark),
+                      const SizedBox(height: AppSpacing.md),
+                      const WhatCanAiDoWidget(isCompact: true),
                       const SizedBox(height: AppSpacing.md),
                       _buildAnalyticsMetrics(provider, isDark),
                       const SizedBox(height: AppSpacing.md),
