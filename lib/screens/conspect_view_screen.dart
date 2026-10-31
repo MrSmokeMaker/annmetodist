@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../constants.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
+import '../models/thematic_world.dart';
 import '../models/method_prompt.dart';
 import '../models/printable_card.dart';
 import '../models/situation_template.dart';
@@ -812,7 +813,11 @@ ${_currentConspect!.content}
 
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Интерактивные кнопки быстрого экспорта только сгенерированных материалов
+                    // Тематический игровой мир и маскот YandexART
+                        _buildThematicWorldSelectorCard(context, isDark),
+                        const SizedBox(height: AppSpacing.sm),
+
+                        // Интерактивные кнопки быстрого экспорта только сгенерированных материалов
                     GlassCard(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
                       child: Column(
@@ -3012,4 +3017,199 @@ ${_currentConspect!.content}
     }
   }
 
+
+  Widget _buildThematicWorldSelectorCard(BuildContext context, bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+    final world = _currentConspect!.thematicWorld;
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+      borderRadius: AppRadii.lg,
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Color(world.primaryColorHex),
+              shape: BoxShape.circle,
+              border: Border.all(color: Color(world.accentColorHex), width: 2),
+            ),
+            child: Center(
+              child: Text(
+                world.type == ThematicWorldType.space
+                    ? '🚀'
+                    : (world.type == ThematicWorldType.forest
+                        ? '🦉'
+                        : (world.type == ThematicWorldType.detective
+                            ? '🔍'
+                            : (world.type == ThematicWorldType.workshop
+                                ? '⚙️'
+                                : '🐻'))),
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Color(world.primaryColorHex).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Color(world.primaryColorHex).withOpacity(0.4), width: 0.8),
+                      ),
+                      child: Text(
+                        world.missionBadge,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Color(world.primaryColorHex),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      world.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${world.mascotName} (${world.mascotRole}) • «${world.mascotEncouragement('worksheet')}»',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              side: BorderSide(color: Color(world.primaryColorHex).withOpacity(0.5)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.palette_outlined, size: 14),
+            label: const Text('Сменить мир', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+            onPressed: () => _showWorldSelectorSheet(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWorldSelectorSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1B4B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Выберите игровой мир задания',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...ThematicWorld.allWorlds.map((w) {
+                final isCurrent = _currentConspect?.thematicWorld.id == w.id;
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Color(w.primaryColorHex),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Color(w.accentColorHex), width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        w.type == ThematicWorldType.space
+                            ? '🚀'
+                            : (w.type == ThematicWorldType.forest
+                                ? '🦉'
+                                : (w.type == ThematicWorldType.detective
+                                    ? '🔍'
+                                    : (w.type == ThematicWorldType.workshop
+                                        ? '⚙️'
+                                        : '🐻'))),
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                  title: Row(
+                    children: [
+                      Text(w.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(width: 6),
+                      if (isCurrent)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Текущий', style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                  subtitle: Text('${w.mascotName} • ${w.mascotRole}', style: const TextStyle(fontSize: 12)),
+                  trailing: Icon(
+                    isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: isCurrent ? AppColors.accentCyan : null,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _currentConspect = _currentConspect!.copyWith(thematicWorldId: w.id);
+                    });
+                    context.read<AppProvider>().saveConspect(_currentConspect!);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Игровой мир изменён на «${w.title}» (${w.mascotName})'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

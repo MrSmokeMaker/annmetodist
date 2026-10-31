@@ -1,4 +1,5 @@
 import 'printable_card.dart';
+import 'thematic_world.dart';
 
 class Conspect {
   final String id;
@@ -23,6 +24,7 @@ class Conspect {
   final String? illustrationMascot;
   final String? illustrationColoring;
   final String? illustrationReward;
+  final String? thematicWorldId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -49,6 +51,7 @@ class Conspect {
     this.illustrationMascot,
     this.illustrationColoring,
     this.illustrationReward,
+    this.thematicWorldId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -61,6 +64,7 @@ class Conspect {
     List<String>? generatedMaterials, String? parentAudioScript,
     String? promptVersionId, String? parentNotes,
     String? illustrationMascot, String? illustrationColoring, String? illustrationReward,
+    String? thematicWorldId,
     DateTime? createdAt, DateTime? updatedAt,
   }) {
     return Conspect(
@@ -78,8 +82,21 @@ class Conspect {
       illustrationMascot: illustrationMascot ?? this.illustrationMascot,
       illustrationColoring: illustrationColoring ?? this.illustrationColoring,
       illustrationReward: illustrationReward ?? this.illustrationReward,
+      thematicWorldId: thematicWorldId ?? this.thematicWorldId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  ThematicWorld get thematicWorld {
+    if (thematicWorldId != null && thematicWorldId!.isNotEmpty) {
+      return ThematicWorld.fromId(thematicWorldId);
+    }
+    return ThematicWorld.fromTopic(
+      topic: topic,
+      subject: subject,
+      ageGroup: ageGroup,
+      methodId: methodId,
     );
   }
 
@@ -94,6 +111,7 @@ class Conspect {
     if (illustrationMascot != null) 'illustrationMascot': illustrationMascot,
     if (illustrationColoring != null) 'illustrationColoring': illustrationColoring,
     if (illustrationReward != null) 'illustrationReward': illustrationReward,
+    if (thematicWorldId != null) 'thematicWorldId': thematicWorldId,
     'createdAt': createdAt.toIso8601String(), 'updatedAt': updatedAt?.toIso8601String(),
   };
 
@@ -113,6 +131,7 @@ class Conspect {
     illustrationMascot: map['illustrationMascot'] as String?,
     illustrationColoring: map['illustrationColoring'] as String?,
     illustrationReward: map['illustrationReward'] as String?,
+    thematicWorldId: map['thematicWorldId'] as String?,
     createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
     updatedAt: map['updatedAt'] != null ? DateTime.tryParse(map['updatedAt'].toString()) : null,
   );

@@ -4,6 +4,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:metodist/models/conspect.dart';
+import 'package:metodist/models/thematic_world.dart';
+import 'package:metodist/services/yandex_art_service.dart';
 import 'package:metodist/models/printable_card.dart';
 import 'package:metodist/services/pdf_icons_helper.dart';
 
@@ -66,7 +68,9 @@ class PdfExportService {
     final fontBold = await PdfGoogleFonts.robotoBold();
     final fontItalic = await PdfGoogleFonts.robotoItalic();
 
-    final mascotImage = await PdfIconsHelper.loadMascot();
+    final world = conspect.thematicWorld;
+    final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
+    final bannerImage = await _loadWorldBanner(world);
     final starGold = await PdfIconsHelper.loadStarGold();
     final starGray = await PdfIconsHelper.loadStarGray();
 
@@ -116,7 +120,7 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          _buildPdfTitle(conspect, PdfMaterialType.conspect, null, isPro: isPro, mascotImage: mascotImage),
+          _buildPdfTitle(conspect, PdfMaterialType.conspect, null, isPro: isPro, mascotImage: mascotImage, bannerImage: bannerImage),
           pw.SizedBox(height: 10),
           _buildMaterialInfo(conspect, PdfMaterialType.conspect),
           pw.SizedBox(height: 12),
@@ -168,7 +172,9 @@ class PdfExportService {
     final materialTypeName = type.toString().split('.').last;
     final materialIconName = PdfIconsHelper.getMaterialIconName(materialTypeName);
     final materialIcon = await PdfIconsHelper.loadIcon(materialIconName);
-    final mascotImage = await PdfIconsHelper.loadMascot();
+    final world = conspect.thematicWorld;
+    final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
+    final bannerImage = await _loadWorldBanner(world);
     final starGold = await PdfIconsHelper.loadStarGold();
     final starGray = await PdfIconsHelper.loadStarGray();
 
@@ -220,7 +226,7 @@ class PdfExportService {
         ),
         build: (context) => [
           // Премиум шапка с маскотом
-          _buildPdfTitle(conspect, type, materialIcon, isPro: isPro, mascotImage: mascotImage),
+          _buildPdfTitle(conspect, type, materialIcon, isPro: isPro, mascotImage: mascotImage, bannerImage: bannerImage),
           pw.SizedBox(height: 10),
 
           // Информация о материале и поля ученика
@@ -565,10 +571,60 @@ class PdfExportService {
     );
   }
 
+  static Future<pw.MemoryImage?> _loadWorldMascot(ThematicWorld world, String? customMascot) async {
+    if (customMascot != null && customMascot.isNotEmpty) {
+      try {
+        final clean = customMascot.contains(',') ? customMascot.split(',').last : customMascot;
+        return pw.MemoryImage(base64Decode(clean));
+      } catch (_) {}
+    }
+
+    final assetIcon = await PdfIconsHelper.loadIcon('mascot_${world.id}');
+    if (assetIcon != null) return assetIcon;
+
+    try {
+      final base64Png = await YandexArtService.generateFallbackEducationalArt(
+        type: 'world_mascot_${world.id}',
+        label: world.mascotName,
+        width: 140,
+        height: 140,
+      );
+      return pw.MemoryImage(base64Decode(base64Png));
+    } catch (_) {}
+
+    return await PdfIconsHelper.loadMascot();
+  }
+
+  static Future<pw.MemoryImage?> _loadWorldBanner(ThematicWorld world) async {
+    final assetBanner = await PdfIconsHelper.loadIcon('banner_${world.id}');
+    if (assetBanner != null) return assetBanner;
+
+    try {
+      final base64Png = await YandexArtService.generateFallbackEducationalArt(
+        type: 'world_banner_${world.id}',
+        label: world.title,
+        width: 640,
+        height: 160,
+      );
+      return pw.MemoryImage(base64Decode(base64Png));
+    } catch (_) {}
+
+    return null;
+  }
+
   /// Создает заголовок в формате "Тема: название темы" с иконкой и легким оформлением
-  static pw.Widget _buildPdfTitle(Conspect conspect, PdfMaterialType type, pw.MemoryImage? materialIcon, {bool isPro = false, pw.MemoryImage? mascotImage}) {
+  static pw.Widget _buildPdfTitle(
+    Conspect conspect,
+    PdfMaterialType type,
+    pw.MemoryImage? materialIcon, {
+    bool isPro = false,
+    pw.MemoryImage? mascotImage,
+    ThematicWorld? world,
+    pw.MemoryImage? bannerImage,
+  }) {
+    final effectiveWorld = world ?? conspect.thematicWorld;
     final topic = _replaceEmojisWithSymbols(conspect.topic.isNotEmpty ? conspect.topic : conspect.title);
-    
+
     if (mascotImage == null && conspect.illustrationMascot != null && conspect.illustrationMascot!.isNotEmpty) {
       try {
         final clean = conspect.illustrationMascot!.contains(',')
@@ -578,104 +634,141 @@ class PdfExportService {
       } catch (_) {}
     }
 
+    final worldPrimary = effectiveWorld.pdfPrimary;
+    final worldSecondary = effectiveWorld.pdfSecondary;
+    final worldAccent = effectiveWorld.pdfAccent;
+    final bgLight = _withOpacity(worldSecondary, 0.08);
+    final borderCol = _withOpacity(worldPrimary, 0.35);
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Container(
           margin: const pw.EdgeInsets.only(bottom: 8),
-          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: pw.BoxDecoration(
-            gradient: pw.LinearGradient(
-              begin: pw.Alignment.topLeft,
-              end: pw.Alignment.bottomRight,
-              colors: [
-                PdfColors.indigo50,
-                PdfColors.blue50,
-              ],
-            ),
+            color: bgLight,
             borderRadius: pw.BorderRadius.circular(10),
-            border: pw.Border.all(color: PdfColors.indigo300, width: 1.5),
+            border: pw.Border.all(color: borderCol, width: 1.5),
           ),
-          child: pw.Row(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
-              // Иконка типа материала
-              if (materialIcon != null)
-                pw.Container(
-                  width: 36,
-                  height: 36,
-                  margin: const pw.EdgeInsets.only(right: 12),
-                  child: pw.Image(materialIcon),
+              // Панорамный цветной баннер YandexART в шапке (если доступен)
+              if (bannerImage != null)
+                pw.ClipRRect(
+                  horizontalRadius: 9,
+                  verticalRadius: 9,
+                  child: pw.Container(
+                    height: 48,
+                    width: double.infinity,
+                    child: pw.Image(bannerImage, fit: pw.BoxFit.cover),
+                  ),
                 ),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(
-                      'Тема:',
-                      style: const pw.TextStyle(
-                        fontSize: 14,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.indigo800,
+                    // Иконка типа материала
+                    if (materialIcon != null)
+                      pw.Container(
+                        width: 36,
+                        height: 36,
+                        margin: const pw.EdgeInsets.only(right: 10),
+                        child: pw.Image(materialIcon),
                       ),
-                    ),
-                    pw.SizedBox(height: 2),
-                    pw.Text(
-                      topic,
-                      style: const pw.TextStyle(
-                        fontSize: 20,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.indigo900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Фирменный Маскот «Сова-Методист» в шапке документа
-              if (mascotImage != null)
-                pw.Row(
-                  mainAxisSize: pw.MainAxisSize.min,
-                  children: [
-                    pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      margin: const pw.EdgeInsets.only(right: 6),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(8),
-                        border: pw.Border.all(color: PdfColors.indigo200, width: 0.8),
-                      ),
+                    pw.Expanded(
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text(
-                            'Сова-Методист:',
-                            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: pw.BoxDecoration(
+                                  color: worldPrimary,
+                                  borderRadius: pw.BorderRadius.circular(4),
+                                ),
+                                child: pw.Text(
+                                  effectiveWorld.missionBadge,
+                                  style: pw.TextStyle(
+                                    fontSize: 7.5,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.white,
+                                  ),
+                                ),
+                              ),
+                              pw.SizedBox(width: 6),
+                              pw.Text(
+                                effectiveWorld.title,
+                                style: pw.TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: worldPrimary,
+                                ),
+                              ),
+                            ],
                           ),
+                          pw.SizedBox(height: 3),
                           pw.Text(
-                            type == PdfMaterialType.conspect
-                                ? 'Вдохновляющего урока!'
-                                : (type == PdfMaterialType.worksheet
-                                    ? 'Читай и пиши красиво!'
-                                    : 'Повторенье — мать ученья!'),
-                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.indigo700),
+                            topic,
+                            style: pw.TextStyle(
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.grey900,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    pw.Container(
-                      width: 52,
-                      height: 52,
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        shape: pw.BoxShape.circle,
-                        border: pw.Border.all(color: PdfColors.indigo400, width: 1.5),
+                    // Маскот мира с диалоговым облачком поддержки
+                    if (mascotImage != null)
+                      pw.Row(
+                        mainAxisSize: pw.MainAxisSize.min,
+                        children: [
+                          pw.Container(
+                            constraints: const pw.BoxConstraints(maxWidth: 130),
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            margin: const pw.EdgeInsets.only(right: 6),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(6),
+                              border: pw.Border.all(color: borderCol, width: 0.8),
+                            ),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  '${effectiveWorld.mascotName}:',
+                                  style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: worldPrimary),
+                                ),
+                                pw.SizedBox(height: 1),
+                                pw.Text(
+                                  effectiveWorld.mascotEncouragement(type.toString().split('.').last),
+                                  style: const pw.TextStyle(fontSize: 6.8, color: PdfColors.grey800),
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.Container(
+                            width: 48,
+                            height: 48,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              shape: pw.BoxShape.circle,
+                              border: pw.Border.all(color: worldAccent, width: 2),
+                            ),
+                            padding: const pw.EdgeInsets.all(2.5),
+                            child: pw.ClipOval(
+                              child: pw.Image(mascotImage, fit: pw.BoxFit.contain),
+                            ),
+                          ),
+                        ],
                       ),
-                      padding: const pw.EdgeInsets.all(3),
-                      child: pw.ClipOval(
-                        child: pw.Image(mascotImage, fit: pw.BoxFit.contain),
-                      ),
-                    ),
                   ],
                 ),
+              ),
             ],
           ),
         ),
@@ -3457,8 +3550,24 @@ static List<pw.Widget> _buildContentWidgets(
   }
 
   @visibleForTesting
-  static pw.Widget buildPdfTitleForTest(Conspect conspect, PdfMaterialType type, pw.MemoryImage? materialIcon, {bool isPro = true, pw.MemoryImage? mascotImage}) =>
-      _buildPdfTitle(conspect, type, materialIcon, isPro: isPro, mascotImage: mascotImage);
+  static pw.Widget buildPdfTitleForTest(
+    Conspect conspect,
+    PdfMaterialType type,
+    pw.MemoryImage? materialIcon, {
+    bool isPro = true,
+    pw.MemoryImage? mascotImage,
+    ThematicWorld? world,
+    pw.MemoryImage? bannerImage,
+  }) =>
+      _buildPdfTitle(
+        conspect,
+        type,
+        materialIcon,
+        isPro: isPro,
+        mascotImage: mascotImage,
+        world: world,
+        bannerImage: bannerImage,
+      );
 
   @visibleForTesting
   static pw.Widget buildMaterialInfoForTest(Conspect conspect, PdfMaterialType type) =>
