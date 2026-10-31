@@ -129,10 +129,26 @@
   </script>
 </head>
 <body>
+    <div class="ambient-glow"></div>
   <div id="loading" class="loading-container">
-    <div class="orb"></div>
-    <div class="title">Методист</div>
-    <div class="subtitle">Загрузка приложения...</div>
+    <div class="landing-card">
+      <div class="orb">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+      </div>
+      <div class="title">Методист</div>
+      <div class="subtitle">Умный генератор конспектов занятий, рабочих листов и заданий на базе нейросетей</div>
+      
+      <div class="features-pill-row">
+        <span class="feature-pill">✨ Конспекты по ФГОС</span>
+        <span class="feature-pill">📄 Рабочие листы</span>
+        <span class="feature-pill">📝 Домашка</span>
+      </div>
+
+      <div class="progress-bar-container" role="progressbar" aria-label="Загрузка приложения">
+        <div class="progress-bar-value"></div>
+      </div>
+      <div class="loading-status">Загрузка модулей методиста...</div>
+    </div>
   </div>
 
   <script>
