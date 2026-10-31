@@ -225,14 +225,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             index: 2,
                             icon: Icons.psychology_outlined,
                             activeIcon: Icons.psychology_rounded,
-                            label: '👑 Конструктор методик [DEV]',
+                            label: '👑 Конструктор методик [ДИРЕКТОР]',
                             isDark: isDark,
                           ),
                           _buildDesktopNavItem(
                             index: 3,
                             icon: Icons.palette_outlined,
                             activeIcon: Icons.palette_rounded,
-                            label: '🎨 Студия миров [DEV]',
+                            label: '🎨 Студия миров [ДИРЕКТОР]',
                             isDark: isDark,
                           ),
                           _buildDesktopNavItem(

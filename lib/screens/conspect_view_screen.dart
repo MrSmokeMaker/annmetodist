@@ -547,9 +547,9 @@ ${_currentConspect!.content}
               icon: const Icon(Icons.description_rounded, color: Color(0xFF3B82F6)),
               onPressed: _exportDocx,
             ),
-            // PowerPoint export (Тариф Разработчик)
+            // PowerPoint export (Тариф Директор)
             IconButton(
-              tooltip: 'Презентация PowerPoint (.pptx) [РАЗРАБОТЧИК]',
+              tooltip: 'Презентация PowerPoint (.pptx) [ДИРЕКТОР]',
               icon: const Icon(Icons.slideshow_rounded, color: Color(0xFFD97706)),
               onPressed: _exportPptx,
             ),
@@ -2900,9 +2900,9 @@ ${_currentConspect!.content}
 
   Future<void> _exportPptx() async {
     if (_currentConspect == null) return;
-    final isDev = context.read<AppProvider>().isDeveloper;
-    if (!isDev) {
-      _showDeveloperWorldUpgradeSheet(context);
+    final isDirector = context.read<AppProvider>().isDirector;
+    if (!isDirector) {
+      _showDirectorWorldUpgradeSheet(context);
       return;
     }
     try {
@@ -3128,35 +3128,35 @@ ${_currentConspect!.content}
           const SizedBox(width: AppSpacing.sm),
           Builder(
             builder: (ctx) {
-              final isDev = ctx.watch<AppProvider>().isDeveloper;
+              final isDirector = ctx.watch<AppProvider>().isDirector;
               return OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   side: BorderSide(
-                    color: isDev
+                    color: isDirector
                         ? Color(world.primaryColorHex).withOpacity(0.5)
                         : Colors.amber.withOpacity(0.7),
                   ),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: Icon(
-                  isDev ? Icons.palette_outlined : Icons.lock_outline,
+                  isDirector ? Icons.palette_outlined : Icons.lock_outline,
                   size: 14,
-                  color: isDev ? null : Colors.amber.shade700,
+                  color: isDirector ? null : Colors.amber.shade700,
                 ),
                 label: Text(
-                  isDev ? 'Сменить мир' : 'Сменить мир 🔒',
+                  isDirector ? 'Сменить мир' : 'Сменить мир 🔒',
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    color: isDev ? null : Colors.amber.shade800,
+                    color: isDirector ? null : Colors.amber.shade800,
                   ),
                 ),
                 onPressed: () {
-                  if (isDev) {
+                  if (isDirector) {
                     _showWorldSelectorSheet(context);
                   } else {
-                    _showDeveloperWorldUpgradeSheet(context);
+                    _showDirectorWorldUpgradeSheet(context);
                   }
                 },
               );
@@ -3167,7 +3167,7 @@ ${_currentConspect!.content}
     );
   }
 
-  void _showDeveloperWorldUpgradeSheet(BuildContext context) {
+  void _showDirectorWorldUpgradeSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -3213,7 +3213,7 @@ ${_currentConspect!.content}
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      'ТАРИФ РАЗРАБОТЧИК',
+                      'ТАРИФ ДИРЕКТОР',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -3231,7 +3231,7 @@ ${_currentConspect!.content}
               ),
               const SizedBox(height: 12),
               const Text(
-                'Переключение и настройка миров доступна в тарифе «Разработчик»',
+                'Переключение и настройка миров доступна в тарифе «Директор»',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -3317,15 +3317,15 @@ ${_currentConspect!.content}
                   ),
                   icon: const Icon(Icons.rocket_launch_rounded),
                   label: const Text(
-                    'Подключить тариф «Разработчик»',
+                    'Подключить тариф «Директор»',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () {
-                    context.read<AppProvider>().setUserTier('developer');
+                    context.read<AppProvider>().setUserTier('director');
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Тариф «Разработчик» успешно активирован! Все 5 миров доступны.'),
+                        content: Text('Тариф «Директор» успешно активирован! Все 5 миров и эксклюзивные студии доступны.'),
                         backgroundColor: AppColors.success,
                       ),
                     );

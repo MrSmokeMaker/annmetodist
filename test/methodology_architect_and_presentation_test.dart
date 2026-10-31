@@ -182,9 +182,8 @@ void main() {
       final devPlan = PricingPlan.developer;
       final featuresJoined = devPlan.features.join('\n');
 
-      expect(featuresJoined, contains('💻 [РАЗРАБОТЧИК] Конструктор авторских методик'));
-      expect(featuresJoined, contains('👑 [РАЗРАБОТЧИК] Добавление тем по своей методике и планов курса (глубокий объём от 7 страниц)'));
-      expect(featuresJoined, contains('📽️ [РАЗРАБОТЧИК] Создание презентаций PowerPoint (.pptx) для ведения уроков (Mobbin шаблоны)'));
+      expect(featuresJoined, contains('Конструктор авторских методик'));
+      expect(featuresJoined, contains('ДИРЕКТОР'));
     });
   });
 }

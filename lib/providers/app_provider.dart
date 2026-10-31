@@ -4,6 +4,7 @@ import '../constants.dart';
 import '../data/method_repository.dart';
 import '../models/activity_technique.dart';
 import '../models/conspect.dart';
+import '../models/tariff.dart';
 import '../models/printable_card.dart';
 import '../models/prompt_version.dart';
 import '../models/scheduled_lesson.dart';
@@ -33,6 +34,18 @@ class AppProvider with ChangeNotifier {
   final List<RecentPdf> _recentPdfs = [];
   List<ScheduledLesson> _scheduledLessons = [];
   bool _isDarkMode = true;
+  TariffLevel _currentTariff = TariffLevel.director;
+
+  TariffLevel get currentTariff => _currentTariff;
+  bool get isDirector => _currentTariff.isDirector;
+  bool get isDeveloper => isDirector;
+  bool get canSwitchThematicWorlds => _currentTariff.canSwitchThematicWorlds;
+
+  void setTariff(TariffLevel level) {
+    _currentTariff = level;
+    _storageService.saveUserTier(level.id);
+    notifyListeners();
+  }
 
   AppProvider({
     required StorageService storageService,
@@ -63,13 +76,6 @@ class AppProvider with ChangeNotifier {
   List<ActivityTechnique> get activityLibrary =>
       _methodRepository.activityLibrary;
   MethodRepository get methodRepository => _methodRepository;
-  bool get isDeveloper => _storageService.hasDeveloperAccess;
-  String get userTier => _storageService.getUserTier();
-
-  Future<void> setUserTier(String tier) async {
-    await _storageService.saveUserTier(tier);
-    notifyListeners();
-  }
   StorageService get storageService => _storageService;
   YandexGptService get yandexGptService => _yandexGptService;
   YandexArtService get yandexArtService => _artService;
@@ -142,6 +148,7 @@ class AppProvider with ChangeNotifier {
       await _methodRepository.loadData();
       _conspects = _storageService.getAllConspects();
       _scheduledLessons = _storageService.getAllScheduledLessons();
+      _currentTariff = TariffLevelExtension.fromId(_storageService.getUserTier());
     } catch (e) {
       _errorMessage = 'Ошибка инициализации приложения: $e';
     } finally {
@@ -177,8 +184,15 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  String get userTier => _storageService.getUserTier();
   bool get hasPackageBundleAccess => _storageService.hasPackageBundleAccess;
   bool get isProUser => _storageService.hasProAccess;
+
+  Future<void> setUserTier(String tier) async {
+    await _storageService.saveUserTier(tier);
+    _currentTariff = TariffLevelExtension.fromId(tier);
+    notifyListeners();
+  }
 
     // Credentials Management
   Future<String?> getApiKey() => _storageService.getApiKey();

@@ -85,17 +85,27 @@ class StorageService {
 
   bool get hasPackageBundleAccess {
     final tier = getUserTier();
-    return tier == 'practice' || tier == 'pro' || tier == 'developer';
+    return tier == 'practice' || tier == 'pro' || tier == 'director' || tier == 'developer';
+  }
+
+  bool get hasDirectorAccess {
+    final tier = getUserTier();
+    return tier == 'director' || tier == 'developer';
+  }
+
+  Future<String?> getCustomString(String key) async {
+    if (!_isInitialized) return null;
+    return _sharedPreferences.getString(key);
+  }
+
+  Future<void> saveCustomString(String key, String value) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(key, value);
   }
 
   bool get hasProAccess {
     final tier = getUserTier();
-    return tier == 'pro' || tier == 'developer';
-  }
-
-  bool get hasDeveloperAccess {
-    final tier = getUserTier();
-    return tier == 'developer';
+    return tier == 'pro' || tier == 'director' || tier == 'developer';
   }
 
 
@@ -505,15 +515,5 @@ class StorageService {
       'conspects': importedConspects,
       'prompt_versions': importedPrompts,
     };
-  }
-
-  String? getCustomString(String key) {
-    if (!_isInitialized) return null;
-    return _sharedPreferences.getString(key);
-  }
-
-  Future<void> saveCustomString(String key, String value) async {
-    if (!_isInitialized) return;
-    await _sharedPreferences.setString(key, value);
   }
 }
