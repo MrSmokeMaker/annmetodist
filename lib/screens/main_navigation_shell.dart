@@ -525,6 +525,22 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 const TelegramBotsMenuButton(isCompact: true),
                 const SizedBox(width: 4),
                 IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentCyan.withOpacity(0.16),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.accentCyan.withOpacity(0.4)),
+                    ),
+                    child: const Icon(Icons.info_outline_rounded, color: AppColors.accentCyan, size: 16),
+                  ),
+                  tooltip: 'Что нового (Новости)',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => AppNewsModal.show(context),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
                   icon: const Icon(Icons.calendar_today_outlined, size: 20),
                   tooltip: 'Расписание',
                   onPressed: () {

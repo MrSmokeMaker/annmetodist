@@ -3,13 +3,22 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
+import '../screens/news_screen.dart';
 
 /// Модальное окно новостей и истории версий в элегантном стиле Apple (Mobbin design)
 class AppNewsModal extends StatefulWidget {
   const AppNewsModal({super.key});
 
-  /// Открывает окно новостей с плавной анимацией
+  /// Открывает окно новостей: на смартфонах полноэкранную страницу NewsScreen, на десктопе — диалог
   static Future<void> show(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 700) {
+      return Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const NewsScreen()),
+      );
+    }
+
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -100,7 +109,7 @@ class _AppNewsModalState extends State<AppNewsModal> {
                 child: Column(
                   children: [
                     // Apple-style Header
-                    _buildHeader(context, isDark),
+                    _buildHeader(context, isDark, isSmallScreen),
 
                     // Releases Content
                     Expanded(
@@ -121,8 +130,8 @@ class _AppNewsModalState extends State<AppNewsModal> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
-    final currentVer = _newsData?['currentVersion'] ?? 'v0.3.0';
+  Widget _buildHeader(BuildContext context, bool isDark, bool isSmallScreen) {
+    final currentVer = _newsData?['currentVersion'] ?? 'v0.5.6';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 20, 16),
@@ -158,12 +167,16 @@ class _AppNewsModalState extends State<AppNewsModal> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Что нового в Методисте',
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                    Flexible(
+                      child: Text(
+                        isSmallScreen ? 'Что нового' : 'Что нового в Методисте',
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -191,6 +204,8 @@ class _AppNewsModalState extends State<AppNewsModal> {
                     fontSize: 12,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -344,7 +359,7 @@ class _AppNewsModalState extends State<AppNewsModal> {
 
   Widget _buildFooter(BuildContext context, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -353,22 +368,27 @@ class _AppNewsModalState extends State<AppNewsModal> {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.verified_rounded, size: 15, color: Color(0xFF10B981)),
-              const SizedBox(width: 6),
-              Text(
-                'Все модули активны',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.verified_rounded, size: 15, color: Color(0xFF10B981)),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'Все модули активны',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 10),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryIndigo,

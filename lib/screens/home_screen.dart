@@ -205,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildNewsHighlightBanner(context, isDark),
                       _buildBentoHero(context, isDark),
                       const SizedBox(height: AppSpacing.md),
                       const WhatCanAiDoWidget(isCompact: true),
@@ -281,96 +282,146 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
-    final isDesktop = MediaQuery.of(context).size.width >= 800;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 800;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? AppSpacing.lg : AppSpacing.md,
+        AppSpacing.md,
+        isDesktop ? AppSpacing.lg : AppSpacing.md,
+        AppSpacing.xs,
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: AppGradients.indigoViolet,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: AppShadows.glowPrimary,
+          // Left branding
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: isDesktop ? 42 : 36,
+                  height: isDesktop ? 42 : 36,
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.indigoViolet,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: AppShadows.glowPrimary,
+                  ),
+                  child: Icon(Icons.school_rounded, color: Colors.white, size: isDesktop ? 22 : 18),
                 ),
-                child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Методист',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.4,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Методист',
+                              style: (isDesktop
+                                      ? Theme.of(context).textTheme.headlineMedium
+                                      : Theme.of(context).textTheme.titleMedium)
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.4,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.cyanBlue,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          'PRO',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
                           ),
-                        ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.cyanBlue,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'PRO',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      if (isDesktop)
+                        Text(
+                          'Умный генератор уроков и материалов',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                     ],
                   ),
-                  Text(
-                    'Умный генератор уроков и материалов',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+
+          const SizedBox(width: 8),
+
+          // Right action buttons
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               TelegramBotsMenuButton(isCompact: !isDesktop),
               const SizedBox(width: 6),
-              IconButton(
-                tooltip: 'Что нового (Новости приложения)',
-                icon: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+              InkWell(
+                onTap: () => AppNewsModal.show(context),
+                borderRadius: BorderRadius.circular(20),
+                child: Tooltip(
+                  message: 'Что нового (Новости)',
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentCyan.withOpacity(isDark ? 0.16 : 0.10),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.accentCyan.withOpacity(0.4),
+                      ),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          size: 19,
+                          color: AppColors.accentCyan,
+                        ),
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            width: 6.5,
+                            height: 6.5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF59E0B),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: const Icon(
-                    Icons.info_outline_rounded,
-                    size: 20,
-                    color: AppColors.accentCyan,
-                  ),
                 ),
-                onPressed: () => AppNewsModal.show(context),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: 'Настройки',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 icon: Container(
-                  padding: const EdgeInsets.all(9),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.04),
                     shape: BoxShape.circle,
@@ -380,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Icon(
                     Icons.settings_outlined,
-                    size: 20,
+                    size: 19,
                     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
                 ),
@@ -391,6 +442,93 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNewsHighlightBanner(BuildContext context, bool isDark) {
+    return InkWell(
+      onTap: () => AppNewsModal.show(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF1E1B4B), const Color(0xFF0F172A)]
+                : [const Color(0xFFEFF6FF), const Color(0xFFF5F3FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF6366F1).withOpacity(0.4),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withOpacity(0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: AppGradients.indigoViolet,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Что нового',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          gradient: AppGradients.cyanBlue,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'v0.5.6',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Меню ботов, маскоты и умные подсказки ИИ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Color(0xFF6366F1)),
+          ],
+        ),
       ),
     );
   }

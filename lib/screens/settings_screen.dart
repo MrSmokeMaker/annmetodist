@@ -1,3 +1,4 @@
+import '../widgets/app_news_modal.dart';
 import '../services/supabase_service.dart';
 import '../services/ai_service.dart';
 import '../widgets/auth_dialog.dart';
@@ -902,6 +903,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // News & Changelog Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    borderRadius: AppRadii.lg,
+                    child: InkWell(
+                      onTap: () => AppNewsModal.show(context),
+                      borderRadius: BorderRadius.circular(AppRadii.md),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.cyanBlue,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              boxShadow: AppShadows.glowCyan,
+                            ),
+                            child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Что нового в приложении',
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.2,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentCyan.withOpacity(0.18),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'v0.5.6',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.accentCyan,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'История версий, новые функции и обновления',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.accentCyan),
+                        ],
+                      ),
                     ),
                   ),
 
