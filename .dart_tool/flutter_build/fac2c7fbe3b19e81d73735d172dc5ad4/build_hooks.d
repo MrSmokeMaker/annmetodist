@@ -1,0 +1,1 @@
+ E:\\My\ Projects\\Metodist\\.dart_tool\\flutter_build\\fac2c7fbe3b19e81d73735d172dc5ad4\\build_hooks_result.json:  E:\\My\ Projects\\Metodist\\.dart_tool\\package_config.json E:\\My\ Projects\\Metodist\\pubspec.yaml E:\\flutter\\bin\\cache\\dart-sdk\\version e:\\my\ projects\\metodist\\.dart_tool\\package_config.json
