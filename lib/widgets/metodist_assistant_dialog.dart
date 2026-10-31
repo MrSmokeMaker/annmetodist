@@ -80,6 +80,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
   final List<AssistantMessage> _messages = [];
   bool _isLoading = false;
   OwlState _owlState = OwlState.idle;
+  AssistantMode _selectedMode = AssistantMode.academic;
 
   @override
   void initState() {
@@ -93,8 +94,13 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
         id: 'msg_welcome',
         sender: AssistantSender.assistant,
         text: 'Здравствуйте! Я **Совёнок-Методист** 🦉\n\n'
-            'Я вижу ваш урок: **"$initialTopic"** в мире **«$initialWorld»**.\n'
-            'Чем я могу помочь? Могу придумать бодрую физкультминутку, составить ловушку Незнайки, адаптировать задание или проверить урок по нормам ФГОС и СанПиН!',
+            'Я подключён к вашему уроку: **"$initialTopic"** в мире **«$initialWorld»**.\n\n'
+            '✨ **Чем помочь прямо сейчас?**\n'
+            '• 💬 Составить готовый пост для родительского чата\n'
+            '• 📚 Разбить домашку на 3 уровня (ФГОС, практика, ТРИЗ)\n'
+            '• 🎮 Придумать 10-минутную сюжетную игру-квест\n'
+            '• 📝 Сделать экспресс-тест с ключами проверки\n'
+            '• 🤸 Сочинить разминку под СанПиН нормы!',
         timestamp: DateTime.now(),
       ),
     );
@@ -128,12 +134,14 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
     });
   }
 
-  Future<void> _sendMessage(String text) async {
+  Future<void> _sendMessage(String text, {AssistantMode? modeOverride}) async {
     final clean = text.trim();
     if (clean.isEmpty || _isLoading) return;
 
     TelegramWebAppService().hapticSelection();
     _textCtrl.clear();
+
+    final activeMode = modeOverride ?? _selectedMode;
 
     final userMsg = AssistantMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
@@ -146,6 +154,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
       _messages.add(userMsg);
       _isLoading = true;
       _owlState = OwlState.thinking;
+      if (modeOverride != null) _selectedMode = modeOverride;
     });
     _scrollToBottom();
 
@@ -156,6 +165,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
       currentWorld: widget.currentWorld,
       currentMethod: widget.currentMethod,
       ageGroup: widget.ageGroup,
+      mode: activeMode,
     );
 
     if (!mounted) return;
@@ -194,12 +204,12 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
-          width: isDesktop ? 680 : double.infinity,
-          height: isDesktop ? 640 : MediaQuery.of(context).size.height * 0.85,
+          width: isDesktop ? 700 : double.infinity,
+          height: isDesktop ? 680 : MediaQuery.of(context).size.height * 0.88,
           decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF0F172A).withOpacity(0.88)
-                : Colors.white.withOpacity(0.92),
+                ? const Color(0xFF0F172A).withOpacity(0.92)
+                : Colors.white.withOpacity(0.95),
             borderRadius: BorderRadius.circular(isDesktop ? 24 : 20),
             border: Border.all(
               color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
@@ -216,6 +226,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
           child: Column(
             children: [
               _buildHeader(isDark),
+              _buildModeSelector(isDark),
               _buildQuickPromptsBar(isDark),
               const Divider(height: 1, color: Color(0x1A64748B)),
               Expanded(child: _buildMessagesList(isDark)),
@@ -350,6 +361,57 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
     );
   }
 
+  /// Селектор педагогического режима Совёнка
+  Widget _buildModeSelector(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : const Color(0xFFF1F5F9).withOpacity(0.5),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: AssistantMode.values.map((mode) {
+            final isSelected = mode == _selectedMode;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ChoiceChip(
+                selected: isSelected,
+                label: Text(
+                  mode.label,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                  ),
+                ),
+                selectedColor: const Color(0xFF6366F1),
+                backgroundColor: isDark
+                    ? const Color(0xFF1E293B)
+                    : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: isSelected
+                        ? const Color(0xFF6366F1)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    width: 0.8,
+                  ),
+                ),
+                onSelected: (selected) {
+                  if (selected) {
+                    TelegramWebAppService().hapticSelection();
+                    setState(() => _selectedMode = mode);
+                  }
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickPromptsBar(bool isDark) {
     return Container(
       height: 44,
@@ -378,7 +440,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
               width: 0.8,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            onPressed: () => _sendMessage(prompt.prompt),
+            onPressed: () => _sendMessage(prompt.prompt, modeOverride: prompt.mode),
           );
         },
       ),
@@ -402,6 +464,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
 
   Widget _buildMessageItem(AssistantMessage msg, bool isDark) {
     final isUser = msg.sender == AssistantSender.user;
+    final isParentChatPost = !isUser && msg.text.contains('родительского чата');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -474,36 +537,41 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
                     ),
                   ),
                   if (!isUser) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
                       children: [
                         InkWell(
                           onTap: () {
                             Clipboard.setData(ClipboardData(text: msg.text));
                             TelegramWebAppService().hapticNotification('success');
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Ответ скопирован в буфер обмена!'),
-                                duration: Duration(seconds: 2),
+                              SnackBar(
+                                content: Text(isParentChatPost
+                                    ? 'Пост для родителей скопирован! Можно вставлять в чат.'
+                                    : 'Ответ скопирован в буфер обмена!'),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.copy_rounded,
+                                  isParentChatPost ? Icons.chat_bubble_outline_rounded : Icons.copy_rounded,
                                   size: 13,
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  color: isParentChatPost ? const Color(0xFF10B981) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Скопировать',
+                                  isParentChatPost ? 'Скопировать для родителей' : 'Скопировать',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    fontWeight: isParentChatPost ? FontWeight.w600 : FontWeight.normal,
+                                    color: isParentChatPost ? const Color(0xFF10B981) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                   ),
                                 ),
                               ],
@@ -511,7 +579,6 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
                           ),
                         ),
                         if (widget.onApplySnippet != null) ...[
-                          const SizedBox(width: 12),
                           InkWell(
                             onTap: () {
                               widget.onApplySnippet!(msg.text);
@@ -520,12 +587,13 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
                             child: const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.add_task_rounded, size: 13, color: Color(0xFF10B981)),
+                                  Icon(Icons.add_task_rounded, size: 13, color: Color(0xFF6366F1)),
                                   SizedBox(width: 4),
                                   Text(
                                     'Вставить в конспект',
-                                    style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.w600),
+                                    style: TextStyle(fontSize: 11, color: Color(0xFF6366F1), fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -621,7 +689,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
                 minLines: 1,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Спросите Совёнка (разминка, ТРИЗ, упростить)...',
+                  hintText: 'Спросите Совёнка (разминка, пост родителям, ДЗ)...',
                   hintStyle: TextStyle(
                     fontSize: 13,
                     color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
@@ -630,7 +698,7 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                onSubmitted: _sendMessage,
+                onSubmitted: (text) => _sendMessage(text),
               ),
             ),
           ),
