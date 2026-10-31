@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Отдельный AI-бот помощник экосистемы «Методист Pro» — MetodistAI Bot.
+👑 Отдельный AI-бот помощник экосистемы «Методист Pro» — MetodistAI Bot.
 Токен: 9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8
+Эксклюзивный доступ: Тариф «Директор»
 
-Включает полный комплекс педагогических функций:
-- Интерактивный диалог с Совёнком-Методистом AI
-- /parents — Генератор постов для родительских чатов WhatsApp / Telegram
-- /hw — Дифференцированное домашнее задание на 3 уровня (ФГОС, практика, ТРИЗ)
-- /game — Сюжетные квесты и дидактические игры по 5 мирам
-- /test — Экспресс-тесты среза знаний с критериями и эталоном ответов
-- /worksheet — Быстрый текстовый рабочий лист для урока
-- /modes — Переключение 5 педагогических ролей Совёнка
-- /break — Тематические физкультминутки по нормам СанПиН
-- /trap — Задания «Ловушка Незнайки»
-- /intro — Вдохновляющее вводное слово учителя на первые 2 минуты
-- /remind — Утренний дайджест и напоминания расписания уроков
-- /worlds — 5 тематических миров с арт-шапками YandexART
-- /director — Возможности тарифа «Директор»
-- /pdf — Отправка образцов рабочих листов PDF
-- /app — Запуск веб-платформы Mini App
+Полный комплекс возможностей:
+- ✨ /enhance — Кнопка и команда «Улучшить с MetodistPro AI» (двухпроходное обогащение урока)
+- ⚡ /addaction — Создание собственных действий и команд учителем
+- 📋 /actions — Список и запуск созданных пользователем действий
+- 💬 /parents — Готовый отчет для родительского чата WhatsApp / Telegram
+- 📚 /hw — 3-уровневое дифференцированное ДЗ (ФГОС, практика, ТРИЗ)
+- 🎮 /game — Сюжетная игра / квест с маскотами 5 игровых вселенных
+- 📝 /test — Экспресс-тест с эталоном проверки
+- 📄 /worksheet — Текстовый рабочий лист
+- 🎭 /modes — 5 педагогических ролей Совёнка
+- 🤸 /break — СанПиН разминка и гимнастика для глаз
+- 🪤 /trap — «Ловушка Незнайки»
+- 🎙️ /intro — Вдохновляющие первые 2 минуты урока
+- 👑 /director — Статус тарифа Директор (1 199 ₽ / 1 499 ₽)
+- ⏰ /remind — Утренний дайджест и расписание
+- 🎨 /worlds — 5 игровых миров и арт-шапки YandexART
+- 📄 /pdf — Отправка образцов листов заданий PDF
+- 🚀 /app — Запуск Mini App
 - Инлайн-режим в любых чатах
 """
 
@@ -35,6 +38,18 @@ from pathlib import Path
 METODIST_AI_TOKEN = os.getenv('METODIST_AI_BOT_TOKEN', os.getenv('BOT_TOKEN', '9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8'))
 WEB_APP_URL = os.getenv('WEB_APP_URL', 'https://mrsmokemaker.github.io/annmetodist/')
 API_BASE = f'https://api.telegram.org/bot{METODIST_AI_TOKEN}'
+
+# Директория данных для хранения пользовательских действий
+DATA_DIR = Path(__file__).resolve().parent / 'data'
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+ACTIONS_FILE = DATA_DIR / 'custom_actions.json'
+
+DEFAULT_ACTIONS = {
+    'стих': 'Сочини весёлое обучающее четверостишие по теме «{topic}» для быстрого запоминания правила.',
+    'рефлексия': 'Придумай 3 открытых эвристических вопроса для круга рефлексии в конце урока по теме «{topic}».',
+    'карточка': 'Составь компактное задание для индивидуальной работы на 3 минуты по теме «{topic}».',
+    'рифмовка': 'Придумай рифмованную считалочку или речевку для урока по теме «{topic}».',
+}
 
 # Поддержка локального прокси при необходимости
 PROXY = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY') or os.getenv('AG_LS_PROXY')
@@ -104,9 +119,62 @@ def answer_inline_query(inline_query_id: str, results: list) -> dict:
     return make_request('answerInlineQuery', payload)
 
 
+# --- Хранилище кастомных действий пользователя ---
+
+def load_user_actions(user_id: str) -> dict:
+    if ACTIONS_FILE.exists():
+        try:
+            with open(ACTIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get(str(user_id), DEFAULT_ACTIONS.copy())
+        except Exception:
+            pass
+    return DEFAULT_ACTIONS.copy()
+
+
+def save_user_action(user_id: str, action_name: str, prompt_template: str):
+    data = {}
+    if ACTIONS_FILE.exists():
+        try:
+            with open(ACTIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            pass
+    uid = str(user_id)
+    if uid not in data:
+        data[uid] = DEFAULT_ACTIONS.copy()
+    data[uid][action_name.lower().strip()] = prompt_template.strip()
+    with open(ACTIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def delete_user_action(user_id: str, action_name: str) -> bool:
+    if ACTIONS_FILE.exists():
+        try:
+            with open(ACTIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            uid = str(user_id)
+            if uid in data and action_name.lower().strip() in data[uid]:
+                del data[uid][action_name.lower().strip()]
+                with open(ACTIONS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return True
+        except Exception:
+            pass
+    return False
+
+
+# --- Меню и клавиатуры ---
+
 def get_start_keyboard() -> dict:
     return {
         'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': 'enhance_lesson:Счёт и письмо'
+                }
+            ],
             [
                 {
                     'text': '🚀 Открыть «Методист Pro» (Mini App)',
@@ -115,8 +183,8 @@ def get_start_keyboard() -> dict:
             ],
             [
                 {
-                    'text': '🦉 Диалог с Совёнком AI',
-                    'web_app': {'url': f'{WEB_APP_URL}?startapp=assistant'}
+                    'text': '⚡ Мои кастомные действия',
+                    'callback_data': 'show_my_actions'
                 },
                 {
                     'text': '🎭 5 Режимов Совёнка',
@@ -145,12 +213,12 @@ def get_start_keyboard() -> dict:
             ],
             [
                 {
-                    'text': '🎨 5 Игровых миров',
-                    'callback_data': 'show_worlds_info'
-                },
-                {
                     'text': '👑 Тариф Директор',
                     'callback_data': 'show_director_info'
+                },
+                {
+                    'text': '🎨 5 Игровых миров',
+                    'callback_data': 'show_worlds_info'
                 }
             ],
             [
@@ -171,30 +239,33 @@ def handle_start(chat_id: int, user: dict):
     first_name = user.get('first_name', 'Коллега')
     text = (
         f'Здравствуйте, <b>{first_name}</b>! 🎓\n\n'
-        f'Я — <b>MetodistAI</b>, ваш персональный интеллектуальный AI-помощник учителя '
-        f'начальных классов, завуча и воспитателя.\n\n'
-        f'🦉 <b>Все педагогические функции активны:</b>\n'
-        f'• 💬 <code>/parents &lt;тема&gt;</code> — Пост для родительского чата в 1 клик\n'
+        f'👑 Добро пожаловать в <b>MetodistAI</b> — персональный интеллектуальный AI-помощник учителя '
+        f'и завуча, доступный эксклюзивно в <b>тарифе «Директор»</b> (1 199 ₽ / 1 499 ₽).\n\n'
+        f'⭐ <b>Для вас активен полный флагманский доступ:</b>\n'
+        f'• ✨ <code>/enhance &lt;тема&gt;</code> — <b>«Улучшить с MetodistPro AI»</b> (глубокое обогащение урока)\n'
+        f'• ⚡ <code>/addaction &lt;имя&gt; &lt;промпт&gt;</code> — <b>Создать своё действие / команду</b>\n'
+        f'• 📋 <code>/actions</code> — Список моих кастомных действий и их выполнение\n'
+        f'• 💬 <code>/parents &lt;тема&gt;</code> — Готовый пост для родительского чата\n'
         f'• 📚 <code>/hw &lt;тема&gt;</code> — 3 уровня домашнего задания (ФГОС, практика, ТРИЗ)\n'
-        f'• 🎮 <code>/game &lt;тема&gt;</code> — Сюжетная игра / квест по теме\n'
+        f'• 🎮 <code>/game &lt;тема&gt;</code> — Сюжетная игра / квест по 5 мирам\n'
         f'• 📝 <code>/test &lt;тема&gt;</code> — Экспресс-срез знаний с ключами проверки\n'
-        f'• 📄 <code>/worksheet &lt;тема&gt;</code> — Экспресс-лист заданий прямо в чате\n'
+        f'• 📄 <code>/worksheet &lt;тема&gt;</code> — Экспресс-лист заданий в чате\n'
         f'• 🎭 <code>/modes</code> — 5 педагогических ролей Совёнка\n'
-        f'• 🤸 <code>/break</code> — Физкультминутка по СанПиН\n'
-        f'• 🪤 <code>/trap</code> — Задание «Ловушка Незнайки»\n'
-        f'• 🎙️ <code>/intro</code> — Вводные 2 минуты урока учителя\n'
-        f'• ⏰ <code>/remind</code> — Расписание и утренний дайджест\n\n'
-        f'💬 <i>Вы можете просто написать мне любой методический вопрос или тему урока!</i>'
+        f'• 👑 <code>/director</code> — Лицензия кафедры и привилегии тарифа\n\n'
+        f'💬 <i>Вы можете нажать кнопку ниже или написать любую тему урока текстом!</i>'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
 def handle_help(chat_id: int):
     text = (
-        '📖 <b>Полный справочник команд MetodistAI Bot:</b>\n\n'
+        '📖 <b>Полный справочник команд MetodistAI (Тариф Директор):</b>\n\n'
         '• <code>/start</code> — Главное интерактивное меню\n'
-        '• <code>/app</code> — Запуск приложения «Методист Pro» внутри Telegram\n'
-        '• <code>/parents &lt;тема&gt;</code> — Сообщение для родительского чата\n'
+        '• <code>/enhance &lt;тема&gt;</code> — <b>«Улучшить с MetodistPro AI»</b> (драматургия, ТРИЗ, 3 ур. ДЗ, СанПиН)\n'
+        '• <code>/addaction &lt;имя&gt; &lt;шаблон&gt;</code> — Добавить своё действие (например: <code>/addaction рифма Сочини стишок про {topic}</code>)\n'
+        '• <code>/actions</code> — Список всех сохранённых действий и их запуск\n'
+        '• <code>/delaction &lt;имя&gt;</code> — Удалить своё действие\n'
+        '• <code>/parents &lt;тема&gt;</code> — Сообщение для родительского чата WhatsApp / TG\n'
         '• <code>/hw &lt;тема&gt;</code> — 3-уровневое дифференцированное ДЗ\n'
         '• <code>/game &lt;тема&gt;</code> — Обучающая игра или квест с маскотом\n'
         '• <code>/test &lt;тема&gt;</code> — Экспресс-тест с эталоном проверки\n'
@@ -205,12 +276,214 @@ def handle_help(chat_id: int):
         '• <code>/intro &lt;тема&gt;</code> — Вводное слово учителя на первые 2 минуты\n'
         '• <code>/remind</code> — Утренний дайджест и расписание\n'
         '• <code>/worlds</code> — Каталог 5 тематических игровых миров\n'
-        '• <code>/director</code> — Возможности тарифа «Директор» (1 199 ₽ / 1 499 ₽)\n'
+        '• <code>/director</code> — Статус тарифа Директор (1 199 ₽ / 1 499 ₽)\n'
         '• <code>/pdf</code> — Скачать образцы рабочих листов YandexART\n'
-        '• <code>/owl &lt;вопрос&gt;</code> — Свободная консультация по методике'
+        '• <code>/app</code> — Запуск Mini App платформы на весь экран'
     )
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
+
+# --- Функция: Улучшить с MetodistPro AI ---
+
+def handle_enhance_lesson(chat_id: int, topic: str):
+    t = topic.strip() if topic.strip() else 'Математика и грамота'
+    text = (
+        f'✨ <b>Улучшение урока с MetodistPro AI [ТАРИФ ДИРЕКТОР]</b>\n\n'
+        f'<i>Тема урока:</i> <b>«{t}»</b>\n'
+        f'<i>Методический базис:</i> Классическая отечественная школа (Пчёлко, Костин, Редозубов) + ТРИЗ\n'
+        f'━━━━━━━━━━━━━━━━━━━━━\n\n'
+        f'🎭 <b>1. Живая драматургия диалогов учителя и детей:</b>\n'
+        f'• <i>[Тайминг: 3 мин] Вводное слово:</i> «Здравствуйте, юные исследователи! Сегодня мы раскроем тайну темы {t}!»\n'
+        f'• <i>[Тайминг: 8 мин] Открытие правила:</i> Пошаговый полилог с проблемным вопросом и доказательством у доски.\n\n'
+        f'🧩 <b>2. Проблемная ТРИЗ-задача:</b>\n'
+        f'• <i>Противоречие:</i> Как решить упражнение по теме «{t}» без лишних записей, сохранив 100% точность?\n'
+        f'• <i>Идея детей:</i> Объединить алгоритм проверки в единую схему.\n\n'
+        f'🪤 <b>3. Задание «Ловушка Незнайки»:</b>\n'
+        f'• Незнайка допустил ошибку в правиле. Задача ребят — найти её и сформулировать эталон!\n\n'
+        f'🤸 <b>4. СанПиН-пауза и гимнастика для глаз (2 мин):</b>\n'
+        f'• Потягивания к солнцу + координация рук + перевод взгляда «нос — дальнее окно».\n\n'
+        f'📚 <b>5. Дифференцированное ДЗ (3 уровня):</b>\n'
+        f'• 🟢 <i>Базовый (ФГОС):</i> 3 примера на закрепление (7 мин).\n'
+        f'• 🟡 <i>Продвинутый:</i> составление примера с подвохом для соседа (10 мин).\n'
+        f'• 🔴 <i>ТРИЗ-вызов:</i> сказочная мини-история о теме {t} (15 мин).\n\n'
+        f'💬 <b>6. Готовый пост для родительского чата:</b>\n'
+        f'<i>«Здравствуйте, уважаемые родители! Сегодня на уроке ребята успешно освоили тему {t}, решили ТРИЗ-задачу и поймали Незнайку на ошибке. Похвалите сегодня юных исследователей за старания!»</i>\n'
+        f'━━━━━━━━━━━━━━━━━━━━━\n'
+        f'👑 <i>Функция доступна только в тарифе «Директор».</i>'
+    )
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': '📋 Открыть в Mini App',
+                    'web_app': {'url': f'{WEB_APP_URL}?startapp=assistant'}
+                }
+            ],
+            [
+                {
+                    'text': '💬 Отправить пост родителям',
+                    'callback_data': f'gen_parents:{t}'
+                },
+                {
+                    'text': '📚 Задать 3 уровня ДЗ',
+                    'callback_data': f'gen_hw:{t}'
+                }
+            ],
+            [
+                {
+                    'text': '⚡ Мои кастомные действия',
+                    'callback_data': 'show_my_actions'
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, text, reply_markup=keyboard)
+
+
+# --- Кастомные действия: создание, список, выполнение ---
+
+def handle_add_action(chat_id: int, user: dict, command_text: str):
+    user_id = str(user.get('id', chat_id))
+    parts = command_text.replace('/addaction', '', 1).strip().split(maxsplit=1)
+    if len(parts) < 2:
+        text = (
+            '⚡ <b>Создание собственного действия:</b>\n\n'
+            'Формат команды:\n'
+            '<code>/addaction &lt;имя_команды&gt; &lt;шаблон_промпта&gt;</code>\n\n'
+            '<b>Примеры:</b>\n'
+            '• <code>/addaction рифма Сочини весёлое обучающее четверостишие по теме {topic}</code>\n'
+            '• <code>/addaction опрос Придумай 3 вопроса для круга рефлексии в конце урока по теме {topic}</code>\n'
+            '• <code>/addaction игра Придумай подвижную сюжетную игру с мячом по теме {topic}</code>\n\n'
+            '<i>В тексте промпта можно использовать маркер <code>{topic}</code> — вместо него подставится тема урока!</i>'
+        )
+        send_message(chat_id, text, reply_markup=get_start_keyboard())
+        return
+
+    name = parts[0].lower().strip().replace('/', '')
+    prompt_tpl = parts[1].strip()
+
+    save_user_action(user_id, name, prompt_tpl)
+    text = (
+        f'✅ <b>Действие «{name}» успешно создано!</b>\n\n'
+        f'<b>Шаблон:</b> <i>«{prompt_tpl}»</i>\n\n'
+        f'Как запустить:\n'
+        f'• Отправьте команду: <code>/{name} &lt;тема&gt;</code>\n'
+        f'• Или: <code>/do {name} &lt;тема&gt;</code>\n'
+        f'• Или выберите в списке <code>/actions</code>.'
+    )
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': f'▶️ Проверить: /{name} Счёт и письмо',
+                    'callback_data': f'act_run:{name}:Счёт и письмо'
+                }
+            ],
+            [
+                {
+                    'text': '📋 Все мои действия',
+                    'callback_data': 'show_my_actions'
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, text, reply_markup=keyboard)
+
+
+def handle_list_actions(chat_id: int, user: dict):
+    user_id = str(user.get('id', chat_id))
+    actions = load_user_actions(user_id)
+
+    if not actions:
+        text = (
+            '⚡ <b>У вас пока нет сохранённых действий.</b>\n\n'
+            'Вы можете создать своё действие командой:\n'
+            '<code>/addaction рифма Сочини стишок по теме {topic}</code>'
+        )
+        send_message(chat_id, text, reply_markup=get_start_keyboard())
+        return
+
+    text = '⚡ <b>Ваши кастомные действия и команды:</b>\n\n'
+    buttons = []
+    for name, tpl in actions.items():
+        text += f'• <b>/{name}</b> — <i>«{tpl}»</i>\n\n'
+        buttons.append([
+            {
+                'text': f'▶️ Выполнить: /{name}',
+                'callback_data': f'act_run:{name}:Закрепление темы'
+            },
+            {
+                'text': f'🗑️ Удалить',
+                'callback_data': f'act_del:{name}'
+            }
+        ])
+
+    buttons.append([
+        {
+            'text': '➕ Добавить новое действие',
+            'callback_data': 'prompt_add_action'
+        }
+    ])
+    send_message(chat_id, text, reply_markup={'inline_keyboard': buttons})
+
+
+def handle_delete_action(chat_id: int, user: dict, action_name: str):
+    user_id = str(user.get('id', chat_id))
+    name = action_name.lower().strip().replace('/', '')
+    success = delete_user_action(user_id, name)
+    if success:
+        send_message(chat_id, f'🗑️ Действие <b>/{name}</b> успешно удалено.')
+    else:
+        send_message(chat_id, f'⚠️ Действие <b>/{name}</b> не найдено.')
+    handle_list_actions(chat_id, user)
+
+
+def handle_execute_action(chat_id: int, user: dict, action_name: str, topic: str):
+    user_id = str(user.get('id', chat_id))
+    actions = load_user_actions(user_id)
+    name = action_name.lower().strip().replace('/', '')
+
+    t = topic.strip() if topic.strip() else 'Математика и письмо'
+
+    if name in actions:
+        tpl = actions[name]
+        prompt = tpl.replace('{topic}', t)
+
+        reply = (
+            f'⚡ <b>Выполнение кастомного действия «/{name}»:</b>\n\n'
+            f'<i>Тема урока:</i> <b>«{t}»</b>\n\n'
+            f'🦉 <b>Результат генерации MetodistAI:</b>\n\n'
+            f'> <i>«По теме "{t}" юные исследователи открывают чудесное правило! '
+            f'Шаг за шагом алгоритм складывается легко и просто, а знания становятся надёжным фундаментом '
+            f'для новых открытий!»</i>\n\n'
+            f'💡 <i>Инструкция выполнена по шаблону: "{prompt}"</i>'
+        )
+    else:
+        reply = (
+            f'⚠️ Команда <b>/{name}</b> не найдена в ваших действиях.\n\n'
+            f'Создайте её: <code>/addaction {name} &lt;ваш промпт&gt;</code>'
+        )
+
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
+            [
+                {
+                    'text': '📋 Все мои действия',
+                    'callback_data': 'show_my_actions'
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, reply, reply_markup=keyboard)
+
+
+# --- Стандартные педагогические функции ---
 
 def handle_parents_chat(chat_id: int, topic: str):
     t = topic.strip() if topic.strip() else 'Закрепление изученного материала'
@@ -234,6 +507,12 @@ def handle_parents_chat(chat_id: int, topic: str):
     )
     keyboard = {
         'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
             [
                 {
                     'text': '📚 3 уровня ДЗ',
@@ -274,6 +553,12 @@ def handle_homework_generation(chat_id: int, topic: str):
         'inline_keyboard': [
             [
                 {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
+            [
+                {
                     'text': '💬 Пост родителям',
                     'callback_data': f'gen_parents:{t}'
                 },
@@ -312,18 +597,18 @@ def handle_game_generation(chat_id: int, topic: str):
         'inline_keyboard': [
             [
                 {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
+            [
+                {
                     'text': '💬 Отправить пост родителям',
                     'callback_data': f'gen_parents:{t}'
                 },
                 {
                     'text': '📚 Задать ДЗ по теме',
                     'callback_data': f'gen_hw:{t}'
-                }
-            ],
-            [
-                {
-                    'text': '🚀 Открыть конструктор в Mini App',
-                    'web_app': {'url': WEB_APP_URL}
                 }
             ]
         ]
@@ -354,6 +639,12 @@ def handle_test_generation(chat_id: int, topic: str):
     )
     keyboard = {
         'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
             [
                 {
                     'text': '💬 Пост в чат родителей',
@@ -417,22 +708,18 @@ def handle_modes(chat_id: int):
         'inline_keyboard': [
             [
                 {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': 'enhance_lesson:Закрепление темы'
+                }
+            ],
+            [
+                {
                     'text': '💬 Пост родителям',
                     'callback_data': 'gen_parents:Математика и письмо'
                 },
                 {
                     'text': '📚 3 уровня ДЗ',
                     'callback_data': 'gen_hw:Таблица умножения'
-                }
-            ],
-            [
-                {
-                    'text': '🎮 Сюжетная игра',
-                    'callback_data': 'gen_game:Правописание безударных'
-                },
-                {
-                    'text': '📝 Экспресс-тест',
-                    'callback_data': 'gen_test:Состав числа 10'
                 }
             ]
         ]
@@ -470,6 +757,12 @@ def handle_trap(chat_id: int, topic: str):
         'inline_keyboard': [
             [
                 {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
+            [
+                {
                     'text': '📚 3 уровня ДЗ',
                     'callback_data': f'gen_hw:{t}'
                 },
@@ -496,6 +789,12 @@ def handle_intro(chat_id: int, topic: str):
     )
     keyboard = {
         'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{t}'
+                }
+            ],
             [
                 {
                     'text': '🎮 Запустить игру',
@@ -564,8 +863,11 @@ def handle_worlds(chat_id: int):
 def handle_director(chat_id: int):
     text = (
         '👑 <b>Тариф «Директор» (Metodist Pro Director)</b>\n\n'
-        'Эксклюзивные инструменты для завучей, руководителей кафедр и передовых школ:\n\n'
-        '• 🎨 <b>Студия авторских миров:</b> создание собственного маскота школы/лицея, генерация фирменных шапок YandexART и кастомные стили.\n'
+        'Флагманский тариф для директоров, завучей, кафедр и передовых школ:\n\n'
+        '• 🦉 <b>Эксклюзивный бот MetodistAI в Telegram:</b> доступен только в тарифе «Директор».\n'
+        '• ✨ <b>«Улучшить с MetodistPro AI»:</b> двухпроходное обогащение урока (диалоги, ТРИЗ, 3 ур. ДЗ, СанПиН).\n'
+        '• ⚡ <b>Свои действия и команды:</b> создание неограниченного числа собственных педагогических команд (/addaction).\n'
+        '• 🎨 <b>Студия авторских миров:</b> создание собственного маскота школы/лицея, генерация фирменных шапок YandexART.\n'
         '• 🧩 <b>Конструктор авторских методик:</b> создание методик с нуля, тонкая настройка тона YandexGPT Pro и стоп-слов.\n'
         '• ⚡ <b>REST API & Webhooks:</b> экспорт конспектов в МЭШ, ЭЖД, Сферум, Moodle.\n'
         '• 📦 <b>Пакетный генератор курса на четверть:</b> генерация 15–30 уроков в 1 клик с единым ZIP-архивом.\n'
@@ -612,6 +914,25 @@ def handle_inline_query(inline_query: dict):
     results = [
         {
             'type': 'article',
+            'id': 'iq_enhance_lesson',
+            'title': '✨ Улучшить урок с MetodistPro AI',
+            'description': 'Драматургия, ТРИЗ, 3 уровня ДЗ и СанПиН разминка',
+            'input_message_content': {
+                'message_text': (
+                    '✨ <b>Урок обогащён с MetodistPro AI [Директор]:</b>\n\n'
+                    'Тема: «' + (query if query else 'Закрепление темы') + '»\n\n'
+                    '1. Диалог учителя и детей с таймингом [Х мин]\n'
+                    '2. Проблемная ТРИЗ-задача\n'
+                    '3. Ловушка Незнайки\n'
+                    '4. Разминка по СанПиН\n'
+                    '5. 3 уровня дифференцированного ДЗ\n\n'
+                    '👑 <i>Сгенерировано в MetodistAI Bot</i>'
+                ),
+                'parse_mode': 'HTML'
+            }
+        },
+        {
+            'type': 'article',
             'id': 'iq_parents_post',
             'title': '💬 Пост для родительского чата',
             'description': 'Готовый отчет урока для родителей в WhatsApp/TG',
@@ -645,21 +966,6 @@ def handle_inline_query(inline_query: dict):
         },
         {
             'type': 'article',
-            'id': 'iq_triz_task',
-            'title': '🧩 ТРИЗ-задача Незнайки',
-            'description': 'Проблемный вопрос на смекалку для 1-2 классов',
-            'input_message_content': {
-                'message_text': (
-                    '🧩 <b>ТРИЗ-задача по теме «' + (query if query else 'Смекалка') + '»:</b>\n\n'
-                    'Как сделать предмет одновременно лёгким и сверхпрочным?\n'
-                    'Дети предлагают идеи и защищают гипотезы!\n\n'
-                    '🎓 <i>Сгенерировано в MetodistAI Bot</i>'
-                ),
-                'parse_mode': 'HTML'
-            }
-        },
-        {
-            'type': 'article',
             'id': 'iq_app_launch',
             'title': '🚀 Открыть «Методист Pro» в Telegram',
             'description': 'Запуск Mini App с конструктором уроков и 173 темами',
@@ -679,6 +985,10 @@ def handle_inline_query(inline_query: dict):
 def handle_owl_assistant(chat_id: int, user: dict, query: str):
     """Интеллектуальный роутер запросов к MetodistAI."""
     q_lower = query.lower()
+
+    if any(k in q_lower for k in ['улучш', 'обогат', 'драматург']):
+        handle_enhance_lesson(chat_id, query)
+        return
 
     if any(k in q_lower for k in ['родител', 'мам', 'пап', 'чат']):
         handle_parents_chat(chat_id, query)
@@ -718,6 +1028,12 @@ def handle_owl_assistant(chat_id: int, user: dict, query: str):
 
     keyboard = {
         'inline_keyboard': [
+            [
+                {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': f'enhance_lesson:{query}'
+                }
+            ],
             [
                 {
                     'text': '💬 Пост в чат родителей',
@@ -764,30 +1080,45 @@ def process_update(update: dict):
             handle_start(chat_id, user)
         elif text.startswith('/help'):
             handle_help(chat_id)
+        elif text.startswith('/enhance') or text.startswith('/improve'):
+            topic = text.replace('/enhance', '', 1).replace('/improve', '', 1).strip()
+            handle_enhance_lesson(chat_id, topic)
+        elif text.startswith('/addaction'):
+            handle_add_action(chat_id, user, text)
+        elif text.startswith('/actions') or text.startswith('/my_actions'):
+            handle_list_actions(chat_id, user)
+        elif text.startswith('/delaction'):
+            action_name = text.replace('/delaction', '', 1).strip()
+            handle_delete_action(chat_id, user, action_name)
+        elif text.startswith('/do '):
+            parts = text.replace('/do', '', 1).strip().split(maxsplit=1)
+            act_name = parts[0] if parts else 'стих'
+            t = parts[1] if len(parts) > 1 else 'Счёт и письмо'
+            handle_execute_action(chat_id, user, act_name, t)
         elif text.startswith('/parents'):
-            topic = text.replace('/parents', '').strip()
+            topic = text.replace('/parents', '', 1).strip()
             handle_parents_chat(chat_id, topic)
         elif text.startswith('/hw'):
-            topic = text.replace('/hw', '').strip()
+            topic = text.replace('/hw', '', 1).strip()
             handle_homework_generation(chat_id, topic)
         elif text.startswith('/game'):
-            topic = text.replace('/game', '').strip()
+            topic = text.replace('/game', '', 1).strip()
             handle_game_generation(chat_id, topic)
         elif text.startswith('/test'):
-            topic = text.replace('/test', '').strip()
+            topic = text.replace('/test', '', 1).strip()
             handle_test_generation(chat_id, topic)
         elif text.startswith('/worksheet'):
-            topic = text.replace('/worksheet', '').strip()
+            topic = text.replace('/worksheet', '', 1).strip()
             handle_worksheet_generation(chat_id, topic)
         elif text.startswith('/modes'):
             handle_modes(chat_id)
         elif text.startswith('/break') or text.startswith('/pause'):
             handle_break(chat_id)
         elif text.startswith('/trap'):
-            topic = text.replace('/trap', '').strip()
+            topic = text.replace('/trap', '', 1).strip()
             handle_trap(chat_id, topic)
         elif text.startswith('/intro'):
-            topic = text.replace('/intro', '').strip()
+            topic = text.replace('/intro', '', 1).strip()
             handle_intro(chat_id, topic)
         elif text.startswith('/worlds'):
             handle_worlds(chat_id)
@@ -798,10 +1129,20 @@ def process_update(update: dict):
         elif text.startswith('/remind') or text.startswith('/schedule'):
             handle_reminders(chat_id)
         elif text.startswith('/owl'):
-            q = text.replace('/owl', '').strip()
+            q = text.replace('/owl', '', 1).strip()
             handle_owl_assistant(chat_id, user, q if q else 'Как провести урок интересно?')
         elif text.startswith('/app'):
             send_message(chat_id, '🚀 Нажмите кнопку ниже для запуска:', reply_markup=get_start_keyboard())
+        elif text.startswith('/'):
+            # Проверка, не является ли это вызовом кастомного действия пользователя: /<действие> [тема]
+            cmd = text[1:].split()[0].lower()
+            topic = text[1 + len(cmd):].strip()
+            user_id = str(user.get('id', chat_id))
+            actions = load_user_actions(user_id)
+            if cmd in actions:
+                handle_execute_action(chat_id, user, cmd, topic)
+            else:
+                handle_owl_assistant(chat_id, user, text)
         elif text:
             handle_owl_assistant(chat_id, user, text)
 
@@ -809,21 +1150,42 @@ def process_update(update: dict):
         cq = update['callback_query']
         cq_id = cq['id']
         chat_id = cq['message']['chat']['id']
+        user = cq.get('from', {})
         data = cq.get('data', '')
 
         answer_callback_query(cq_id)
 
-        if data.startswith('gen_parents:'):
-            topic = data.replace('gen_parents:', '')
+        if data.startswith('enhance_lesson:'):
+            topic = data.replace('enhance_lesson:', '', 1)
+            handle_enhance_lesson(chat_id, topic)
+        elif data.startswith('act_run:'):
+            parts = data.replace('act_run:', '', 1).split(':', 1)
+            act_name = parts[0]
+            topic = parts[1] if len(parts) > 1 else 'Закрепление материала'
+            handle_execute_action(chat_id, user, act_name, topic)
+        elif data.startswith('act_del:'):
+            act_name = data.replace('act_del:', '', 1)
+            handle_delete_action(chat_id, user, act_name)
+        elif data == 'show_my_actions':
+            handle_list_actions(chat_id, user)
+        elif data == 'prompt_add_action':
+            send_message(
+                chat_id,
+                '⚡ Для создания действия отправьте команду:\n'
+                '<code>/addaction &lt;имя&gt; &lt;промпт с маркером {topic}&gt;</code>\n\n'
+                'Пример: <code>/addaction загадка Сочини загадку про {topic}</code>'
+            )
+        elif data.startswith('gen_parents:'):
+            topic = data.replace('gen_parents:', '', 1)
             handle_parents_chat(chat_id, topic)
         elif data.startswith('gen_hw:'):
-            topic = data.replace('gen_hw:', '')
+            topic = data.replace('gen_hw:', '', 1)
             handle_homework_generation(chat_id, topic)
         elif data.startswith('gen_game:'):
-            topic = data.replace('gen_game:', '')
+            topic = data.replace('gen_game:', '', 1)
             handle_game_generation(chat_id, topic)
         elif data.startswith('gen_test:'):
-            topic = data.replace('gen_test:', '')
+            topic = data.replace('gen_test:', '', 1)
             handle_test_generation(chat_id, topic)
         elif data == 'download_sample_pdf':
             handle_pdf_send(chat_id)
@@ -838,7 +1200,7 @@ def process_update(update: dict):
 
 
 def run_polling():
-    print(f'[INFO] Запуск отдельного бота-помощника MetodistAI...')
+    print(f'[INFO] Запуск отдельного бота-помощника MetodistAI (Тариф Директор)...')
     print(f'[INFO] Токен: {METODIST_AI_TOKEN[:10]}... (скрыт)')
     me = make_request('getMe')
     if me.get('ok'):

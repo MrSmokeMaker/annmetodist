@@ -53,6 +53,9 @@ def configure_metodist_ai_bot():
     print('\n2. Регистрация команд бота...')
     commands = [
         {'command': 'start', 'description': 'Главное интерактивное меню и запуск'},
+        {'command': 'enhance', 'description': '✨ Улучшить с MetodistPro AI (6 блоков)'},
+        {'command': 'addaction', 'description': '⚡ Создать действие: /addaction <имя> <текст>'},
+        {'command': 'actions', 'description': '📋 Список кастомных действий учителя'},
         {'command': 'owl', 'description': 'Спросить Совёнка-Методиста AI'},
         {'command': 'parents', 'description': 'Пост в чат родителей (WhatsApp/TG)'},
         {'command': 'hw', 'description': '3 уровня дифференцированного ДЗ'},

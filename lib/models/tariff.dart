@@ -43,6 +43,11 @@ extension TariffLevelExtension on TariffLevel {
   bool get canUseRestApi => this == TariffLevel.director;
   bool get canGenerateQuarterCourse => this == TariffLevel.director;
   bool get canInspectTokens => this == TariffLevel.director;
+  
+  /// Эксклюзивные привилегии тарифа «Директор»
+  bool get canUseMetodistAiBot => this == TariffLevel.director;
+  bool get canUseDeepEnhancement => this == TariffLevel.director;
+  bool get canCreateCustomActions => this == TariffLevel.director;
 
   int get maxTeamSeats {
     switch (this) {
@@ -100,6 +105,15 @@ class UserTariff {
   bool get isDeveloper => isDirector;
   bool get isProOrHigher => level.isProOrHigher;
   bool get canSwitchThematicWorlds => level.canSwitchThematicWorlds;
+  bool get canCreateCustomMascot => level.canCreateCustomMascot;
+  bool get canUseCustomMethodology => level.canUseCustomMethodology;
+  bool get canUseRestApi => level.canUseRestApi;
+  bool get canGenerateQuarterCourse => level.canGenerateQuarterCourse;
+  bool get canInspectTokens => level.canInspectTokens;
+  bool get canUseMetodistAiBot => level.canUseMetodistAiBot;
+  bool get canUseDeepEnhancement => level.canUseDeepEnhancement;
+  bool get canCreateCustomActions => level.canCreateCustomActions;
+  int get maxTeamSeats => level.maxTeamSeats;
 
   static UserTariff fromString(String str) {
     return UserTariff(TariffLevelExtension.fromId(str));

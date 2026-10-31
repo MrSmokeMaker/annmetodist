@@ -94,6 +94,12 @@ def get_start_keyboard() -> dict:
         'inline_keyboard': [
             [
                 {
+                    'text': '✨ Улучшить с MetodistPro AI',
+                    'callback_data': 'enhance_lesson:Счёт и письмо'
+                }
+            ],
+            [
+                {
                     'text': '🚀 Открыть «Методист Pro» (Mini App)',
                     'web_app': {'url': WEB_APP_URL}
                 }
@@ -568,6 +574,64 @@ def handle_director(chat_id: int):
     send_message(chat_id, text, reply_markup=get_start_keyboard())
 
 
+def handle_enhance_lesson(chat_id: int, topic: str):
+    t = topic.strip() if topic.strip() else 'Счёт и каллиграфия'
+    text = (
+        f'✨ <b>Улучшение урока с MetodistPro AI (Тариф «Директор»)</b>\n\n'
+        f'<i>Тема урока:</i> <b>«{t}»</b>\n'
+        f'━━━━━━━━━━━━━━━━━━━━━\n\n'
+        f'🎭 <b>1. Драматизированный диалог учителя и класса:</b>\n'
+        f'• <i>Учитель:</i> «Ребята, посмотрите на доску! Наш Совёнок спрятал подсказку в старинный сундук. Что произойдет, если мы изменим порядок действий?»\n'
+        f'• <i>Дети (хором):</i> «Ответ изменится! Сундук не откроется!»\n\n'
+        f'⏱️ <b>2. Поминутный тайм-план (40 мин по СанПиН):</b>\n'
+        f'• [00-03 мин] Организационный момент и эмоциональный крючок\n'
+        f'• [03-12 мин] Открытие нового знания и живой диалог\n'
+        f'• [12-15 мин] Физкультминутка Совёнка\n'
+        f'• [15-28 мин] Практическая работа на листах заданий\n'
+        f'• [28-35 мин] Ловушка Незнайки и ТРИЗ-задача\n'
+        f'• [35-40 мин] Рефлексия «Шкала успеха»\n\n'
+        f'🧩 <b>3. ТРИЗ-задача открытого типа:</b>\n'
+        f'Как ученику проверить себя по теме {t}, если рядом нет учителя и подсказок?\n\n'
+        f'🪤 <b>4. Ловушка Незнайки:</b>\n'
+        f'Незнайка утверждает: «Правило для темы {t} работает всегда одинаково, даже если знаки перепутаны!». Дети аргументированно находят ошибку.\n\n'
+        f'📚 <b>5. Дифференцированное ДЗ (3 уровня):</b>\n'
+        f'1. Базовый (ФГОС, 7 мин) — 3 типовых примера.\n'
+        f'2. Продвинутый (10 мин) — пример с подвохом для соседа.\n'
+        f'3. ТРИЗ-вызов — сказка или мини-исследование.\n\n'
+        f'💬 <b>6. Текст для родительского чата (WhatsApp/TG):</b>\n'
+        f'<i>«Здравствуйте, уважаемые родители! Сегодня на уроке ребята успешно освоили тему {t}, решили ТРИЗ-задачу и поймали Незнайку на ошибке. Похвалите сегодня юных исследователей за старания!»</i>\n'
+        f'━━━━━━━━━━━━━━━━━━━━━\n'
+        f'👑 <i>Функция доступна в тарифе «Директор» и в боте MetodistAI (токен 9106775452).</i>'
+    )
+    keyboard = {
+        'inline_keyboard': [
+            [
+                {
+                    'text': '🚀 Открыть в приложении',
+                    'web_app': {'url': f'{WEB_APP_URL}?startapp=assistant'}
+                }
+            ],
+            [
+                {
+                    'text': '💬 Отправить пост родителям',
+                    'callback_data': f'gen_parents:{t}'
+                },
+                {
+                    'text': '📚 Задать 3 уровня ДЗ',
+                    'callback_data': f'gen_hw:{t}'
+                }
+            ],
+            [
+                {
+                    'text': '👑 О тарифе Директор',
+                    'callback_data': 'show_director_info'
+                }
+            ]
+        ]
+    }
+    send_message(chat_id, text, reply_markup=keyboard)
+
+
 def handle_pdf_send(chat_id: int):
     docs_dir = Path(__file__).resolve().parent.parent / 'docs'
     pdf_files = [
@@ -683,6 +747,9 @@ def process_update(update: dict):
 
         if text.startswith('/start'):
             handle_start(chat_id, user)
+        elif text.startswith('/enhance') or text.startswith('/improve'):
+            topic = text.replace('/enhance', '').replace('/improve', '').strip()
+            handle_enhance_lesson(chat_id, topic)
         elif text.startswith('/help'):
             handle_help(chat_id)
         elif text.startswith('/parents'):
@@ -728,7 +795,10 @@ def process_update(update: dict):
 
         answer_callback_query(cq_id)
 
-        if data.startswith('gen_parents:'):
+        if data.startswith('enhance_lesson:'):
+            topic = data.replace('enhance_lesson:', '')
+            handle_enhance_lesson(chat_id, topic)
+        elif data.startswith('gen_parents:'):
             topic = data.replace('gen_parents:', '')
             handle_parents_chat(chat_id, topic)
         elif data.startswith('gen_hw:'):

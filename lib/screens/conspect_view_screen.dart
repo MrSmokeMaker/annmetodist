@@ -36,6 +36,7 @@ import '../services/worksheet_audit_service.dart';
 import '../widgets/task_audit_badge.dart';
 import '../services/lesson_rubric_service.dart';
 import '../services/lesson_context_service.dart';
+import '../widgets/enhance_lesson_modal.dart';
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -515,6 +516,12 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
+            // Улучшить с MetodistPro AI [ДИРЕКТОР]
+            IconButton(
+              tooltip: 'Улучшить с MetodistPro AI [ДИРЕКТОР]',
+              icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFF59E0B)),
+              onPressed: () => _enhanceWithMetodistProAi(context),
+            ),
             // Совёнок-Методист AI
             IconButton(
               tooltip: 'Спросить Совёнка-Методиста AI',
@@ -865,6 +872,10 @@ ${_currentConspect!.content}
 
                     // Тематический игровой мир и маскот YandexART
                         _buildThematicWorldSelectorCard(context, isDark),
+                        const SizedBox(height: AppSpacing.sm),
+
+                        // Кнопка «Улучшить с MetodistPro AI»
+                        _buildEnhanceWithMetodistProAiCard(context, isDark),
                         const SizedBox(height: AppSpacing.sm),
 
                         // Методический аудит качества YandexGPT Pro (QA)
@@ -3957,6 +3968,156 @@ ${_currentConspect!.content}
           ),
         );
       },
+    );
+  }
+
+  void _enhanceWithMetodistProAi(BuildContext context) {
+    if (_currentConspect == null) return;
+    final provider = context.read<AppProvider>();
+    if (!provider.isDirector) {
+      _showDirectorWorldUpgradeSheet(context);
+      return;
+    }
+
+    EnhanceLessonModal.show(
+      context,
+      conspect: _currentConspect!,
+      currentContent: _currentConspect!.content,
+      onApplyEnhanced: (enhancedText) {
+        setState(() {
+          _currentConspect = _currentConspect!.copyWith(
+            content: enhancedText,
+          );
+        });
+        provider.saveConspect(_currentConspect!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✨ Урок успешно обогащён с MetodistPro AI!'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEnhanceWithMetodistProAiCard(BuildContext context, bool isDark) {
+    final provider = context.watch<AppProvider>();
+    final isDirector = provider.isDirector;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E1B4B), const Color(0xFF311042)]
+              : [const Color(0xFFF5F3FF), const Color(0xFFFFFBEB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF6366F1).withOpacity(0.4) : const Color(0xFFC7D2FE),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF4F46E5).withOpacity(0.2) : const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text('✨', style: TextStyle(fontSize: 18)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Улучшить с MetodistPro AI',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B).withOpacity(0.4),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Text(
+                            'ДИРЕКТОР',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFF59E0B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '6-модульное педагогическое обогащение (живой диалог, тайминг, ТРИЗ, Незнайка, 3 уровня ДЗ)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDirector ? const Color(0xFF4F46E5) : const Color(0xFFF59E0B),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 2,
+              ),
+              icon: Icon(
+                isDirector ? Icons.auto_awesome_rounded : Icons.lock_outline_rounded,
+                size: 16,
+              ),
+              label: Text(
+                isDirector ? 'Запустить улучшение урока' : 'Открыть в тарифе «Директор»',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              onPressed: () => _enhanceWithMetodistProAi(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

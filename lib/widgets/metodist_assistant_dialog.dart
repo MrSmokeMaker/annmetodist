@@ -96,11 +96,12 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
         text: 'Здравствуйте! Я **Совёнок-Методист** 🦉\n\n'
             'Я подключён к вашему уроку: **"$initialTopic"** в мире **«$initialWorld»**.\n\n'
             '✨ **Чем помочь прямо сейчас?**\n'
+            '• 🌟 **Улучшить с MetodistPro AI** (глубокое обогащение урока)\n'
             '• 💬 Составить готовый пост для родительского чата\n'
             '• 📚 Разбить домашку на 3 уровня (ФГОС, практика, ТРИЗ)\n'
             '• 🎮 Придумать 10-минутную сюжетную игру-квест\n'
             '• 📝 Сделать экспресс-тест с ключами проверки\n'
-            '• 🤸 Сочинить разминку под СанПиН нормы!',
+            '• ⚡ Добавить свои действия и быстрые команды!',
         timestamp: DateTime.now(),
       ),
     );
@@ -191,6 +192,87 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
         setState(() => _owlState = OwlState.idle);
       }
     });
+  }
+
+  void _showAddCustomActionDialog(BuildContext context, bool isDark) {
+    final titleCtrl = TextEditingController();
+    final promptCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Text('⚡', style: TextStyle(fontSize: 20)),
+            SizedBox(width: 8),
+            Text('Добавить своё действие', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Создайте собственную команду для Совёнка (например: «стишок», «опрос в кругу», «загадка»):',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: titleCtrl,
+              decoration: InputDecoration(
+                labelText: 'Название кнопки/действия',
+                hintText: 'например: 🎵 Стишок',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: promptCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Промпт / Инструкция',
+                hintText: 'например: Сочини забавное четверостишие по теме урока для быстрого запоминания правила',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              final t = titleCtrl.text.trim();
+              final p = promptCtrl.text.trim();
+              if (t.isNotEmpty && p.isNotEmpty) {
+                _aiService.addCustomPrompt(
+                  title: t,
+                  prompt: p,
+                );
+                Navigator.pop(ctx);
+                setState(() {});
+                TelegramWebAppService().hapticNotification('success');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Действие «$t» успешно добавлено!')),
+                );
+              }
+            },
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -413,36 +495,83 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
   }
 
   Widget _buildQuickPromptsBar(bool isDark) {
+    final allPrompts = _aiService.getAllPrompts();
+
     return Container(
       height: 44,
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
-        itemCount: AssistantAiService.quickPrompts.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final prompt = AssistantAiService.quickPrompts[index];
-          return ActionChip(
-            label: Text(
-              prompt.title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+        children: [
+          // Отдельная кнопка «✨ Улучшить с MetodistPro AI»
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              avatar: const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.amber),
+              label: const Text(
+                'Улучшить с MetodistPro AI',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
+              backgroundColor: const Color(0xFF4F46E5),
+              side: const BorderSide(color: Color(0xFF818CF8), width: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              onPressed: () {
+                _sendMessage(
+                  'Проведи глубокое педагогическое улучшение урока: добавь дословные диалоги учителя и детей с таймингом, проблемную ТРИЗ-задачу, ловушку Незнайки, разминку по СанПиН и 3 уровня ДЗ.',
+                  modeOverride: AssistantMode.academic,
+                );
+              },
+            ),
+          ),
+
+          // Все стандартные и пользовательские чипсы
+          ...allPrompts.map((prompt) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ActionChip(
+                label: Text(
+                  prompt.title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                  ),
+                ),
+                backgroundColor: isDark
+                    ? const Color(0xFF1E293B).withOpacity(0.7)
+                    : const Color(0xFFF1F5F9),
+                side: BorderSide(
+                  color: prompt.isCustom
+                      ? const Color(0xFF10B981)
+                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  width: prompt.isCustom ? 1.2 : 0.8,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () => _sendMessage(prompt.prompt, modeOverride: prompt.mode),
+              ),
+            );
+          }),
+
+          // Кнопка добавления кастомного действия
+          ActionChip(
+            avatar: const Icon(Icons.add_rounded, size: 14, color: Color(0xFF10B981)),
+            label: const Text(
+              'Своё действие',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
             ),
             backgroundColor: isDark
-                ? const Color(0xFF1E293B).withOpacity(0.7)
-                : const Color(0xFFF1F5F9),
-            side: BorderSide(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-              width: 0.8,
-            ),
+                ? const Color(0xFF064E3B).withOpacity(0.3)
+                : const Color(0xFFECFDF5),
+            side: const BorderSide(color: Color(0xFF10B981), width: 1),
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            onPressed: () => _sendMessage(prompt.prompt, modeOverride: prompt.mode),
-          );
-        },
+            onPressed: () => _showAddCustomActionDialog(context, isDark),
+          ),
+        ],
       ),
     );
   }

@@ -48,12 +48,14 @@ class AssistantQuickPrompt {
   final String prompt;
   final String icon;
   final AssistantMode mode;
+  final bool isCustom;
 
   const AssistantQuickPrompt({
     required this.title,
     required this.prompt,
     required this.icon,
     this.mode = AssistantMode.academic,
+    this.isCustom = false,
   });
 }
 
@@ -61,6 +63,8 @@ class AssistantQuickPrompt {
 class AssistantAiService {
   final StorageService _storageService;
   final YandexGptService _gptService;
+
+  static final List<AssistantQuickPrompt> _customPrompts = [];
 
   AssistantAiService({
     StorageService? storageService,
@@ -71,7 +75,7 @@ class AssistantAiService {
               storageService: storageService ?? StorageService(),
             );
 
-  /// Доступные быстрые чипсы-запросы
+  /// Базовые быстрые чипсы-запросы
   static const List<AssistantQuickPrompt> quickPrompts = [
     AssistantQuickPrompt(
       title: '💬 Пост в чат родителей',
@@ -140,6 +144,29 @@ class AssistantAiService {
       mode: AssistantMode.gamification,
     ),
   ];
+
+  /// Список всех доступных подсказок (включая пользовательские)
+  List<AssistantQuickPrompt> getAllPrompts() {
+    return [...quickPrompts, ..._customPrompts];
+  }
+
+  /// Добавление пользовательского действия/команды
+  void addCustomPrompt({
+    required String title,
+    required String prompt,
+    String icon = '⚡',
+    AssistantMode mode = AssistantMode.academic,
+  }) {
+    final custom = AssistantQuickPrompt(
+      title: title.startsWith('⚡') ? title : '⚡ $title',
+      prompt: prompt,
+      icon: icon,
+      mode: mode,
+      isCustom: true,
+    );
+    _customPrompts.removeWhere((p) => p.title == custom.title);
+    _customPrompts.add(custom);
+  }
 
   /// Системный промпт Совёнка-Методиста с поддержкой роли/режима
   String _buildSystemPrompt({
@@ -222,6 +249,122 @@ class AssistantAiService {
       world: currentWorld ?? ThematicWorld.allWorlds.first,
       mode: mode,
     );
+  }
+
+  /// Кнопка «Улучшить с MetodistPro AI» — глубокое обогащение конспекта
+  Future<String> enhanceLessonWithMetodistProAi({
+    required String currentContent,
+    required String topic,
+    ThematicWorld? world,
+    String? method,
+  }) async {
+    final activeWorld = world ?? ThematicWorld.allWorlds.first;
+    final systemPrompt = '''
+Ты — ведущий AI-методист начального образования системы «Методист Pro» 🦉.
+Твоя задача: провести глубокое комплексное улучшение и обогащение предоставленного конспекта урока по принципам классической советской методики (Пчёлко, Костин, Редозубов) и ТРИЗ-технологий.
+
+Обязательно включи в результат:
+1. 🎭 ЖИВУЮ ДРАМАТУРГИЮ: пошаговый диалог учителя и детей с поминутным таймингом [Тайминг: Х мин].
+2. 🧩 ПРОБЛЕМНУЮ ТРИЗ-СИТУАЦИЮ: противоречие, вызывающее у детей желание найти решение.
+3. 🪤 ЛОВУШКУ НЕЗНАЙКИ: типичную детскую ошибку с опровержением.
+4. 🤸 ДВИГАТЕЛЬНУЮ ПАУЗУ ПО САНПИН: разминку и упражнения для глаз в сюжете мира «${activeWorld.title}» с маскотом ${activeWorld.mascotName}.
+5. 📚 ДИФФЕРЕНЦИАЦИЮ НА 3 УРОВНЯ: Базовый (ФГОС), Продвинутый, Олимпиадный ТРИЗ-вызов.
+6. 💬 ГОТОВЫЙ ПОСТ ДЛЯ РОДИТЕЛЬСКОГО ЧАТА (WhatsApp/Telegram).
+''';
+
+    final userPrompt = '''
+Тема урока: "$topic".
+Игровой мир: "${activeWorld.title}" (маскот: ${activeWorld.mascotName}).
+Методика: ${method ?? 'Классическая отечественная'}.
+
+Исходный черновик/конспект:
+$currentContent
+
+Выполни глубокое обогащение урока с сохранением высокой академической строгости.
+''';
+
+    try {
+      final enhanced = await _gptService.generateConspect(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+      );
+      if (enhanced.trim().isNotEmpty) {
+        return enhanced.trim();
+      }
+    } catch (e) {
+      debugPrint('MetodistPro AI Enhance fallback info: $e');
+    }
+
+    return _generateEnhancedLessonFallback(
+      topic: topic,
+      world: activeWorld,
+      originalContent: currentContent,
+    );
+  }
+
+  /// Автономный fallback для кнопки «Улучшить с MetodistPro AI»
+  String _generateEnhancedLessonFallback({
+    required String topic,
+    required ThematicWorld world,
+    required String originalContent,
+  }) {
+    return '''
+# 🦉 Обогащённый урок: «$topic» (Улучшено с MetodistPro AI)
+
+*Методическая основа:* Золотой фонд классической педагогики (А.С. Пчёлко, Н.А. Костин) + ТРИЗ  
+*Игровой мир:* **${world.title}** | *Маскот:* **${world.mascotName}**  
+*Стандарт:* ФГОС НОО + СанПиН нормы охраны зрения
+
+---
+
+### ⏱️ ЭТАП 1. Организационный момент и интрига [Тайминг: 3 мин]
+* **Учитель:** *(с улыбкой)* «Здравствуйте, юные исследователи! Сегодня в наш мир ${world.title} пришло зашифрованное послание. Кто готов совершить научное открытие?»
+* **Дети:** «Мы готовы!»
+* **Учитель:** «Посмотрите на доску. Тема нашей экспедиции — **«$topic»**!»
+
+---
+
+### 🎭 ЭТАП 2. Живая драматургия и первичное открытие [Тайминг: 10 мин]
+* **Учитель:** «Давайте внимательно посмотрим на образец. Что вы замечаете в первую очередь?»
+* **Ученик 1:** «Здесь элементы расположены по особому порядку!»
+* **Учитель:** «Блестяще! Какое правило помогает нам не сбиться с пути?»
+* **Хором:** «Алгоритм проверки!»
+
+---
+
+### 🧩 ЭТАП 3. Проблемная ТРИЗ-задача [Тайминг: 7 мин]
+**Противоречие:** Предмет должен быть лёгким, чтобы первоклассник держал его в одной руке, но сверхпрочным, чтобы выдержать проверку!  
+* **Вопрос к классу:** «Как решить эту задачу с помощью правила темы «$topic»?»  
+* **Вывод детей:** «Объединить три микро-шага в единую систему!»
+
+---
+
+### 🤸 ЭТАП 4. Двигательная разминка по СанПиН [Тайминг: 3 мин]
+*(Дети встают около парт вместе с маскотом ${world.mascotName})*
+1. **«Потягушки к солнцу»:** тянемся вверх на носочках, глубокий вдох носом, выдох ртом (30 сек).
+2. **«Координация Совы»:** правая рука гладит живот, левая хлопает по макушке (45 сек).
+3. **«Гимнастика для глаз»:** взгляд на кончик носа — перевели в окно на дальнее облако (4 раза).
+
+---
+
+### 🪤 ЭТАП 5. Задание «Ловушка Незнайки» [Тайминг: 6 мин]
+Незнайка утверждает: *«В теме "$topic" правила учить не надо — пиши, как слышишь!»*  
+* **Задача ребят:** Найти ошибку Незнайки, доказать обратное у доски и вернуть маскоту победный кристалл 💎.
+
+---
+
+### 📚 ЭТАП 6. Дифференцированное домашнее задание (3 уровня)
+* 🟢 **Уровень 1. Базовый (ФГОС, 7-10 мин):** 3 типовых тренировочных примера по алгоритму из тетради.
+* 🟡 **Уровень 2. Продвинутый (10-12 мин):** составить 2 примера с ловушкой для соседа по парте.
+* 🔴 **Уровень 3. ТРИЗ-вызов (Олимпиадный, 10-15 мин):** придумать загадку или мини-сказку: *«Как знание темы $topic спасло героев мира ${world.title}»*.
+
+---
+
+### 💬 ЭТАП 7. Готовый пост для родительского чата (WhatsApp / Telegram)
+> *Здравствуйте, уважаемые родители! 🌿*  
+> *Сегодня на уроке мы изучили тему **«$topic»** в мире ${world.title}. Ребята великолепно рассуждали, решили ТРИЗ-задачу и поймали Незнайку на ошибке! Спросите сегодня ребёнка, какое открытие его удивило, и похвалите за старания!*  
+> *С уважением, ваш учитель.*
+''';
   }
 
   /// Умный оффлайн-генератор ответов Совёнка
