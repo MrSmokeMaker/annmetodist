@@ -51,6 +51,10 @@ def _patched_getaddrinfo(host, port, *args, **kwargs):
     return _orig_getaddrinfo(host, port, *args, **kwargs)
 socket.getaddrinfo = _patched_getaddrinfo
 from pathlib import Path
+try:
+    from yandex_gpt_client import call_yandex_gpt
+except ImportError:
+    from telegram_bot.yandex_gpt_client import call_yandex_gpt
 
 # Загрузка .env файла (если есть)
 env_path = Path(__file__).resolve().parent / '.env'
@@ -480,13 +484,23 @@ def handle_execute_action(chat_id: int, user: dict, action_name: str, topic: str
         tpl = actions[name]
         prompt = tpl.replace('{topic}', t)
 
+        system_prompt = 'Ты методист начальной школы и эксперт педагогики. Выполни педагогическую задачу кратко, интересно, с пользой для детей и в соответствии с ФГОС.'
+        gpt_res = call_yandex_gpt(system_prompt, prompt, timeout=25)
+
+        if gpt_res:
+            res_body = f'{gpt_res}'
+        else:
+            res_body = (
+                f'> <i>«По теме "{t}" юные исследователи открывают чудесное правило! '
+                f'Шаг за шагом алгоритм складывается легко и просто, а знания становятся надёжным фундаментом '
+                f'для новых открытий!»</i>'
+            )
+
         reply = (
             f'⚡ <b>Выполнение кастомного действия «/{name}»:</b>\n\n'
             f'<i>Тема урока:</i> <b>«{t}»</b>\n\n'
-            f'🦉 <b>Результат генерации MetodistAI:</b>\n\n'
-            f'> <i>«По теме "{t}" юные исследователи открывают чудесное правило! '
-            f'Шаг за шагом алгоритм складывается легко и просто, а знания становятся надёжным фундаментом '
-            f'для новых открытий!»</i>\n\n'
+            f'🦉 <b>Результат MetodistAI (YandexGPT Pro):</b>\n\n'
+            f'{res_body}\n\n'
             f'💡 <i>Инструкция выполнена по шаблону: "{prompt}"</i>'
         )
     else:
@@ -1049,13 +1063,27 @@ def handle_owl_assistant(chat_id: int, user: dict, query: str):
         handle_intro(chat_id, query)
         return
 
-    reply = (
-        f'🦉 <b>MetodistAI на связи!</b>\n\n'
-        f'По вашему вопросу: <i>«{query}»</i>\n\n'
-        f'• Рекомендую структурировать этап урока по <b>классической трёхчастной модели</b> (устная разминка → первичное закрепление с образцом → самостоятельная ТРИЗ-задача).\n'
-        f'• В приложении вы можете за 1 клик переключить этот урок в любой из <b>5 игровых миров</b> и сгенерировать цветной лист заданий.\n\n'
-        f'Что сформировать по этой теме прямо сейчас?'
+    system_prompt = (
+        'Ты опытный методист начальной школы и дошкольного образования, персональный AI-ассистент платформы «Методист Pro» (Совёнок-Методист). '
+        'Ты мастер советских методик (Пчёлко, Костин, Редозубов, Мазина) и ТРИЗ-педагогики. '
+        'Давай конкретные, добрые, академически выверенные практические ответы с примерами заданий и репликами учителя для детей. Форматируй с эмодзи-буллетами.'
     )
+    gpt_res = call_yandex_gpt(system_prompt, query, timeout=25)
+
+    if gpt_res:
+        reply = (
+            f'🦉 <b>MetodistAI (YandexGPT Pro):</b>\n\n'
+            f'{gpt_res}\n\n'
+            f'<i>Что сформировать по этой теме прямо сейчас?</i>'
+        )
+    else:
+        reply = (
+            f'🦉 <b>MetodistAI на связи!</b>\n\n'
+            f'По вашему вопросу: <i>«{query}»</i>\n\n'
+            f'• Рекомендую структурировать этап урока по <b>классической трёхчастной модели</b> (устная разминка → первичное закрепление с образцом → самостоятельная ТРИЗ-задача).\n'
+            f'• В приложении вы можете за 1 клик переключить этот урок в любой из <b>5 игровых миров</b> и сгенерировать цветной лист заданий.\n\n'
+            f'Что сформировать по этой теме прямо сейчас?'
+        )
 
     keyboard = {
         'inline_keyboard': [

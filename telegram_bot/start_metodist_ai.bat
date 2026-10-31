@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
-title MetodistAI Bot Daemon (Pro & Director)
-echo [MetodistAI] Запуск персонального AI-ассистента...
+title Metodist Pro Bots Ecosystem (Core & AI Assistant)
+echo [Metodist Pro] Запуск обоих ботов экосистемы...
 cd /d "%~dp0"
-python -u metodist_ai_bot.py
+python -u run_all_bots.py
 pause

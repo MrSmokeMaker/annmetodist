@@ -1,15 +1,18 @@
 version: '3.8'
 
 services:
-  metodist-ai:
+  metodist-bots:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: metodist_ai_bot
+    container_name: metodist_telegram_bots
     restart: always
     environment:
       - PYTHONUNBUFFERED=1
+      - BOT_TOKEN=8839424428:AAG2i4SC7qq6LgeQ1_mXPE4koaCGauYCJlE
       - METODIST_AI_BOT_TOKEN=9106775452:AAHZmVZleB2jeM78FSBRuITBeHFZRFvIPI8
       - WEB_APP_URL=https://mrsmokemaker.github.io/annmetodist/
+      - YANDEX_GPT_PROXY_URL=https://functions.yandexcloud.net/d4eq8r2ueghpmbl5oj3c
+      - YANDEX_MODEL=yandexgpt
     volumes:
       - ./data:/app/telegram_bot/data

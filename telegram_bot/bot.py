@@ -35,6 +35,24 @@ def _patched_getaddrinfo(host, port, *args, **kwargs):
 socket.getaddrinfo = _patched_getaddrinfo
 from pathlib import Path
 
+# Загрузка .env файла (если есть)
+env_path = Path(__file__).resolve().parent / '.env'
+if env_path.exists():
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+    except Exception:
+        pass
+
+try:
+    from yandex_gpt_client import call_yandex_gpt
+except ImportError:
+    from telegram_bot.yandex_gpt_client import call_yandex_gpt
+
 BOT_TOKEN = os.getenv('BOT_TOKEN', '8839424428:AAG2i4SC7qq6LgeQ1_mXPE4koaCGauYCJlE')
 WEB_APP_URL = os.getenv('WEB_APP_URL', 'https://mrsmokemaker.github.io/annmetodist/')
 API_BASE = f'https://api.telegram.org/bot{BOT_TOKEN}'
