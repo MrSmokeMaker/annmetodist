@@ -14,6 +14,7 @@ import '../services/docx_export_service.dart';
 import '../services/pdf_export_service.dart';
 import '../theme.dart';
 import '../widgets/glass_card.dart';
+import 'methodology_architect_screen.dart';
 
 class WorldStudioScreen extends StatefulWidget {
   const WorldStudioScreen({super.key});
@@ -681,7 +682,52 @@ class _WorldStudioScreenState extends State<WorldStudioScreen> with SingleTicker
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFFEC4899)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Text('👑', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Полномасштабный конструктор методик',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          Text(
+                            'Пошаговая генерация тем курса и уроков от 7 страниц + PowerPoint',
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF6366F1),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MethodologyArchitectScreen()),
+                        );
+                      },
+                      child: const Text('Открыть 👑', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               Text(
                 'Создайте уникальную педагогическую методику в дополнение к 7 предустановленным (Пчёлко, Костин, Редозубов, Шаталов, Выготский, Занков, Эльконин-Давыдов).',
                 style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),

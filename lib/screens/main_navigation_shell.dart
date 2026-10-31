@@ -7,6 +7,7 @@ import 'calendar_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'world_studio_screen.dart';
+import 'methodology_architect_screen.dart';
 import '../widgets/generation_type_sheet.dart';
 
 class MainNavigationShell extends StatefulWidget {
@@ -26,6 +27,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   final List<Widget> _pages = const [
     HomeScreen(),
     CalendarScreen(),
+    MethodologyArchitectScreen(),
     WorldStudioScreen(),
     ProfileScreen(),
   ];
@@ -221,13 +223,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           ),
                           _buildDesktopNavItem(
                             index: 2,
-                            icon: Icons.palette_outlined,
-                            activeIcon: Icons.palette_rounded,
-                            label: 'Студия миров',
+                            icon: Icons.psychology_outlined,
+                            activeIcon: Icons.psychology_rounded,
+                            label: '👑 Конструктор методик [DEV]',
                             isDark: isDark,
                           ),
                           _buildDesktopNavItem(
                             index: 3,
+                            icon: Icons.palette_outlined,
+                            activeIcon: Icons.palette_rounded,
+                            label: '🎨 Студия миров [DEV]',
+                            isDark: isDark,
+                          ),
+                          _buildDesktopNavItem(
+                            index: 4,
                             icon: Icons.badge_outlined,
                             activeIcon: Icons.badge_rounded,
                             label: 'Тарифы & Квоты',
@@ -345,16 +354,26 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           child: Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: const EdgeInsets.only(right: 12, top: 4),
-              child: IconButton(
-                icon: const Icon(Icons.settings_outlined, size: 22),
-                tooltip: 'Настройки',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  );
-                },
+              padding: const EdgeInsets.only(right: 8, top: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.calendar_today_outlined, size: 20),
+                    tooltip: 'Расписание',
+                    onPressed: () => setState(() => _currentIndex = 1),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, size: 22),
+                    tooltip: 'Настройки',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ),
@@ -397,10 +416,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
 
                   _buildMobileNavItem(
-                    index: 1,
-                    icon: Icons.calendar_today_outlined,
-                    activeIcon: Icons.calendar_month_rounded,
-                    label: 'План',
+                    index: 2,
+                    icon: Icons.psychology_outlined,
+                    activeIcon: Icons.psychology_rounded,
+                    label: 'Методики 👑',
                     isDark: isDark,
                   ),
 
@@ -408,8 +427,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   GestureDetector(
                     onTap: () => _openCreateSheet(context),
                     child: Container(
-                      width: 48,
-                      height: 48,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         gradient: AppGradients.indigoViolet,
                         shape: BoxShape.circle,
@@ -428,7 +447,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
 
                   _buildMobileNavItem(
-                    index: 2,
+                    index: 3,
                     icon: Icons.palette_outlined,
                     activeIcon: Icons.palette_rounded,
                     label: 'Студия',
@@ -436,7 +455,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
 
                   _buildMobileNavItem(
-                    index: 3,
+                    index: 4,
                     icon: Icons.badge_outlined,
                     activeIcon: Icons.badge_rounded,
                     label: 'Профиль',

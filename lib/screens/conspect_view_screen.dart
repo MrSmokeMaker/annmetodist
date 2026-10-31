@@ -25,6 +25,8 @@ import '../widgets/thinking_indicator.dart';
 import 'lesson_run_screen.dart';
 import 'profile_screen.dart';
 import '../services/docx_export_service.dart';
+import '../services/pptx_export_service.dart';
+import '../services/methodology_architect_service.dart';
 import '../services/surgical_ai_service.dart';
 import '../widgets/interactive_methodist_drawer.dart';
 import '../widgets/block_action_toolbar.dart';
@@ -544,6 +546,12 @@ ${_currentConspect!.content}
               tooltip: 'Экспорт в Word (.docx)',
               icon: const Icon(Icons.description_rounded, color: Color(0xFF3B82F6)),
               onPressed: _exportDocx,
+            ),
+            // PowerPoint export (Тариф Разработчик)
+            IconButton(
+              tooltip: 'Презентация PowerPoint (.pptx) [РАЗРАБОТЧИК]',
+              icon: const Icon(Icons.slideshow_rounded, color: Color(0xFFD97706)),
+              onPressed: _exportPptx,
             ),
             // Toggle edit mode
             IconButton(
@@ -2886,6 +2894,26 @@ ${_currentConspect!.content}
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка экспорта в Word: $e')),
+      );
+    }
+  }
+
+  Future<void> _exportPptx() async {
+    if (_currentConspect == null) return;
+    final isDev = context.read<AppProvider>().isDeveloper;
+    if (!isDev) {
+      _showDeveloperWorldUpgradeSheet(context);
+      return;
+    }
+    try {
+      final pres = MethodologyArchitectService.generatePresentationForLesson(
+        conspect: _currentConspect!,
+      );
+      await PptxExportService.exportPresentation(pres);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка создания презентации PowerPoint: $e')),
       );
     }
   }
