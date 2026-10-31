@@ -1,3 +1,4 @@
+import '../models/lesson_summary_card.dart';
 import 'package:flutter/foundation.dart';
 import 'yandex_gpt_service.dart';
 import 'storage_service.dart';
@@ -605,6 +606,133 @@ $currentContent
 • 🤸 **Физкультминутку по СанПиН**  
 
 Просто нажмите соответствующий чипс или напишите ваш вопрос!
+''';
+  }
+
+  /// Генерация педагогической AI-рефлексии итога урока (YandexGPT Pro)
+  Future<Map<String, String>> generateLessonSummaryReflection({
+    required LessonSummaryCard card,
+    ThematicWorld? world,
+    String? method,
+  }) async {
+    final activeWorld = world ?? ThematicWorld.allWorlds.first;
+    final criteriaSummary = card.criteriaScores.entries
+        .map((e) => '• ${e.key}: ${e.value} из 5')
+        .join('\n');
+    final tagsSummary = card.tags.isNotEmpty
+        ? card.tags.join(', ')
+        : 'Без специфических пометок';
+
+    final systemPrompt = '''
+Ты — Совёнок-Методист Pro 🦉, ведущий AI-наставник и аналитик урока системы «Методист».
+Твоя задача — составить профессиональный, доброжелательный академический анализ проведенного урока для учителя и готовый отчет для родителей.
+Анализ должен опираться на классическую дидактику (Пчёлко, Костин, Редозубов) и принципы развивающего обучения.
+
+Верни ответ СТРОГО в следующем формате:
+---РЕФЛЕКСИЯ---
+📌 **Методический вывод AI-наставника:** (2-3 ёмких предложения об уровне усвоения)
+💡 **Точки роста и фокус на следующий урок:** (конкретные 2-3 шага для закрепления)
+🌟 **Персональная похвала:** (мотивирующие слова для учеников)
+---РОДИТЕЛИ---
+(Тёплое, профессиональное сообщение для родительского чата WhatsApp/TG с итогами и советом на 5 минут без стресса)
+''';
+
+    final userPrompt = '''
+Тема урока: "${card.topic}".
+Ученик / Класс: "${card.studentOrClass}".
+Игровой мир: "${activeWorld.title}" (маскот: ${activeWorld.mascotName}).
+Методика: ${method ?? 'Классическая отечественная'}.
+Средний балл: ${card.averageScore.toStringAsFixed(1)} из 5.0 (${card.masteryPercent}%).
+Оценки по критериям:
+$criteriaSummary
+Пометки и наблюдения учителя:
+$tagsSummary
+Заметки учителя:
+${card.teacherNotes.isNotEmpty ? card.teacherNotes : 'Занятие прошло по плану.'}
+Назначенное ДЗ:
+${card.homeworkAssigned}
+''';
+
+    try {
+      final response = await _gptService.generateConspect(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+      );
+      if (response.trim().isNotEmpty) {
+        final text = response.trim();
+        String reflection = '';
+        String parentChat = '';
+
+        if (text.contains('---РОДИТЕЛИ---')) {
+          final parts = text.split('---РОДИТЕЛИ---');
+          reflection = parts[0].replaceAll('---РЕФЛЕКСИЯ---', '').trim();
+          parentChat = parts[1].trim();
+        } else {
+          reflection = text;
+        }
+
+        return {
+          'aiReflection': reflection,
+          'parentChatMessage': parentChat.isNotEmpty ? parentChat : _generateDefaultParentChat(card, activeWorld),
+        };
+      }
+    } catch (e) {
+      debugPrint('generateLessonSummaryReflection fallback info: $e');
+    }
+
+    return _generateLessonSummaryFallback(card, activeWorld);
+  }
+
+  Map<String, String> _generateLessonSummaryFallback(LessonSummaryCard card, ThematicWorld world) {
+    final avg = card.averageScore;
+    final topic = card.topic;
+    final student = card.studentOrClass;
+
+    String masteryEval;
+    if (avg >= 4.5) {
+      masteryEval = 'Ученик ($student) продемонстрировал великолепное усвоение материала (${avg.toStringAsFixed(1)}/5.0). Правило темы «$topic» понято глубоко, алгоритмическая цепочка выполняется уверенно и без заминок.';
+    } else if (avg >= 3.8) {
+      masteryEval = 'Тема «$topic» освоена на уверенном базовом уровне (${avg.toStringAsFixed(1)}/5.0). Алгоритм решения соблюдается, однако требуется дополнительная автоматизация на тренировочных карточках.';
+    } else {
+      masteryEval = 'По теме «$topic» выявлены точечные затруднения (${avg.toStringAsFixed(1)}/5.0). Рекомендуется уделить 5-7 минут на повторение вводной метафоры и пошаговый разбор аналогичного примера.';
+    }
+
+    final reflection = '''
+📌 **Методический вывод AI-наставника Совёнка:**
+$masteryEval
+
+💡 **Точки роста и фокус на следующий урок:**
+1. Закрепить отработку правила в игровом формате с маскотом ${world.mascotName} на этапе устного счёта/разминки.
+2. Провести экспресс-ловушку Незнайки на 3 минуты для профилактики типичной ошибки.
+3. Поддержать уверенность и самостоятельность при переходе к уровню 2 домашнего задания.
+
+🌟 **Персональная похвала:**
+*«Молодец! Прекрасная концентрация внимания и смелость в рассуждениях. Кристалл знаний мира ${world.title} честно заработан!»*
+''';
+
+    final parentChat = _generateDefaultParentChat(card, world);
+
+    return {
+      'aiReflection': reflection.trim(),
+      'parentChatMessage': parentChat.trim(),
+    };
+  }
+
+  String _generateDefaultParentChat(LessonSummaryCard card, ThematicWorld world) {
+    return '''
+Здравствуйте, уважаемые родители! 🌿
+
+Сегодня на занятии с ${card.studentOrClass} мы успешно разобрали тему **«${card.topic}»** в мире ${world.title}! 
+Средний результат усвоения: **${card.masteryPercent}% (${card.academicStatus})**.
+
+⭐ **Главные успехи урока:**
+• Разобрали ключевой алгоритм и выполнили практические упражнения.
+• Проявили смекалку в ТРИЗ-задаче и нашли спрятанную подсказку Совёнка.
+
+💡 **Совет для дома (5 минут):**
+Похвалите сегодня ребёнка за усердие и спросите: *«Какой пример из темы "${card.topic}" показался тебе самым интересным?»*. Без лишнего давления — только гордость за успехи! ❤️
+
+*С уважением и теплом, ваш учитель.*
 ''';
   }
 }

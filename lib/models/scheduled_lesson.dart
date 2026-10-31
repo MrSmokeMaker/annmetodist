@@ -1,3 +1,5 @@
+import 'lesson_summary_card.dart';
+
 class ScheduledLesson {
   final String id;
   final DateTime date;
@@ -9,6 +11,7 @@ class ScheduledLesson {
   final bool hasWorksheet;
   final bool hasHomework;
   final String? notes;
+  final LessonSummaryCard? summaryCard;
   final DateTime createdAt;
 
   ScheduledLesson({
@@ -22,8 +25,19 @@ class ScheduledLesson {
     this.hasWorksheet = true,
     this.hasHomework = true,
     this.notes,
+    this.summaryCard,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  bool get hasSummaryCard => summaryCard != null;
+
+  /// Является ли занятие прошедшим или сегодняшним (готовым к подведению итогов)
+  bool get isPastOrToday {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lessonDay = DateTime(date.year, date.month, date.day);
+    return !lessonDay.isAfter(today);
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -37,6 +51,7 @@ class ScheduledLesson {
       'hasWorksheet': hasWorksheet,
       'hasHomework': hasHomework,
       'notes': notes,
+      'summaryCard': summaryCard?.toMap(),
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -53,6 +68,9 @@ class ScheduledLesson {
       hasWorksheet: map['hasWorksheet'] == true || map['hasWorksheet'] == 1,
       hasHomework: map['hasHomework'] == true || map['hasHomework'] == 1,
       notes: map['notes']?.toString(),
+      summaryCard: map['summaryCard'] != null
+          ? LessonSummaryCard.fromMap(Map<String, dynamic>.from(map['summaryCard']))
+          : null,
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
@@ -68,6 +86,8 @@ class ScheduledLesson {
     bool? hasWorksheet,
     bool? hasHomework,
     String? notes,
+    LessonSummaryCard? summaryCard,
+    bool clearSummaryCard = false,
     DateTime? createdAt,
   }) {
     return ScheduledLesson(
@@ -81,6 +101,7 @@ class ScheduledLesson {
       hasWorksheet: hasWorksheet ?? this.hasWorksheet,
       hasHomework: hasHomework ?? this.hasHomework,
       notes: notes ?? this.notes,
+      summaryCard: clearSummaryCard ? null : (summaryCard ?? this.summaryCard),
       createdAt: createdAt ?? this.createdAt,
     );
   }

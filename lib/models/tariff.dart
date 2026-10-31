@@ -49,6 +49,9 @@ extension TariffLevelExtension on TariffLevel {
   bool get canUseDeepEnhancement => this == TariffLevel.director;
   bool get canCreateCustomActions => this == TariffLevel.director;
 
+  /// Добавление в календарь у прошедших занятий карточки итога урока с критериями, пометками и PDF-экспортом (Metodist Pro и выше)
+  bool get canUseLessonSummaryCard => isProOrHigher;
+
   int get maxTeamSeats {
     switch (this) {
       case TariffLevel.director:
@@ -113,6 +116,7 @@ class UserTariff {
   bool get canUseMetodistAiBot => level.canUseMetodistAiBot;
   bool get canUseDeepEnhancement => level.canUseDeepEnhancement;
   bool get canCreateCustomActions => level.canCreateCustomActions;
+  bool get canUseLessonSummaryCard => level.canUseLessonSummaryCard;
   int get maxTeamSeats => level.maxTeamSeats;
 
   static UserTariff fromString(String str) {

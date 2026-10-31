@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+import 'package:metodist/models/lesson_summary_card.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
@@ -3592,4 +3594,490 @@ static List<pw.Widget> _buildContentWidgets(
   }) =>
       _buildContentWidgets(content, regular, bold, sectionIcons, starGold: starGold, starGray: starGray, isWorksheetOrHomework: isWorksheetOrHomework);
 
+
+  /// Генерация PDF-байтов карточки итога урока в премиальном executive-дизайне Mobbin
+  static Future<Uint8List> generateLessonSummaryPdfBytes(
+    LessonSummaryCard card, {
+    ThematicWorld? world,
+    String? methodology,
+  }) async {
+    final pdf = pw.Document();
+    final effectiveWorld = world ?? ThematicWorld.fromId(card.thematicWorldId);
+
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontItalic = await PdfGoogleFonts.robotoItalic();
+
+    final mascotImage = await _loadWorldMascot(effectiveWorld, null);
+
+    final worldPrimary = effectiveWorld.pdfPrimary;
+    final worldSecondary = effectiveWorld.pdfSecondary;
+    final worldAccent = effectiveWorld.pdfAccent;
+
+    final bgLight = _withOpacity(worldSecondary, 0.08);
+    final borderCol = _withOpacity(worldPrimary, 0.35);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        theme: pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+          italic: fontItalic,
+          fontFallback: [fontRegular, fontBold],
+        ),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              // 1. Hero Header Banner (Mobbin Minimalist Executive)
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: bgLight,
+                  borderRadius: pw.BorderRadius.circular(10),
+                  border: pw.Border.all(color: borderCol, width: 1.2),
+                ),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: pw.BoxDecoration(
+                                  color: worldPrimary,
+                                  borderRadius: pw.BorderRadius.circular(4),
+                                ),
+                                child: pw.Text(
+                                  'МЕТОДИСТ PRO • КАРТОЧКА ИТОГА УРОКА',
+                                  style: pw.TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              pw.SizedBox(width: 6),
+                              pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: pw.BoxDecoration(
+                                  color: _withOpacity(worldAccent, 0.2),
+                                  borderRadius: pw.BorderRadius.circular(4),
+                                  border: pw.Border.all(color: worldAccent, width: 0.8),
+                                ),
+                                child: pw.Text(
+                                  _replaceEmojisWithSymbols(effectiveWorld.title),
+                                  style: pw.TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: worldPrimary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          pw.SizedBox(height: 6),
+                          pw.Text(
+                            _replaceEmojisWithSymbols(card.topic),
+                            style: pw.TextStyle(
+                              fontSize: 15,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.grey900,
+                            ),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            'Ученик / Класс: ${_replaceEmojisWithSymbols(card.studentOrClass)}  |  Дата: ${DateFormat('dd.MM.yyyy').format(card.date)}  |  Методика: ${methodology != null && methodology.isNotEmpty ? _replaceEmojisWithSymbols(methodology) : "ФГОС НОО"}',
+                            style: const pw.TextStyle(
+                              fontSize: 9,
+                              color: PdfColors.grey700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (mascotImage != null) ...[
+                      pw.SizedBox(width: 12),
+                      pw.Container(
+                        width: 48,
+                        height: 48,
+                        decoration: pw.BoxDecoration(
+                          shape: pw.BoxShape.circle,
+                          border: pw.Border.all(color: worldAccent, width: 2),
+                        ),
+                        child: pw.ClipOval(
+                          child: pw.Image(mascotImage, fit: pw.BoxFit.cover),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 8),
+
+              // 2. Executive KPI Scoreboard (3 Mobbin Stat Tiles)
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    flex: 4,
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        borderRadius: pw.BorderRadius.circular(8),
+                        border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'ОБЩИЙ БАЛЛ УСВОЕНИЯ',
+                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                '${card.averageScore.toStringAsFixed(1)}',
+                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: worldPrimary),
+                              ),
+                              pw.Text(' / 5.0', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                              pw.Spacer(),
+                              pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: pw.BoxDecoration(
+                                  color: worldPrimary,
+                                  borderRadius: pw.BorderRadius.circular(4),
+                                ),
+                                child: pw.Text(
+                                  '${card.masteryPercent}%',
+                                  style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(width: 8),
+                  pw.Expanded(
+                    flex: 5,
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        borderRadius: pw.BorderRadius.circular(8),
+                        border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'СТАТУС ПО ФГОС',
+                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            _replaceEmojisWithSymbols(card.academicStatus),
+                            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey900),
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(width: 8),
+                  pw.Expanded(
+                    flex: 4,
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        borderRadius: pw.BorderRadius.circular(8),
+                        border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'ДОМАШНЕЕ ЗАДАНИЕ',
+                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            _replaceEmojisWithSymbols(card.homeworkAssigned),
+                            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: worldPrimary),
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 8),
+
+              // 3. Criteria Table with Progress Bars
+              pw.Container(
+                padding: const pw.EdgeInsets.all(8),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'ОЦЕНКА УСВОЕНИЯ ПО КРИТЕРИЯМ (1 - 5)',
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                        color: worldPrimary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    ...card.criteriaScores.entries.map((entry) {
+                      final val = entry.value.clamp(1, 5);
+                      final progress = val / 5.0;
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                        child: pw.Row(
+                          children: [
+                            pw.Expanded(
+                              flex: 6,
+                              child: pw.Text(
+                                _replaceEmojisWithSymbols(entry.key),
+                                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
+                              ),
+                            ),
+                            pw.SizedBox(width: 8),
+                            pw.Container(
+                              width: 110,
+                              height: 6,
+                              decoration: pw.BoxDecoration(
+                                color: PdfColors.grey200,
+                                borderRadius: pw.BorderRadius.circular(3),
+                              ),
+                              child: pw.Row(
+                                children: [
+                                  pw.Container(
+                                    width: 110 * progress,
+                                    height: 6,
+                                    decoration: pw.BoxDecoration(
+                                      color: val >= 4 ? worldPrimary : (val == 3 ? PdfColors.amber700 : PdfColors.red700),
+                                      borderRadius: pw.BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            pw.SizedBox(width: 8),
+                            pw.Container(
+                              width: 28,
+                              alignment: pw.Alignment.centerRight,
+                              child: pw.Text(
+                                '$val / 5',
+                                style: pw.TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.grey900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 6),
+
+              // 4. Tags & Observations Pill Cloud
+              if (card.tags.isNotEmpty || card.teacherNotes.isNotEmpty) ...[
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: PdfColors.grey300, width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ПОМЕТКИ И НАБЛЮДЕНИЯ УЧИТЕЛЯ',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: worldPrimary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      if (card.tags.isNotEmpty)
+                        pw.Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: card.tags.map((t) {
+                            return pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: pw.BoxDecoration(
+                                color: _withOpacity(worldSecondary, 0.12),
+                                borderRadius: pw.BorderRadius.circular(10),
+                                border: pw.Border.all(color: _withOpacity(worldPrimary, 0.3), width: 0.6),
+                              ),
+                              child: pw.Text(
+                                _replaceEmojisWithSymbols(t),
+                                style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: worldPrimary),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      if (card.teacherNotes.isNotEmpty) ...[
+                        pw.SizedBox(height: 4),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(5),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.grey100,
+                            border: pw.Border(left: pw.BorderSide(color: worldPrimary, width: 2.5)),
+                          ),
+                          child: pw.Text(
+                            _replaceEmojisWithSymbols(card.teacherNotes),
+                            style: const pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: PdfColors.grey800),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+              ],
+
+              // 5. YandexGPT Pro AI Reflection Box
+              if (card.aiReflection != null && card.aiReflection!.isNotEmpty) ...[
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: _withOpacity(PdfColors.indigo50, 0.7),
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: _withOpacity(PdfColors.indigo400, 0.4), width: 1),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ПЕДАГОГИЧЕСКИЙ АНАЛИЗ AI-НАСТАВНИКА СОВЁНКА (YANDEXGPT PRO)',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.indigo900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        _replaceEmojisWithSymbols(card.aiReflection!),
+                        style: const pw.TextStyle(
+                          fontSize: 7.5,
+                          color: PdfColors.grey900,
+                          lineSpacing: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+              ],
+
+              // 6. Parent Chat Announcement (WhatsApp/TG)
+              if (card.parentChatMessage != null && card.parentChatMessage!.isNotEmpty) ...[
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: PdfColors.green300, width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ТЕКСТ ДЛЯ РОДИТЕЛЬСКОГО ЧАТА (WHATSAPP / TELEGRAM)',
+                        style: const pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.green800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        _replaceEmojisWithSymbols(card.parentChatMessage!),
+                        style: const pw.TextStyle(
+                          fontSize: 7.5,
+                          color: PdfColors.grey800,
+                          lineSpacing: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+              ],
+
+              pw.Spacer(),
+
+              // 7. Executive Footer & Stamp
+              pw.Container(
+                padding: const pw.EdgeInsets.only(top: 6),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300, width: 0.8)),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Методист Pro • Цифровая образовательная экосистема • YandexGPT Pro & YandexART',
+                      style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600),
+                    ),
+                    pw.Text(
+                      'Подпись учителя: _________________  Дата: ${DateFormat('dd.MM.yyyy').format(DateTime.now())}',
+                      style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return await pdf.save();
+  }
+
+  /// Экспорт и распечатка PDF карточки итога урока
+  static Future<void> exportLessonSummaryPdf(
+    LessonSummaryCard card, {
+    ThematicWorld? world,
+    String? methodology,
+  }) async {
+    final bytes = await generateLessonSummaryPdfBytes(card, world: world, methodology: methodology);
+    final filename = 'lesson_summary_${card.topic.replaceAll(RegExp(r'[^a-zA-Z0-9а-яА-Я]'), '_')}.pdf';
+    await Printing.sharePdf(bytes: bytes, filename: filename);
+  }
 }

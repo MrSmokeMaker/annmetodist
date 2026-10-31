@@ -42,6 +42,7 @@ class AppProvider with ChangeNotifier {
   bool get isDirector => _currentTariff.isDirector;
   bool get isDeveloper => isDirector;
   bool get canSwitchThematicWorlds => _currentTariff.canSwitchThematicWorlds;
+  UserTariff get userTariff => UserTariff(_currentTariff);
 
   void setTariff(TariffLevel level) {
     _currentTariff = level;
