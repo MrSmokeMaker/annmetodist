@@ -131,7 +131,7 @@ class _AppNewsModalState extends State<AppNewsModal> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark, bool isSmallScreen) {
-    final currentVer = _newsData?['currentVersion'] ?? 'v0.6.0';
+    final currentVer = _newsData?['currentVersion'] ?? 'v0.6.1';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 20, 16),
@@ -264,8 +264,12 @@ class _AppNewsModalState extends State<AppNewsModal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Version & Badge Row
-              Row(
+              // Version & Badge Wrap
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -283,7 +287,6 @@ class _AppNewsModalState extends State<AppNewsModal> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   if (badge.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
@@ -302,7 +305,6 @@ class _AppNewsModalState extends State<AppNewsModal> {
                         ),
                       ),
                     ),
-                  const Spacer(),
                   Text(
                     date,
                     style: TextStyle(

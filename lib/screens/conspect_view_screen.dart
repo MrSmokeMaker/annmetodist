@@ -56,6 +56,8 @@ class ConspectViewScreen extends StatefulWidget {
   final Set<GenerationType>? materials;
   final bool isDeepLesson;
   final bool inclusionMode;
+  final bool roleShiftingMode;
+  final bool ecoLowTechMode;
 
   const ConspectViewScreen({
     super.key,
@@ -73,6 +75,8 @@ class ConspectViewScreen extends StatefulWidget {
     this.materials,
     this.isDeepLesson = false,
     this.inclusionMode = false,
+    this.roleShiftingMode = true,
+    this.ecoLowTechMode = false,
   });
 
   @override
@@ -193,6 +197,8 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
           inclusionMode: widget.inclusionMode,
+          roleShiftingMode: widget.roleShiftingMode,
+          ecoLowTechMode: widget.ecoLowTechMode,
         );
 
         setState(() {
@@ -216,6 +222,8 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
           inclusionMode: widget.inclusionMode,
+          roleShiftingMode: widget.roleShiftingMode,
+          ecoLowTechMode: widget.ecoLowTechMode,
         );
 
         setState(() {
@@ -660,17 +668,17 @@ ${_currentConspect!.content}
               icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6)),
               onPressed: () => AudioDictationModal.show(context, _currentConspect!),
             ),
-            // Студия «Аудио-заметка родителю» [PRO]
+            // Eco-печать 2-в-1
             IconButton(
-              tooltip: 'Студия «Аудио-заметка родителю» [PRO]',
-              icon: const Icon(Icons.headphones_rounded, color: Color(0xFF06B6D4)),
-              onPressed: () => ParentAudioStudioModal.show(context, _currentConspect!),
+              tooltip: 'Eco-печать 2-в-1 (2 ученика на 1 лист А4)',
+              icon: const Icon(Icons.print_outlined, color: Color(0xFF10B981)),
+              onPressed: _exportEcoPrintPdf,
             ),
-            // Интерактивный аудио-диктант [PRO]
+            // План меловой доски (Zero-Paper)
             IconButton(
-              tooltip: 'Интерактивный аудио-диктант [PRO]',
-              icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6)),
-              onPressed: () => AudioDictationModal.show(context, _currentConspect!),
+              tooltip: 'План меловой доски (Zero-Paper)',
+              icon: const Icon(Icons.space_dashboard_outlined, color: Color(0xFF06B6D4)),
+              onPressed: () => _showChalkboardModal(context),
             ),
             // Шаг 4: Вести урок
             IconButton(
@@ -1017,10 +1025,12 @@ ${_currentConspect!.content}
                     ),
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Шаг 3: Аудио-подсказка для родителя и интерактивный аудио-диктант
+                    // Шаг 3: Аудио-подсказка для родителя, диктант и меловая доска
                     _buildParentAudioHintBanner(isDark),
                     const SizedBox(height: AppSpacing.xs),
                     _buildAudioDictationBanner(isDark),
+                    const SizedBox(height: AppSpacing.xs),
+                    _buildChalkboardBanner(isDark),
 
                     const SizedBox(height: AppSpacing.md),
 
@@ -1723,6 +1733,249 @@ ${_currentConspect!.content}
     );
   }
 
+
+
+  Future<void> _exportEcoPrintPdf() async {
+    if (_currentConspect == null) return;
+    try {
+      await PdfExportService.exportEcoPrint2in1Pdf(_currentConspect!);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка создания Eco-Print: $e')),
+      );
+    }
+  }
+
+  void _showChalkboardModal(BuildContext context) {
+    if (_currentConspect == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final layout = PromptBuilder.extractChalkboardLayout(_currentConspect!.content) ??
+        '### 📋 Разметка меловой доски (Zero-Paper)\n\n'
+        '**Левая створка:** Опорный банк, числовой домик / словарные слова с выделенными орфограммами.\n\n'
+        '**Центральная створка:** Главное правило урока, наглядная CPA-модель и разобранный образец решения.\n\n'
+        '**Правая створка:** Задания для самостоятельной работы: Уровень 1 • Старт (2 примера), Уровень 2 • Практик (с самопроверкой зеленым карандашом).';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161922) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF06B6D4).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.space_dashboard_rounded, color: Color(0xFF06B6D4), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Эскиз меловой доски (Zero-Paper)',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '3 створки доски для урока без распечатки и принтера',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 20),
+                    tooltip: 'Скопировать разметку',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: layout));
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Эскиз доски скопирован в буфер')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+                ),
+                child: MarkdownBody(
+                  data: layout,
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                    h3: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF06B6D4),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Понятно'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Плашка «План меловой доски (Zero-Paper) & Eco-Print»
+  Widget _buildChalkboardBanner(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
+      borderRadius: AppRadii.lg,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppGradients.cyanBlue,
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+            ),
+            child: const Icon(
+              Icons.space_dashboard_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Меловая доска & Eco-Print',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF06B6D4).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'ZERO-PAPER',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF06B6D4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '3 створки школьной доски (без принтера) или печать 2-в-1 на лист А4 (-50% бумаги)',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              side: const BorderSide(color: Color(0xFF06B6D4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            icon: const Icon(Icons.dashboard_outlined, size: 15, color: Color(0xFF06B6D4)),
+            label: const Text(
+              'Доска',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF06B6D4),
+              ),
+            ),
+            onPressed: () => _showChalkboardModal(context),
+          ),
+          const SizedBox(width: 6),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            icon: const Icon(Icons.print_outlined, size: 15),
+            label: const Text(
+              '2-в-1',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            onPressed: _exportEcoPrintPdf,
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Быстрая плашка «Интерактивный аудио-диктант [PRO]»
   Widget _buildAudioDictationBanner(bool isDark) {

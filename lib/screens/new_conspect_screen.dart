@@ -57,6 +57,12 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   // Режим нейроадаптации и инклюзии (ОВЗ / СДВГ / Дислексия)
   bool _isInclusionMode = false;
 
+  // Кооперативное обучение и смены ролей в парах
+  bool _isRoleShiftingEnabled = true;
+
+  // Лаборатория подручных материалов (CPA) и меловая доска (Zero-Paper)
+  bool _isEcoLowTechEnabled = false;
+
   // Выбор генерируемых материалов
   late Set<GenerationType> _selectedMaterials;
 
@@ -255,6 +261,8 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           materials: _selectedMaterials,
           isDeepLesson: _isDeepLesson,
           inclusionMode: _isInclusionMode,
+          roleShiftingMode: _isRoleShiftingEnabled,
+          ecoLowTechMode: _isEcoLowTechEnabled,
           isNewGeneration: true,
         ),
       ),
@@ -508,6 +516,10 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                     setState(() {
                       _selectedMethod = method;
                       _selectedTopic = null;
+                      if (method.id == 'singapore_cpa') {
+                        _isEcoLowTechEnabled = true;
+                        _isRoleShiftingEnabled = true;
+                      }
                     });
                   }
                 },
@@ -1212,6 +1224,168 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
             ),
           ),
 
+
+          const SizedBox(height: AppSpacing.sm),
+
+          // Переключатель: Смены ролей учеников (Кооперативное обучение)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0x12FFFFFF) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: _isRoleShiftingEnabled
+                    ? const Color(0xFF8B5CF6).withOpacity(0.5)
+                    : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: _isRoleShiftingEnabled ? AppGradients.violetMagenta : null,
+                    color: _isRoleShiftingEnabled ? null : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.06)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.people_outline_rounded,
+                    size: 18,
+                    color: _isRoleShiftingEnabled ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Смены ролей в парах',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Кооперация',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF8B5CF6),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Штурман (мыслит) ➔ Летописец (пишет) ➔ Контролёр с зелёным карандашом (проверяет)',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _isRoleShiftingEnabled,
+                  activeColor: const Color(0xFF8B5CF6),
+                  onChanged: (val) => setState(() => _isRoleShiftingEnabled = val),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.sm),
+
+          // Переключатель: Лаборатория подручных материалов & Меловая доска
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0x12FFFFFF) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: _isEcoLowTechEnabled
+                    ? const Color(0xFF06B6D4).withOpacity(0.5)
+                    : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: _isEcoLowTechEnabled ? AppGradients.cyanBlue : null,
+                    color: _isEcoLowTechEnabled ? null : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.06)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.eco_outlined,
+                    size: 18,
+                    color: _isEcoLowTechEnabled ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Подручные материалы & Доска',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF06B6D4).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'CPA / Эко',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF06B6D4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Осязаемые предметы (фасоль, спички) и план 3 створок доски для урока без принтера',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _isEcoLowTechEnabled,
+                  activeColor: const Color(0xFF06B6D4),
+                  onChanged: (val) => setState(() => _isEcoLowTechEnabled = val),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: AppSpacing.sm),
 

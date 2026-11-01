@@ -10,6 +10,7 @@ import 'package:metodist/models/thematic_world.dart';
 import 'package:metodist/services/yandex_art_service.dart';
 import 'package:metodist/models/printable_card.dart';
 import 'package:metodist/services/pdf_icons_helper.dart';
+import 'prompt_builder.dart';
 
 /// Типы материалов для генерации
 enum PdfMaterialType {
@@ -4333,6 +4334,219 @@ static List<pw.Widget> _buildContentWidgets(
   }) async {
     final bytes = await generateLessonSummaryPdfBytes(card, world: world, methodology: methodology);
     final filename = 'lesson_summary_${card.topic.replaceAll(RegExp(r'[^a-zA-Z0-9а-яА-Я]'), '_')}.pdf';
+    await Printing.sharePdf(bytes: bytes, filename: filename);
+  }
+
+  /// Генерация Eco-Print 2-в-1 PDF: две идентичные карточки формата А5 на одном листе А4 (альбомная ориентация)
+  static Future<Uint8List> generateEcoPrint2in1PdfBytes(Conspect conspect) async {
+    final pdf = pw.Document();
+
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+
+    // Извлекаем правило и текст заданий
+    String ruleText = 'Рассуждай по шагам, применяй главное правило и проверяй ответ!';
+    final lines = conspect.content.split('\n');
+    final extractedTasks = <String>[];
+    String? pisaCase = PromptBuilder.extractPisaLifeCase(conspect.content);
+
+    bool inRule = false;
+    final ruleBuffer = StringBuffer();
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.toLowerCase().contains('главное правило')) {
+        inRule = true;
+        continue;
+      }
+      if (inRule) {
+        if (trimmed.startsWith('#') || (trimmed.isEmpty && ruleBuffer.isNotEmpty)) {
+          inRule = false;
+        } else if (trimmed.isNotEmpty) {
+          ruleBuffer.writeln(trimmed);
+        }
+      }
+
+      if (trimmed.startsWith('**Задание') || trimmed.startsWith('#### Задание') || trimmed.startsWith('Задание 1:') || trimmed.startsWith('Задание 2:') || trimmed.startsWith('Задание 3:') || trimmed.startsWith('Задание 4:')) {
+        extractedTasks.add(trimmed.replaceAll('*', ''));
+      }
+    }
+
+    if (ruleBuffer.isNotEmpty) {
+      ruleText = ruleBuffer.toString().trim();
+      if (ruleText.length > 140) {
+        ruleText = '${ruleText.substring(0, 137)}...';
+      }
+    }
+
+    final taskItems = extractedTasks.isNotEmpty
+        ? extractedTasks.take(4).toList()
+        : [
+            '1. Старт: Выполни образец по указанию учителя у доски.',
+            '2. Практик: Заполни таблицу соответствий в тетради.',
+            '3. Ловушка Незнайки: Найди ошибку и обоснуй верный ответ.',
+          ];
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        theme: pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+          fontFallback: [fontRegular, fontBold],
+        ),
+        build: (context) {
+          pw.Widget buildCardHalf(String studentNumber) {
+            return pw.Container(
+              width: 380,
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey600, width: 0.8),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'РАБОЧИЙ ЛИСТ • ЭКО-ФОРМАТ А5',
+                            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                          ),
+                          pw.SizedBox(height: 2),
+                          pw.Container(
+                            constraints: const pw.BoxConstraints(maxWidth: 260),
+                            child: pw.Text(
+                              conspect.title,
+                              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.indigo50,
+                          border: pw.Border.all(color: PdfColors.indigo700, width: 0.6),
+                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
+                        child: pw.Text(
+                          conspect.ageGroup,
+                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Row(
+                    children: [
+                      pw.Text('Ученик: __________________________', style: const pw.TextStyle(fontSize: 8)),
+                      pw.Spacer(),
+                      pw.Text('Дата: __________', style: const pw.TextStyle(fontSize: 8)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey100,
+                      borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
+                    ),
+                    child: pw.Text(
+                      'Правило: $ruleText',
+                      style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                      maxLines: 2,
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        ...taskItems.map((item) => pw.Padding(
+                              padding: const pw.EdgeInsets.only(bottom: 6),
+                              child: pw.Text(
+                                item,
+                                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey900),
+                                maxLines: 2,
+                              ),
+                            )),
+                        if (pisaCase != null) ...[
+                          pw.SizedBox(height: 4),
+                          pw.Container(
+                            width: double.infinity,
+                            padding: const pw.EdgeInsets.all(5),
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.teal50,
+                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
+                            ),
+                            child: pw.Text(
+                              '🌍 Жизненный кейс (PISA): ${pisaCase.length > 150 ? pisaCase.substring(0, 147) + "..." : pisaCase}',
+                              style: const pw.TextStyle(fontSize: 7, color: PdfColors.teal900),
+                              maxLines: 3,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Самопроверка: ⭐ ⭐ ⭐', style: const pw.TextStyle(fontSize: 7)),
+                      pw.Text('🌱 Eco-Print: 2 ученика на 1 лист А4', style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey600)),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              buildCardHalf('1'),
+              pw.Container(
+                width: 32,
+                alignment: pw.Alignment.center,
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Text('✁', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                    pw.SizedBox(height: 4),
+                    ...List.generate(16, (i) => pw.Container(
+                          width: 1,
+                          height: 14,
+                          margin: const pw.EdgeInsets.symmetric(vertical: 2.5),
+                          color: PdfColors.grey400,
+                        )),
+                    pw.SizedBox(height: 4),
+                    pw.Text('✁', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                  ],
+                ),
+              ),
+              buildCardHalf('2'),
+            ],
+          );
+        },
+      ),
+    );
+
+    return await pdf.save();
+  }
+
+  /// Экспорт и распечатка Eco-Print 2-в-1 PDF
+  static Future<void> exportEcoPrint2in1Pdf(Conspect conspect) async {
+    final bytes = await generateEcoPrint2in1PdfBytes(conspect);
+    final filename = 'eco_print_2in1_${conspect.topic.replaceAll(RegExp(r'[^a-zA-Z0-9а-яА-Я]'), '_')}.pdf';
     await Printing.sharePdf(bytes: bytes, filename: filename);
   }
 }

@@ -104,6 +104,51 @@ class AppStoriesData {
         ],
       ),
 
+      // 1.1 Сингапурский метод и PISA
+      AppStoryGroup(
+        id: 'singapore_pisa',
+        title: 'Сингапур & PISA',
+        authorName: 'Мировой уровень',
+        avatarEmoji: '🇸🇬',
+        ringColors: const [Color(0xFF06B6D4), Color(0xFF3B82F6), Color(0xFF10B981)],
+        slides: [
+          const AppStorySlide(
+            id: 'singapore_1',
+            badge: 'ТОП-1 В МИРЕ (PISA & TIMSS)',
+            title: 'Сингапурский метод: от спичек к олимпиадной логике',
+            subtitle: 'Как учить глубоко на простых подручных предметах',
+            description:
+                'Трёхступенчатый CPA-подход (Concrete -> Pictorial -> Abstract): ребёнок сначала трогает предметы руками, затем строит наглядную блок-модель (Bar Model), и лишь потом пишет формулу. Понимание без слепой зубрёжки!',
+            bulletPoints: [
+              'C (Concrete): спички, пуговицы, фасоль из кармана',
+              'P (Pictorial): метод полосок Bar Modeling в тетради',
+              'A (Abstract): осознанная математическая запись формул',
+            ],
+            iconEmoji: '🇸🇬',
+            ctaLabel: 'Попробовать CPA-метод',
+            ctaAction: StoryActionType.openGenerator,
+            gradientColors: [Color(0xFF083344), Color(0xFF0E7490)],
+          ),
+          const AppStorySlide(
+            id: 'singapore_2',
+            badge: 'СЕЛЬСКАЯ ЛАБОРАТОРИЯ',
+            title: 'Функциональная грамотность в реальной жизни',
+            subtitle: 'Математика за пределами школьной доски',
+            description:
+                'Каждый урок вооружает ребёнка жизненными кейсами: расчёт семян для грядки, взвешивание без гирь, экономика сельской ярмарки. Даже в сельской школе ребёнок получает старт мирового уровня.',
+            bulletPoints: [
+              'Eco-Print 2-в-1: экономия 50% бумаги для сельских школ',
+              'Меловая доска (Zero-Paper): эталонный урок без принтера',
+              'Смена ролей: 100% включение каждого ученика без шума',
+            ],
+            iconEmoji: '🌍',
+            ctaLabel: 'Создать урок PISA',
+            ctaAction: StoryActionType.openGenerator,
+            gradientColors: [Color(0xFF064E3B), Color(0xFF047857)],
+          ),
+        ],
+      ),
+
       // 2. Игровые миры и маскоты
       AppStoryGroup(
         id: 'worlds',
@@ -313,6 +358,7 @@ class AppStoriesData {
           ),
         ],
       ),
+
     ];
   }
 }

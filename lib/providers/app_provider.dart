@@ -251,6 +251,12 @@ class AppProvider with ChangeNotifier {
 
   // Topics Filter
   List<Topic> getTopicsFor(String methodId, String ageGroup) {
+    if (methodId == 'singapore_cpa') {
+      return _methodRepository.getTopicsByFilter(
+        methodId: 'pchelko_math',
+        ageGroup: ageGroup,
+      );
+    }
     return _methodRepository.getTopicsByFilter(
       methodId: methodId,
       ageGroup: ageGroup,
@@ -301,6 +307,8 @@ class AppProvider with ChangeNotifier {
     bool useEnhancedPrompts = true, // Новый параметр для использования улучшенных промптов
     bool isDeepLesson = false,
     bool inclusionMode = false,
+    bool roleShiftingMode = true,
+    bool ecoLowTechMode = false,
   }) async {
     // Проверка кеша для одиночной генерации
     final cacheKey = LessonCacheService.computeCacheKey(
@@ -341,6 +349,8 @@ class AppProvider with ChangeNotifier {
         materials: materials,
         inclusionMode: inclusionMode,
         miniModuleMode: materials?.contains(GenerationType.miniModule) ?? false,
+        roleShiftingMode: roleShiftingMode,
+        ecoLowTechMode: ecoLowTechMode || method.id == 'singapore_cpa',
       );
 
       final userPrompt = PromptBuilder.buildUserPrompt(
@@ -521,6 +531,8 @@ class AppProvider with ChangeNotifier {
     Set<GenerationType>? materials,
     bool isDeepLesson = false,
     bool inclusionMode = false,
+    bool roleShiftingMode = true,
+    bool ecoLowTechMode = false,
   }) async {
     _isGenerating = true;
     _errorMessage = null;

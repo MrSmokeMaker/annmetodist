@@ -44,7 +44,7 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentVersion = _newsData?['currentVersion'] ?? 'v0.6.0';
+    final currentVersion = _newsData?['currentVersion'] ?? 'v0.6.1';
     final releases = (_newsData?['releases'] as List<dynamic>?) ?? [];
 
     return Scaffold(
@@ -213,52 +213,46 @@ class _NewsScreenState extends State<NewsScreen> {
                                     spacing: 8,
                                     runSpacing: 6,
                                     children: [
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                                            decoration: BoxDecoration(
-                                              gradient: isLatest ? AppGradients.indigoViolet : null,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                                        decoration: BoxDecoration(
+                                          gradient: isLatest ? AppGradients.indigoViolet : null,
+                                          color: isLatest
+                                              ? null
+                                              : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.08)),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          version,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: isLatest
+                                                ? Colors.white
+                                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                          ),
+                                        ),
+                                      ),
+                                      if (badge.isNotEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: isLatest
+                                                ? const Color(0xFF10B981).withOpacity(0.18)
+                                                : (isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.05)),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            badge,
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w700,
                                               color: isLatest
-                                                  ? null
-                                                  : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.08)),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              version,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w800,
-                                                color: isLatest
-                                                    ? Colors.white
-                                                    : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                                              ),
+                                                  ? const Color(0xFF10B981)
+                                                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          if (badge.isNotEmpty)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: isLatest
-                                                    ? const Color(0xFF10B981).withOpacity(0.18)
-                                                    : (isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.05)),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                badge,
-                                                style: TextStyle(
-                                                  fontSize: 10.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: isLatest
-                                                      ? const Color(0xFF10B981)
-                                                      : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                                        ),
                                       Text(
                                         date,
                                         style: TextStyle(
@@ -268,7 +262,6 @@ class _NewsScreenState extends State<NewsScreen> {
                                       ),
                                     ],
                                   ),
-
                                   const SizedBox(height: 12),
 
                                   Text(
