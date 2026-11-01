@@ -131,7 +131,7 @@ class _AppNewsModalState extends State<AppNewsModal> {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark, bool isSmallScreen) {
-    final currentVer = _newsData?['currentVersion'] ?? 'v0.5.8';
+    final currentVer = _newsData?['currentVersion'] ?? 'v0.5.9';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 20, 16),

@@ -36,6 +36,7 @@ import '../services/worksheet_audit_service.dart';
 import '../widgets/task_audit_badge.dart';
 import '../services/lesson_rubric_service.dart';
 import '../services/lesson_context_service.dart';
+import '../services/interactive_quiz_export_service.dart';
 import '../widgets/enhance_lesson_modal.dart';
 
 class ConspectViewScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class ConspectViewScreen extends StatefulWidget {
   final int variantsCount;
   final Set<GenerationType>? materials;
   final bool isDeepLesson;
+  final bool inclusionMode;
 
   const ConspectViewScreen({
     super.key,
@@ -68,6 +70,7 @@ class ConspectViewScreen extends StatefulWidget {
     this.variantsCount = 1,
     this.materials,
     this.isDeepLesson = false,
+    this.inclusionMode = false,
   });
 
   @override
@@ -187,6 +190,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           variantsCount: widget.variantsCount,
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
+          inclusionMode: widget.inclusionMode,
         );
 
         setState(() {
@@ -209,6 +213,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           activities: widget.activities,
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
+          inclusionMode: widget.inclusionMode,
         );
 
         setState(() {
@@ -558,6 +563,12 @@ ${_currentConspect!.content}
               tooltip: 'Контрольный срез (5 тестов + 3 открытых вопроса)',
               icon: const Icon(Icons.quiz_rounded, color: AppColors.accentCyan),
               onPressed: () => _showTestQuestionsModal(context),
+            ),
+            // Интерактивный квиз (Telegram / Яндекс.Формы)
+            IconButton(
+              tooltip: 'Интерактивный квиз (Telegram / Яндекс.Формы)',
+              icon: const Icon(Icons.dynamic_form_rounded, color: Color(0xFF38BDF8)),
+              onPressed: () => _showInteractiveQuizModal(context),
             ),
             // Отладочный режим YandexGPT
             IconButton(
@@ -4120,4 +4131,284 @@ ${_currentConspect!.content}
       ),
     );
   }
+
+  
+
+  void _showInteractiveQuizModal(BuildContext context) {
+    if (_currentConspect == null) return;
+    final questions = InteractiveQuizExportService.extractQuizQuestions(
+      content: _currentConspect!.content,
+      topic: _currentConspect!.topic,
+      subject: _currentConspect!.subject ?? '',
+      ageGroup: _currentConspect!.ageGroup,
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF141724) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border.all(
+                  color: Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.cyanBlue,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.quiz_rounded, color: Colors.white, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Интерактивный квиз (${questions.length} вопр.)',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Экспорт для Telegram, Яндекс.Форм и JSON',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Action buttons for 3 formats
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.send_rounded, size: 15),
+                        label: const Text('Telegram Quiz'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF229ED9),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          final tgText = InteractiveQuizExportService.formatForTelegramQuiz(
+                            questions,
+                            _currentConspect!.topic,
+                          );
+                          Clipboard.setData(ClipboardData(text: tgText));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Квиз для Telegram скопирован в буфер обмена!'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        },
+                      ),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.format_list_bulleted_rounded, size: 15),
+                        label: const Text('Яндекс.Формы'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFC3F1D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          final yandexText = InteractiveQuizExportService.formatForYandexForms(
+                            questions,
+                            _currentConspect!.topic,
+                          );
+                          Clipboard.setData(ClipboardData(text: yandexText));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Формат для Яндекс.Форм скопирован в буфер!'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        },
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.data_object_rounded, size: 15),
+                        label: const Text('JSON'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          final jsonText = InteractiveQuizExportService.formatToJson(
+                            questions,
+                            _currentConspect!.topic,
+                          );
+                          Clipboard.setData(ClipboardData(text: jsonText));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('JSON квиза скопирован в буфер!'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  // List of questions preview
+                  Expanded(
+                    child: questions.isEmpty
+                        ? const Center(child: Text('Нет вопросов для викторины'))
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: questions.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, i) {
+                              final q = questions[i];
+                              return Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.03),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryIndigo,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'Q${i + 1}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            q.question,
+                                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ...q.options.asMap().entries.map((entry) {
+                                      final isCorrect = entry.key == q.correctOptionIndex;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                              size: 14,
+                                              color: isCorrect ? const Color(0xFF10B981) : Colors.grey,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                entry.value,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isCorrect
+                                                      ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857))
+                                                      : (isDark ? Colors.white70 : Colors.black87),
+                                                  fontWeight: isCorrect ? FontWeight.w600 : FontWeight.normal,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                    if (q.explanation.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF10B981)),
+                                            const SizedBox(width: 5),
+                                            Expanded(
+                                              child: Text(
+                                                q.explanation,
+                                                style: const TextStyle(fontSize: 11, color: Color(0xFF10B981)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
 }

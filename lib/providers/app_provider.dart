@@ -278,6 +278,8 @@ class AppProvider with ChangeNotifier {
           return 'worksheet';
         case GenerationType.homework:
           return 'homework';
+        case GenerationType.miniModule:
+          return 'mini_module';
       }
     }).toList();
   }
@@ -298,6 +300,7 @@ class AppProvider with ChangeNotifier {
     Set<GenerationType>? materials,
     bool useEnhancedPrompts = true, // Новый параметр для использования улучшенных промптов
     bool isDeepLesson = false,
+    bool inclusionMode = false,
   }) async {
     // Проверка кеша для одиночной генерации
     final cacheKey = LessonCacheService.computeCacheKey(
@@ -336,6 +339,8 @@ class AppProvider with ChangeNotifier {
         variantIndex: variantIndex,
         totalVariants: totalVariants,
         materials: materials,
+        inclusionMode: inclusionMode,
+        miniModuleMode: materials?.contains(GenerationType.miniModule) ?? false,
       );
 
       final userPrompt = PromptBuilder.buildUserPrompt(
@@ -369,6 +374,8 @@ class AppProvider with ChangeNotifier {
           totalVariants: totalVariants,
           materials: materials,
           isDeepLesson: isDeepLesson,
+          inclusionMode: inclusionMode,
+          miniModuleMode: materials?.contains(GenerationType.miniModule) ?? false,
         );
         
         finalSystemPrompt = enhancedPrompt['systemPrompt']!;
@@ -513,6 +520,7 @@ class AppProvider with ChangeNotifier {
     int variantsCount = 3,
     Set<GenerationType>? materials,
     bool isDeepLesson = false,
+    bool inclusionMode = false,
   }) async {
     _isGenerating = true;
     _errorMessage = null;
@@ -537,6 +545,7 @@ class AppProvider with ChangeNotifier {
           batchGroupId: batchGroupId,
           materials: materials,
           isDeepLesson: isDeepLesson,
+          inclusionMode: inclusionMode,
         );
         variants.add(variant);
         await saveConspect(variant);

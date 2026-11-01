@@ -54,6 +54,9 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
   // Глубокий развернутый урок (2000-3000+ слов)
   bool _isDeepLesson = true;
 
+  // Режим нейроадаптации и инклюзии (ОВЗ / СДВГ / Дислексия)
+  bool _isInclusionMode = false;
+
   // Выбор генерируемых материалов
   late Set<GenerationType> _selectedMaterials;
 
@@ -251,6 +254,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           variantsCount: _variantsCount,
           materials: _selectedMaterials,
           isDeepLesson: _isDeepLesson,
+          inclusionMode: _isInclusionMode,
           isNewGeneration: true,
         ),
       ),
@@ -1203,6 +1207,88 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                   value: _isDeepLesson,
                   activeColor: AppColors.primaryIndigo,
                   onChanged: (val) => setState(() => _isDeepLesson = val),
+                ),
+              ],
+            ),
+          ),
+
+
+          const SizedBox(height: AppSpacing.sm),
+
+          // Переключатель: Инклюзия и нейроадаптация (ОВЗ / СДВГ / Дислексия)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0x12FFFFFF) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: _isInclusionMode
+                    ? const Color(0xFF10B981).withOpacity(0.5)
+                    : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: _isInclusionMode ? AppGradients.emeraldTeal : null,
+                    color: _isInclusionMode ? null : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.06)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.accessibility_new_rounded,
+                    size: 18,
+                    color: _isInclusionMode ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Инклюзия и нейроадаптация',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'ОВЗ / СДВГ',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Микро-паузы каждые 7 минут, крупный шрифт и ступеньки скаффолдинга',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _isInclusionMode,
+                  activeColor: const Color(0xFF10B981),
+                  onChanged: (val) => setState(() => _isInclusionMode = val),
                 ),
               ],
             ),

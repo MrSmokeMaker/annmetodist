@@ -955,10 +955,10 @@ class PdfExportService {
     return cleaned;
   }
 
-  /// Памятка для родителей (спокойный совет и скрипт помощи)
+  /// Памятка для родителей (спокойный совет, норма СанПиН и QR-код аудио-гида)
   static pw.Widget _buildParentBriefingCard(String content) {
     return pw.Container(
-      margin: const pw.EdgeInsets.symmetric(vertical: 10),
+      margin: const pw.EdgeInsets.symmetric(vertical: 8),
       padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
         color: PdfColors.green50,
@@ -969,26 +969,58 @@ class PdfExportService {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.green600,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Text(
-                  'СОВЕТ РОДИТЕЛЮ',
-                  style: pw.TextStyle(
-                    fontSize: 8.5,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
+              pw.Row(
+                children: [
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.green600,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Text(
+                      'СОВЕТ РОДИТЕЛЮ',
+                      style: pw.TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
                   ),
-                ),
+                  pw.SizedBox(width: 8),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor.fromInt(0xFFDCFCE7),
+                      borderRadius: pw.BorderRadius.circular(3),
+                    ),
+                    child: pw.Text(
+                      '⏱ СанПиН: 10-15 мин • Без перегрузки',
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
+                    ),
+                  ),
+                ],
               ),
-              pw.SizedBox(width: 8),
-              pw.Text(
-                'Ориентир времени: 15-20 минут (не затягивайте)',
-                style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.green900),
+              pw.Row(
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text('60-сек аудио-гид', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                      pw.Text('для родителей ->', style: const pw.TextStyle(fontSize: 7, color: PdfColors.green800)),
+                    ],
+                  ),
+                  pw.SizedBox(width: 4),
+                  pw.Container(
+                    width: 32,
+                    height: 32,
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: 'https://mrsmokemaker.github.io/annmetodist/#/parent-briefing',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -996,8 +1028,8 @@ class PdfExportService {
           pw.Text(
             content,
             style: const pw.TextStyle(
-              fontSize: 10,
-              lineSpacing: 1.4,
+              fontSize: 9.5,
+              lineSpacing: 1.35,
               color: PdfColors.grey900,
             ),
           ),
@@ -1320,15 +1352,33 @@ static List<pw.Widget> _buildContentWidgets(
         currentTaskNum = taskNumber;
       }
 
+      // 7b. Отрезная карточка-помощница (Ступенька вниз ✂)
+      if (lowerHeader.contains('карточка-помощница') || lowerHeader.contains('карточка помощница') || fullText.contains('карточка-помощница') || fullText.contains('ступенька вниз')) {
+        widgets.add(_buildScaffoldingHelperCard(header, lines));
+        return;
+      }
+
+      // 7c. Недельный трекер привычек на холодильник («Паспорт исследователя»)
+      if (lowerHeader.contains('паспорт исследователя') || lowerHeader.contains('трекер привычек') || lowerHeader.contains('трекер на холодильник') || fullText.contains('паспорт исследователя')) {
+        widgets.add(_buildFridgeTrackerCard(header, lines, starGold, starGray));
+        return;
+      }
+
       // 8. Ловушка Незнайки / Ловушка для внимательных
       if (type == 'trap' || lowerHeader.contains('ловушка') || fullText.contains('ловушка незнайки') || fullText.contains('найди ошибки')) {
         widgets.add(_buildTrapCard(header, lines, currentTaskNum));
         return;
       }
 
-      // 9. Прописи / каллиграфия (для начальной школы и русского языка)
+      // 9. Прописи / каллиграфия (для начальной школы и чистописания)
       if (type == 'handwriting' || fullText.contains('[прописи]') || lowerHeader.contains('каллиграфическ') || lowerHeader.contains('чистописан')) {
         widgets.add(_buildHandwritingCard(header, lines, currentTaskNum));
+        return;
+      }
+
+      // 9b. Математическая векторная сетка клеток 5х5 мм (по методике Пчёлко)
+      if (type == 'math_grid' || fullText.contains('[клетка]') || fullText.contains('[математическая сетка]') || fullText.contains('в клетку') || (lowerHeader.contains('матем') && (lowerHeader.contains('сетка') || lowerHeader.contains('клетк') || lowerHeader.contains('арифмет')))) {
+        widgets.add(_buildMathGridCard(header, lines, currentTaskNum));
         return;
       }
 
@@ -1755,6 +1805,211 @@ static List<pw.Widget> _buildContentWidgets(
                 },
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Карточка математической сетки клеток 5х5 мм (по методике Пчёлко)
+  static pw.Widget _buildMathGridCard(String header, List<String> lines, int num) {
+    final cleanHeader = _replaceEmojisWithSymbols(header);
+    String displayHeader = cleanHeader;
+    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
+    if (explicitMatch != null) {
+      displayHeader = displayHeader.substring(explicitMatch.end).trim();
+    }
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.blue300, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue700,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • МАТЕМАТИЧЕСКАЯ СЕТКА КЛЕТОК',
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              if (displayHeader.isNotEmpty) ...[
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: pw.Text(displayHeader,
+                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                ),
+              ],
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[клетка]')).toList()),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Text('Запиши решение и ответ аккуратно по клеткам (1 цифра в 1 клетке):',
+              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+          pw.SizedBox(height: 4),
+          pw.Container(
+            height: 44,
+            child: pw.CustomPaint(
+              size: const PdfPoint(500, 44),
+              painter: (canvas, size) {
+                const cellSize = 14.17; // ~5 мм в пунктах (72 pt / 25.4 мм * 5 мм)
+                // Горизонтальные линии клеток
+                canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
+                canvas.setLineWidth(0.5);
+                for (double y = 0; y <= size.y; y += cellSize) {
+                  canvas.drawLine(0, y, size.x, y);
+                }
+                // Вертикальные линии клеток
+                for (double x = 0; x <= size.x; x += cellSize) {
+                  canvas.drawLine(x, 0, x, size.y);
+                }
+                canvas.strokePath();
+
+                // Точки-ориентиры в углах клеток
+                canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
+                for (double y = cellSize; y < size.y; y += cellSize) {
+                  for (double x = cellSize; x < size.x; x += cellSize) {
+                    canvas.drawRect(x - 0.5, y - 0.5, 1, 1);
+                  }
+                }
+                canvas.fillPath();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Отрезная карточка-помощница (Ступенька вниз ✂)
+  static pw.Widget _buildScaffoldingHelperCard(String header, List<String> lines) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 6),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFF0FDF4), // soft green
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF86EFAC), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Row(
+                children: [
+                  pw.Text('✂ ', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor.fromInt(0xFF16A34A),
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Text('ОТРЕЗНАЯ КАРТОЧКА-ПОМОЩНИЦА (СТУПЕНЬКА ВНИЗ)',
+                        style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                  ),
+                ],
+              ),
+              pw.Text('Линия отреза для ученика - - - - - - - - - - - - - -',
+                  style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text('Если возникла трудность — открой эту подсказку и следуй наглядному алгоритму:',
+              style: pw.TextStyle(fontSize: 8.5, fontStyle: pw.FontStyle.italic, color: const PdfColor.fromInt(0xFF166534))),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 4),
+            _buildLinesContent(lines),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Недельный трекер привычек на холодильник («Паспорт исследователя»)
+  static pw.Widget _buildFridgeTrackerCard(String header, List<String> lines, pw.MemoryImage? starGold, pw.MemoryImage? starGray) {
+    final days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница'];
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 6),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFFAF5FF), // soft purple
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFD8B4FE), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF9333EA),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ПАСПОРТ ИССЛЕДОВАТЕЛЯ • ТРЕКЕР НА ХОЛОДИЛЬНИК',
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: pw.Text('Прикрепи на холодильник и отмечай успехи каждый день!',
+                    style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF6B21A8))),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          for (final day in days)
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 2),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Row(
+                    children: [
+                      pw.Container(
+                        width: 9,
+                        height: 9,
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.grey500, width: 0.8),
+                          borderRadius: pw.BorderRadius.circular(2),
+                        ),
+                      ),
+                      pw.SizedBox(width: 6),
+                      pw.Text(day, style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey900)),
+                    ],
+                  ),
+                  pw.Row(
+                    children: [
+                      pw.Text('Успех: ', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                      for (int s = 0; s < 3; s++)
+                        pw.Container(
+                          width: 10,
+                          height: 10,
+                          margin: const pw.EdgeInsets.symmetric(horizontal: 1.5),
+                          child: starGold != null ? pw.Image(starGold) : pw.Text('*', style: const pw.TextStyle(fontSize: 8, color: PdfColors.amber)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          pw.SizedBox(height: 4),
+          pw.Text('Подпись родителя в конце недели: ____________________',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
         ],
       ),
     );
@@ -2530,7 +2785,7 @@ static List<pw.Widget> _buildContentWidgets(
               children: [
                 pw.Text(
                   'Пиши аккуратно',
-                  style: const pw.TextStyle(
+                  style: pw.TextStyle(
                     fontSize: 9,
                     color: PdfColors.blue600,
                     fontStyle: pw.FontStyle.italic,
@@ -2590,7 +2845,7 @@ static List<pw.Widget> _buildContentWidgets(
                   child: pw.Center(
                     child: pw.Text(
                       '✓',
-                      style: const pw.TextStyle(
+                      style: pw.TextStyle(
                         fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
                         color: PdfColors.white,
@@ -2615,7 +2870,7 @@ static List<pw.Widget> _buildContentWidgets(
           // Описание
           pw.Text(
             'Оцени свой прогресс и эмоции после занятия:',
-            style: const pw.TextStyle(
+            style: pw.TextStyle(
               fontSize: 9,
               color: PdfColors.grey800,
               fontStyle: pw.FontStyle.italic,
@@ -2943,7 +3198,7 @@ static List<pw.Widget> _buildContentWidgets(
             ),
             child: pw.Text(
               theme,
-              style: const pw.TextStyle(
+              style: pw.TextStyle(
                 fontSize: 11,
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.green800,
@@ -3027,7 +3282,7 @@ static List<pw.Widget> _buildContentWidgets(
                           top: 1,
                           child: pw.Text(
                             number.toString(),
-                            style: const pw.TextStyle(
+                            style: pw.TextStyle(
                               fontSize: 6,
                               fontWeight: pw.FontWeight.bold,
                               color: PdfColors.black,
@@ -3065,7 +3320,7 @@ static List<pw.Widget> _buildContentWidgets(
         children: [
           pw.Text(
             'Кроссворд клетками',
-            style: const pw.TextStyle(
+            style: pw.TextStyle(
               fontSize: 11,
               fontWeight: pw.FontWeight.bold,
               color: PdfColors.indigo800,
@@ -3077,7 +3332,7 @@ static List<pw.Widget> _buildContentWidgets(
           if (cluesAcross.isNotEmpty) ...[
             pw.Text(
               'По горизонтали:',
-              style: const pw.TextStyle(
+              style: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.indigo700,
@@ -3100,7 +3355,7 @@ static List<pw.Widget> _buildContentWidgets(
           if (cluesDown.isNotEmpty) ...[
             pw.Text(
               'По вертикали:',
-              style: const pw.TextStyle(
+              style: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.indigo700,
@@ -3153,7 +3408,7 @@ static List<pw.Widget> _buildContentWidgets(
                 child: pw.Center(
                   child: pw.Text(
                     letter,
-                    style: const pw.TextStyle(
+                    style: pw.TextStyle(
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
                       color: PdfColors.purple800,
@@ -3165,7 +3420,7 @@ static List<pw.Widget> _buildContentWidgets(
               pw.Expanded(
                 child: pw.Text(
                   'Буква «$letter»',
-                  style: const pw.TextStyle(
+                  style: pw.TextStyle(
                     fontSize: 12,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.purple800,
@@ -3189,7 +3444,7 @@ static List<pw.Widget> _buildContentWidgets(
             child: pw.Center(
               child: pw.Text(
                 letter,
-                style: const pw.TextStyle(
+                style: pw.TextStyle(
                   fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.purple600,
@@ -3216,7 +3471,7 @@ static List<pw.Widget> _buildContentWidgets(
             pw.SizedBox(height: 8),
             pw.Text(
               'Слова для практики:',
-              style: const pw.TextStyle(
+              style: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.purple700,
@@ -3740,7 +3995,7 @@ static List<pw.Widget> _buildContentWidgets(
                         children: [
                           pw.Text(
                             'ОБЩИЙ БАЛЛ УСВОЕНИЯ',
-                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                            style: pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.SizedBox(height: 4),
                           pw.Row(
@@ -3783,7 +4038,7 @@ static List<pw.Widget> _buildContentWidgets(
                         children: [
                           pw.Text(
                             'СТАТУС ПО ФГОС',
-                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                            style: pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
@@ -3810,7 +4065,7 @@ static List<pw.Widget> _buildContentWidgets(
                         children: [
                           pw.Text(
                             'ДОМАШНЕЕ ЗАДАНИЕ',
-                            style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
+                            style: pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
@@ -3957,7 +4212,7 @@ static List<pw.Widget> _buildContentWidgets(
                           ),
                           child: pw.Text(
                             _replaceEmojisWithSymbols(card.teacherNotes),
-                            style: const pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: PdfColors.grey800),
+                            style: pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: PdfColors.grey800),
                           ),
                         ),
                       ],
@@ -4017,7 +4272,7 @@ static List<pw.Widget> _buildContentWidgets(
                     children: [
                       pw.Text(
                         'ТЕКСТ ДЛЯ РОДИТЕЛЬСКОГО ЧАТА (WHATSAPP / TELEGRAM)',
-                        style: const pw.TextStyle(
+                        style: pw.TextStyle(
                           fontSize: 8,
                           fontWeight: pw.FontWeight.bold,
                           color: PdfColors.green800,
