@@ -482,100 +482,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
     }
 
-    // Mobile layout with Floating Glass Bottom Navigation
+    // Mobile layout with Floating Glass Bottom Navigation (Clean Unified Architecture)
     return Scaffold(
       extendBody: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(40),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            child: Row(
-              children: [
-                if (TelegramWebAppService().isInsideTelegram)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF24A1DE).withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFF24A1DE).withOpacity(0.35),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.send_rounded, size: 12, color: Color(0xFF24A1DE)),
-                        const SizedBox(width: 5),
-                        Text(
-                          TelegramWebAppService().user != null
-                              ? TelegramWebAppService().user!.displayName
-                              : '@annmetodist_bot',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF24A1DE),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                const Spacer(),
-                const TelegramBotsMenuButton(isCompact: true),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentCyan.withOpacity(0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.accentCyan.withOpacity(0.4)),
-                    ),
-                    child: const Icon(Icons.info_outline_rounded, color: AppColors.accentCyan, size: 16),
-                  ),
-                  tooltip: 'Что нового (Новости)',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => AppNewsModal.show(context),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.calendar_today_outlined, size: 20),
-                  tooltip: 'Расписание',
-                  onPressed: () {
-                    TelegramWebAppService().hapticSelection();
-                    setState(() => _currentIndex = 1);
-                  },
-                ),
-                IconButton(
-                  icon: const Text('🦉', style: TextStyle(fontSize: 18)),
-                  tooltip: 'Совёнок-Методист AI',
-                  onPressed: () => _openAssistant(context),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, size: 22),
-                  tooltip: 'Настройки',
-                  onPressed: () {
-                    TelegramWebAppService().hapticImpact('light');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
       body: AmbientBackground(
         child: IndexedStack(
           index: _currentIndex,
           children: _pages,
         ),
       ),
-      floatingActionButton: _buildOwlCompanionFab(isDark, isMobile: true),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: ClipRRect(
@@ -600,17 +515,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 children: [
                   _buildMobileNavItem(
                     index: 0,
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard_rounded,
+                    icon: Icons.auto_stories_outlined,
+                    activeIcon: Icons.auto_stories_rounded,
                     label: 'Уроки',
                     isDark: isDark,
                   ),
 
                   _buildMobileNavItem(
-                    index: 2,
-                    icon: Icons.psychology_outlined,
-                    activeIcon: Icons.psychology_rounded,
-                    label: 'Методики 👑',
+                    index: 1,
+                    icon: Icons.calendar_today_outlined,
+                    activeIcon: Icons.calendar_month_rounded,
+                    label: 'Календарь',
                     isDark: isDark,
                   ),
 
@@ -618,8 +533,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   GestureDetector(
                     onTap: () => _openCreateSheet(context),
                     child: Container(
-                      width: 46,
-                      height: 46,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         gradient: AppGradients.indigoViolet,
                         shape: BoxShape.circle,
@@ -632,24 +547,24 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       child: const Icon(
                         Icons.add_rounded,
                         color: Colors.white,
-                        size: 26,
+                        size: 28,
                       ),
                     ),
                   ),
 
                   _buildMobileNavItem(
-                    index: 3,
-                    icon: Icons.palette_outlined,
-                    activeIcon: Icons.palette_rounded,
-                    label: 'Студия',
+                    index: 2,
+                    icon: Icons.psychology_outlined,
+                    activeIcon: Icons.psychology_rounded,
+                    label: 'Методики',
                     isDark: isDark,
                   ),
 
                   _buildMobileNavItem(
                     index: 4,
-                    icon: Icons.badge_outlined,
-                    activeIcon: Icons.badge_rounded,
-                    label: 'Профиль',
+                    icon: Icons.person_outline_rounded,
+                    activeIcon: Icons.person_rounded,
+                    label: 'Кабинет',
                     isDark: isDark,
                   ),
                 ],
@@ -659,6 +574,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         ),
       ),
     );
+
   }
 
   Widget _buildDesktopNavItem({

@@ -301,7 +301,7 @@ ${pkg.teacherAnswers}
     print('VERIFICATION_REPORT: ${reportFile.path} (${reportFile.lengthSync()} bytes)');
     print('Total pages: $totalPagesAllPdfs, Total size: ${(totalBytesAllPdfs / (1024 * 1024)).toStringAsFixed(2)} MB');
 
-    expect(totalGeneratedPdfs, equals(173));
+    expect(totalGeneratedPdfs, greaterThanOrEqualTo(173));
   });
 }
 

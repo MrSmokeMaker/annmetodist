@@ -60,3 +60,9 @@ windows/flutter/
 .env
 .env.*
 Metodist-UI-Restored/
+
+# Web / npm dependencies & feature branches
+node_modules/
+package.json
+package-lock.json
+bug-report-feature/

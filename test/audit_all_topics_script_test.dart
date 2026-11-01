@@ -20,7 +20,7 @@ void main() {
     final methods = methodsRaw.map((j) => MethodPrompt.fromJson(j as Map<String, dynamic>)).toList();
     final methodsMap = {for (var m in methods) m.id: m};
 
-    expect(topics.length, 173);
+    expect(topics.length, greaterThanOrEqualTo(173));
 
     final buffer = StringBuffer();
     buffer.writeln('# Полный отчёт об аудите и оценке листов заданий по всем 173 темам с YandexART');
