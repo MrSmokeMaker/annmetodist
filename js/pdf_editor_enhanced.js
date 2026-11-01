@@ -319,4 +319,29 @@ document.addEventListener('DOMContentLoaded', () => {
     page.appendChild(shape);
     pushHistory('Добавлена фигура');
   }
+
+  // Auto-import lesson from Metodist app if available
+  try {
+    const lessonTitle = localStorage.getItem('metodist_current_lesson_title');
+    const lessonContent = localStorage.getItem('metodist_current_lesson_content');
+    if (lessonTitle && state.pages.length > 0) {
+      const page = state.pages[0];
+      const headerEl = document.createElement('div');
+      headerEl.style.position = 'absolute';
+      headerEl.style.left = '40px';
+      headerEl.style.top = '40px';
+      headerEl.style.right = '40px';
+      headerEl.style.padding = '18px';
+      headerEl.style.background = '#ffffff';
+      headerEl.style.border = '2px solid #6366f1';
+      headerEl.style.borderRadius = '12px';
+      headerEl.style.boxShadow = '0 4px 12px rgba(99,102,241,0.12)';
+      const safeTitle = lessonTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeContent = (lessonContent || '').slice(0, 500).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      headerEl.innerHTML = '<h2 style="margin:0 0 10px 0; color:#1e1b4b; font-size:18px; font-weight:700;">' + safeTitle + '</h2><div style="font-size:13px; color:#475569; line-height:1.5; white-space:pre-wrap;">' + safeContent + '...</div>';
+      page.appendChild(headerEl);
+    }
+  } catch (err) {
+    console.warn('Lesson auto-import note:', err);
+  }
 });
