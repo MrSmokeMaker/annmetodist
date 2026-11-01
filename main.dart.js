@@ -141764,7 +141764,7 @@ case 5:return A.x(null,r)
 case 1:return A.w(p.at(-1),r)}})
 return A.y($async$J6,r)},
 L(a){var s,r,q,p,o,n,m,l,k,j=null,i=A.K(a).ax.a===B.ao,h=this.d,g=h==null?j:J.n(h,"currentVersion")
-if(g==null)g="v0.6.1"
+if(g==null)g="v0.6.2"
 h=this.d
 h=h==null?j:J.n(h,"releases")
 t.kc.a(h)
@@ -145619,7 +145619,7 @@ n=A.b([new A.bc(0,B.ae,A.q(89,B.w.j()>>>16&255,B.w.j()>>>8&255,B.w.j()&255),B.bM
 m=l.atL(a,j,g)
 return A.cq(new A.dP(new A.aA(0,h,0,i.b*0.85),A.fw(!1,B.aL,!0,k,A.kT(s,A.tQ(A.F(k,A.a5(A.b([m,A.af(l.e?B.EJ:l.avg(a,j),1,k),l.auC(a,j)],t.p),B.v,B.r,B.t,0,B.C),B.u,k,k,new A.D(q,k,o,p,n,k,B.z),k,k,k,k,k,k,k),r),B.cM),B.u,B.V,0,k,k,k,k,k,B.dx),k),k,k,k)},
 atL(a,b,c){var s,r,q,p,o=null,n=this.d,m=n==null?o:J.n(n,"currentVersion")
-if(m==null)m="v0.6.1"
+if(m==null)m="v0.6.2"
 n=b?A.q(20,B.p.j()>>>16&255,B.p.j()>>>8&255,B.p.j()&255):A.q(15,B.w.j()>>>16&255,B.w.j()>>>8&255,B.w.j()&255)
 s=A.F(o,B.zf,B.u,o,o,new A.D(o,o,o,A.o(13),A.b([new A.bc(0,B.ae,A.q(89,B.P.j()>>>16&255,B.P.j()>>>8&255,B.P.j()&255),B.dJ,12)],t.V),B.by,B.z),o,44,o,o,o,o,44)
 r=A.r(c?"\u0427\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e":"\u0427\u0442\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u0432 \u041c\u0435\u0442\u043e\u0434\u0438\u0441\u0442\u0435",1,B.aX,o,o,B.c0A,o,o,o)
@@ -170374,7 +170374,7 @@ B.c6S=new A.C("\u041a\u0430\u043b\u044c\u043a\u0443\u043b\u044f\u0442\u043e\u044
 B.c6V=new A.C("\u0414\u043e\u043c\u0430\u0448\u043a\u0430",null,B.dg,null,null,null,null,null,null,null,null)
 B.c1A=new A.u(!0,B.a4,null,null,null,null,11.5,B.ah,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.c6W=new A.C("\u2728 \u0415\u0449\u0451 4 \u0441\u0443\u043f\u0435\u0440\u0441\u0438\u043b\u044b (\u041b\u043e\u0432\u0443\u0448\u043a\u0430 \u041d\u0435\u0437\u043d\u0430\u0439\u043a\u0438, \u0421\u0430\u043d\u041f\u0438\u041d...)",null,B.c1A,null,null,null,null,null,null,null,null)
-B.c6X=new A.C("v0.6.1",null,B.a67,null,null,null,null,null,null,null,null)
+B.c6X=new A.C("v0.6.2",null,B.a67,null,null,null,null,null,null,null,null)
 B.c6Y=new A.C("\u0421\u0442\u0443\u0434\u0438\u044f \u0430\u0443\u0434\u0438\u043e-\u0437\u0430\u043c\u0435\u0442\u043e\u043a",null,B.mN,null,null,null,null,null,null,null,null)
 B.c6Z=new A.C("\u0426\u0432\u0435\u0442\u043e\u0432\u0430\u044f \u043f\u0430\u043b\u0438\u0442\u0440\u0430 \u0438 \u043b\u0438\u0447\u043d\u044b\u0435 \u0444\u0440\u0430\u0437\u044b \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438",null,B.em,null,null,null,null,null,null,null,null)
 B.c7_=new A.C("\u041b\u0438\u0441\u0442 \u0437\u0430\u0434\u0430\u043d\u0438\u0439",null,null,null,null,null,null,null,null,null,null)
@@ -170540,7 +170540,7 @@ B.cao=new A.C("\u0421\u0420\u0415\u0414\u041d\u0418\u0419 \u0411\u0410\u041b\u04
 B.cap=new A.C("\u0421\u0432\u043e\u044f \u043f\u043e\u043c\u0435\u0442\u043a\u0430",null,B.fj,null,null,null,null,null,null,null,null)
 B.caq=new A.C("\u041f\u043e\u0448\u0430\u0433\u043e\u0432\u044b\u0439 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439 \u0438 \u043c\u0435\u0442\u043e\u0434\u0438\u043a\u0430",null,null,null,null,null,null,null,null,null,null)
 B.cau=new A.C("2. \u0411\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430 \u043f\u0440\u0438\u0451\u043c\u043e\u0432",null,B.mQ,null,null,null,null,null,null,null,null)
-B.caw=new A.C("v0.6.1",null,B.a6p,null,null,null,null,null,null,null,null)
+B.caw=new A.C("v0.6.2",null,B.a6p,null,null,null,null,null,null,null,null)
 B.c2Q=new A.u(!0,null,null,null,null,null,18,B.W,null,null,null,null,1.25,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.cay=new A.C("\u041f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043c\u0438\u0440\u043e\u0432 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 \u0442\u0430\u0440\u0438\u0444\u0435 \xab\u0414\u0438\u0440\u0435\u043a\u0442\u043e\u0440\xbb",null,B.c2Q,null,null,null,null,null,null,null,null)
 B.caz=new A.C("PDF \u041a\u043e\u043d\u0441\u043f\u0435\u043a\u0442 \u0437\u0430\u043d\u044f\u0442\u0438\u044f",null,null,null,null,null,null,null,null,null,null)
