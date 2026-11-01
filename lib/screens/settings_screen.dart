@@ -948,7 +948,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: const Text(
-                                        'v0.5.9',
+                                        'v0.6.0',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,

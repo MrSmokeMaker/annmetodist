@@ -38,6 +38,8 @@ import '../services/lesson_rubric_service.dart';
 import '../services/lesson_context_service.dart';
 import '../services/interactive_quiz_export_service.dart';
 import '../widgets/enhance_lesson_modal.dart';
+import '../widgets/parent_audio_studio_modal.dart';
+import '../widgets/audio_dictation_modal.dart';
 
 class ConspectViewScreen extends StatefulWidget {
   final Conspect? existingConspect;
@@ -646,6 +648,30 @@ ${_currentConspect!.content}
               icon: const Icon(Icons.people_alt_outlined),
               onPressed: _showColleagueBriefSheet,
             ),
+            // Студия «Аудио-заметка родителю» [PRO]
+            IconButton(
+              tooltip: 'Студия «Аудио-заметка родителю» [PRO]',
+              icon: const Icon(Icons.headphones_rounded, color: Color(0xFF06B6D4)),
+              onPressed: () => ParentAudioStudioModal.show(context, _currentConspect!),
+            ),
+            // Интерактивный аудио-диктант [PRO]
+            IconButton(
+              tooltip: 'Интерактивный аудио-диктант [PRO]',
+              icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6)),
+              onPressed: () => AudioDictationModal.show(context, _currentConspect!),
+            ),
+            // Студия «Аудио-заметка родителю» [PRO]
+            IconButton(
+              tooltip: 'Студия «Аудио-заметка родителю» [PRO]',
+              icon: const Icon(Icons.headphones_rounded, color: Color(0xFF06B6D4)),
+              onPressed: () => ParentAudioStudioModal.show(context, _currentConspect!),
+            ),
+            // Интерактивный аудио-диктант [PRO]
+            IconButton(
+              tooltip: 'Интерактивный аудио-диктант [PRO]',
+              icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6)),
+              onPressed: () => AudioDictationModal.show(context, _currentConspect!),
+            ),
             // Шаг 4: Вести урок
             IconButton(
               tooltip: 'Вести урок',
@@ -991,8 +1017,10 @@ ${_currentConspect!.content}
                     ),
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Шаг 3: Аудио-подсказка для родителя (быстрая плашка)
+                    // Шаг 3: Аудио-подсказка для родителя и интерактивный аудио-диктант
                     _buildParentAudioHintBanner(isDark),
+                    const SizedBox(height: AppSpacing.xs),
+                    _buildAudioDictationBanner(isDark),
 
                     const SizedBox(height: AppSpacing.md),
 
@@ -1688,10 +1716,98 @@ ${_currentConspect!.content}
                 color: AppColors.cyan,
               ),
             ),
-            onPressed: () => _showParentAudioModal(
-              audioText ??
-                  'Для этой темы сформулируйте основные правила простыми словами, избегая академических терминов, и поддержите ребенка при первых попытках.',
+            onPressed: () => ParentAudioStudioModal.show(context, _currentConspect!),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  /// Быстрая плашка «Интерактивный аудио-диктант [PRO]»
+  Widget _buildAudioDictationBanner(bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 12),
+      borderRadius: AppRadii.lg,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppGradients.indigoViolet,
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
+            child: const Icon(
+              Icons.record_voice_over_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Интерактивный аудио-диктант',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'PRO',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Орфография (Костин) & счёт (Пчёлко): знакомство → диктовка → самопроверка',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              backgroundColor: const Color(0xFF8B5CF6),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+            label: const Text(
+              'Диктант',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            onPressed: () => AudioDictationModal.show(context, _currentConspect!),
           ),
         ],
       ),

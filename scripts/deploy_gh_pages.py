@@ -70,7 +70,7 @@ def main():
         if status.stdout.strip():
             subprocess.run([
                 'git', 'commit', '-m', 
-                'deploy: release v0.5.7 with Instagram-style Stories, two-stage methodology extractor, and 224 topics'
+                'deploy: release v0.6.0 with Parent Audio Speech Studio, Interactive Audio Dictation Master and Silence Bell'
             ], cwd=temp_worktree, check=True)
             print("Pushing gh-pages to origin...")
             subprocess.run(['git', 'push', 'origin', 'gh-pages'], cwd=temp_worktree, check=True)

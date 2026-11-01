@@ -52,6 +52,12 @@ extension TariffLevelExtension on TariffLevel {
   /// Добавление в календарь у прошедших занятий карточки итога урока с критериями, пометками и PDF-экспортом (Metodist Pro и выше)
   bool get canUseLessonSummaryCard => isProOrHigher;
 
+  /// Студия синтеза речи Совёнка и аудио-заметки для родителей (Metodist Pro и выше)
+  bool get canUseAudioSpeechStudio => isProOrHigher;
+
+  /// Интерактивный слуховой аудио-диктант с академическими паузами (Metodist Pro и выше)
+  bool get canUseAudioDictation => isProOrHigher;
+
   int get maxTeamSeats {
     switch (this) {
       case TariffLevel.director:

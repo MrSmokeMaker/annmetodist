@@ -7,6 +7,8 @@ import '../models/lesson_stage.dart';
 import '../theme.dart';
 import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
+import '../services/audio_speech_service.dart';
+import '../widgets/audio_dictation_modal.dart';
 
 class LessonRunScreen extends StatefulWidget {
   final Conspect conspect;
@@ -27,6 +29,116 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
   Timer? _stageTimer;
   late int _remainingSeconds;
   bool _isRunning = true;
+
+  int _rhymeIndex = 0;
+  static const List<String> _silenceRhymes = [
+    '🔔 Раз-два — кружева! Внимание на экран и учителя!',
+    '🔔 Раз-два — тишина, три-четыре — рот закрыли!',
+    '🔔 Спинки прямо, глазки на доску! Слушаем внимательно!',
+    '🔔 Ручки на парту, ушки на макушке! Начинаем работу!',
+  ];
+
+  double _fontSizeMultiplier = 1.0;
+
+  void _ringSilenceBell() {
+    AudioSpeechService.instance.playSchoolBell();
+    final rhyme = _silenceRhymes[_rhymeIndex % _silenceRhymes.length];
+    _rhymeIndex++;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active_rounded, color: AppColors.accentAmber, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                rhyme,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1E1B4B),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showPhysicalBreakDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF161922) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.xl)),
+        title: const Row(
+          children: [
+            Icon(Icons.self_improvement_rounded, color: AppColors.cyan, size: 26),
+            SizedBox(width: 10),
+            Text('Физминутка & Речевая пауза', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.cyan.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+                child: const Text(
+                  '«Мы писали, мы писали,\nНаши пальчики устали.\nМы немножко отдохнем,\nИ опять писать начнем!»',
+                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryIndigo.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+                child: const Text(
+                  '«Руки в стороны, в кулак,\nРазожми и на бочок.\nПотянулись высоко,\nУлыбнулись широко!»',
+                  style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, height: 1.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.volume_up_rounded, size: 18),
+            label: const Text('Озвучить Совёнком'),
+            onPressed: () {
+              AudioSpeechService.instance.speak(
+                'Мы писали, мы писали, наши пальчики устали. Мы немножко отдохнем, и опять писать начнем!',
+              );
+            },
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryIndigo,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Готово'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openDictation() {
+    AudioDictationModal.show(context, widget.conspect);
+  }
 
   @override
   void initState() {
@@ -188,6 +300,7 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
         const SingleActivator(LogicalKeyboardKey.arrowRight): _nextStage,
         const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevStage,
         const SingleActivator(LogicalKeyboardKey.keyR): _repeatStage,
+        const SingleActivator(LogicalKeyboardKey.keyB): _ringSilenceBell,
       },
       child: Focus(
         autofocus: true,
@@ -243,6 +356,40 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
+              // 🔔 Звонок тишины (Web Audio API)
+              IconButton(
+                tooltip: 'Звонок тишины (B) — привлечь внимание',
+                icon: const Icon(Icons.notifications_active_rounded, color: AppColors.accentAmber, size: 22),
+                onPressed: _ringSilenceBell,
+              ),
+              // 🧘 Физминутка
+              IconButton(
+                tooltip: 'Речевая разминка & Физминутка',
+                icon: const Icon(Icons.self_improvement_rounded, color: AppColors.cyan, size: 22),
+                onPressed: _showPhysicalBreakDialog,
+              ),
+              // 🎙️ Аудио-диктант [PRO]
+              IconButton(
+                tooltip: 'Интерактивный аудио-диктант [PRO]',
+                icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6), size: 22),
+                onPressed: _openDictation,
+              ),
+              // 🔠 Размер шрифта для доски
+              IconButton(
+                tooltip: 'Размер шрифта для чтения у доски',
+                icon: const Icon(Icons.format_size_rounded, size: 20),
+                onPressed: () {
+                  setState(() {
+                    if (_fontSizeMultiplier == 1.0) {
+                      _fontSizeMultiplier = 1.18;
+                    } else if (_fontSizeMultiplier == 1.18) {
+                      _fontSizeMultiplier = 1.35;
+                    } else {
+                      _fontSizeMultiplier = 1.0;
+                    }
+                  });
+                },
+              ),
               IconButton(
                 tooltip: 'Сбросить таймер этапа (R)',
                 icon: const Icon(Icons.replay_rounded, size: 20),
@@ -490,7 +637,7 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
                                         selectable: true,
                                         styleSheet: MarkdownStyleSheet(
                                           p: TextStyle(
-                                            fontSize: 16.5, // Увеличенный шрифт для удобного чтения у доски
+                                            fontSize: 16.5 * _fontSizeMultiplier, // Адаптивный размер для доски
                                             height: 1.6,
                                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                           ),

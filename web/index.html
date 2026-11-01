@@ -210,6 +210,122 @@
       window.scrollTo(0, 0);
     });
   </script>
+    <!-- Metodist Web Audio & Speech Synthesis Engine -->
+  <script>
+    window.MetodistAudio = {
+      playSchoolBell: function() {
+        try {
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          var ctx = new AudioContextClass();
+          var t = ctx.currentTime;
+
+          var osc1 = ctx.createOscillator();
+          var osc2 = ctx.createOscillator();
+          var gain = ctx.createGain();
+
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(1175, t); // D6
+          osc1.frequency.exponentialRampToValueAtTime(784, t + 1.2); // G5
+
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(1568, t); // G6
+          osc2.frequency.exponentialRampToValueAtTime(1046, t + 1.2);
+
+          gain.gain.setValueAtTime(0.35, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(t);
+          osc2.start(t);
+          osc1.stop(t + 1.2);
+          osc2.stop(t + 1.2);
+        } catch(e) {
+          console.warn('School bell audio error:', e);
+        }
+      },
+
+      playClickGong: function() {
+        try {
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          var ctx = new AudioContextClass();
+          var t = ctx.currentTime;
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, t);
+          osc.frequency.exponentialRampToValueAtTime(440, t + 0.35);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.35);
+        } catch(e) {}
+      },
+
+      speak: function(text, rate, pitch) {
+        if (!('speechSynthesis' in window)) {
+          return false;
+        }
+        window.speechSynthesis.cancel();
+        if (!text || text.trim() === '') return false;
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ru-RU';
+        u.rate = rate || 1.0;
+        u.pitch = pitch || 1.0;
+
+        var voices = window.speechSynthesis.getVoices();
+        var ruVoices = voices.filter(function(v) { return v.lang && v.lang.indexOf('ru') === 0; });
+        if (ruVoices.length > 0) {
+          var preferred = ruVoices.find(function(v) {
+            return v.name.indexOf('Google') !== -1 || v.name.indexOf('Natural') !== -1 || v.name.indexOf('Yandex') !== -1;
+          }) || ruVoices[0];
+          u.voice = preferred;
+        }
+
+        u.onstart = function() {
+          window.dispatchEvent(new CustomEvent('metodist-speech-start', { detail: { text: text } }));
+        };
+        u.onend = function() {
+          window.dispatchEvent(new CustomEvent('metodist-speech-end'));
+        };
+        u.onerror = function() {
+          window.dispatchEvent(new CustomEvent('metodist-speech-end'));
+        };
+
+        window.speechSynthesis.speak(u);
+        return true;
+      },
+
+      pause: function() {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.pause();
+        }
+      },
+
+      resume: function() {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+        }
+      },
+
+      stop: function() {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      },
+
+      isSpeaking: function() {
+        return 'speechSynthesis' in window && window.speechSynthesis.speaking;
+      }
+    };
+  </script>
+
   <script src="flutter_bootstrap.js?v=1793292149186" async></script>
 </body>
 </html>
