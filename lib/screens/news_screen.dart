@@ -44,7 +44,7 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentVersion = _newsData?['currentVersion'] ?? 'v0.6.1';
+    final currentVersion = _newsData?['currentVersion'] ?? 'v0.6.2';
     final releases = (_newsData?['releases'] as List<dynamic>?) ?? [];
 
     return Scaffold(

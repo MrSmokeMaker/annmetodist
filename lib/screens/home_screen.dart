@@ -480,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'v0.6.1',
+                          'v0.6.2',
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
