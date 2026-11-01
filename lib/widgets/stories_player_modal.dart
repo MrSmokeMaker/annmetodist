@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/telegram/telegram_web_app_service.dart';
 import '../models/app_story.dart';
 import '../theme.dart';
 import 'telegram_bots_sheet.dart';
@@ -60,6 +62,7 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
   late int _currentGroupIndex;
   late int _currentSlideIndex;
   late AnimationController _progressController;
+  int _slideDirection = 1;
 
   static const Duration _slideDuration = Duration(milliseconds: 5500);
 
@@ -93,8 +96,11 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
   }
 
   void _onNextSlide() {
+    TelegramWebAppService().hapticSelection();
+    HapticFeedback.selectionClick();
     if (_currentSlideIndex < _currentGroup.slides.length - 1) {
       setState(() {
+        _slideDirection = 1;
         _currentSlideIndex++;
       });
       _progressController.reset();
@@ -103,6 +109,7 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
       // Переход к следующей группе историй
       if (_currentGroupIndex < widget.stories.length - 1) {
         setState(() {
+          _slideDirection = 1;
           _currentGroupIndex++;
           _currentSlideIndex = 0;
         });
@@ -117,8 +124,11 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
   }
 
   void _onPrevSlide() {
+    TelegramWebAppService().hapticSelection();
+    HapticFeedback.selectionClick();
     if (_currentSlideIndex > 0) {
       setState(() {
+        _slideDirection = -1;
         _currentSlideIndex--;
       });
       _progressController.reset();
@@ -127,6 +137,7 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
       // Переход к предыдущей группе историй
       if (_currentGroupIndex > 0) {
         setState(() {
+          _slideDirection = -1;
           _currentGroupIndex--;
           _currentSlideIndex = widget.stories[_currentGroupIndex].slides.length - 1;
         });
@@ -467,186 +478,260 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
     );
   }
 
-  // Центральный контент слайда
+  // Центральный контент слайда с плавной анимацией
   Widget _buildSlideBody() {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 1. Верхний бейдж
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final slideIn = Tween<Offset>(
+          begin: Offset(_slideDirection * 0.08, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: slideIn,
+            child: child,
+          ),
+        );
+      },
+      child: Center(
+        key: ValueKey('slide_${_currentGroupIndex}_$_currentSlideIndex'),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 1. Верхний бейдж со стеклянным specular эффектом
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.22),
+                      Colors.white.withOpacity(0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.35),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _currentSlide.badge,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
-              child: Text(
-                _currentSlide.badge,
+
+              const SizedBox(height: 18),
+
+              // 2. Дышащий интерактивный маскот с неоновым ореолом
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.96, end: 1.04),
+                duration: const Duration(milliseconds: 1400),
+                curve: Curves.easeInOutSine,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: child,
+                  );
+                },
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.32),
+                      width: 1.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _currentSlide.gradientColors.first.withOpacity(0.6),
+                        blurRadius: 28,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _currentSlide.iconEmoji,
+                    style: const TextStyle(fontSize: 46),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 3. Заголовок слайда
+              Text(
+                _currentSlide.title,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 0.6,
+                  letterSpacing: -0.5,
+                  height: 1.2,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ),
 
-            const SizedBox(height: 18),
+              const SizedBox(height: 6),
 
-            // 2. Центральный эмодзи/маскот
-            Container(
-              width: 86,
-              height: 86,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1.5,
+              // 4. Подзаголовок
+              Text(
+                _currentSlide.subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 14),
+
+              // 5. Описание сути
+              Text(
+                _currentSlide.description,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.78),
+                  fontSize: 12.5,
+                  height: 1.45,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 18),
+
+              // 6. Тезисы / Буллеты с акцентными галочками
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.28),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.14),
+                    width: 1,
                   ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _currentSlide.iconEmoji,
-                style: const TextStyle(fontSize: 44),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3. Заголовок
-            Text(
-              _currentSlide.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-                height: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 6),
-
-            // 4. Подзаголовок
-            Text(
-              _currentSlide.subtitle,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.85),
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 14),
-
-            // 5. Описание
-            Text(
-              _currentSlide.description,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.72),
-                fontSize: 12.5,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 16),
-
-            // 6. Тезисы / Буллеты
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _currentSlide.bulletPoints.map((bp) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3.5),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: Color(0xFF10B981),
-                          size: 15,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            bp,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              height: 1.3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _currentSlide.bulletPoints.asMap().entries.map((entry) {
+                    final bp = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF34D399),
+                              size: 15,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              bp,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Кнопка действия (CTA) внизу
+  // Кнопка действия (CTA) внизу с эффектом подсветки
   Widget _buildCtaButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: SizedBox(
         width: double.infinity,
-        height: 48,
+        height: 50,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 8,
+            foregroundColor: const Color(0xFF0F172A),
+            elevation: 10,
+            shadowColor: Colors.black.withOpacity(0.4),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
             ),
           ),
-          onPressed: () => _handleCtaAction(context, _currentSlide.ctaAction),
+          onPressed: () {
+            TelegramWebAppService().hapticNotification('success');
+            HapticFeedback.mediumImpact();
+            _handleCtaAction(context, _currentSlide.ctaAction);
+          },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 _currentSlide.ctaLabel,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_rounded, size: 16),
+              const Icon(Icons.arrow_forward_rounded, size: 18),
             ],
           ),
         ),

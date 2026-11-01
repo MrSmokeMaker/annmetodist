@@ -11,9 +11,9 @@ void main() {
   });
 
   group('AppStories Data and Model Tests', () {
-    test('getSampleStories returns 7 rich educational stories', () {
+    test('getSampleStories returns 12 rich educational stories', () {
       final stories = AppStoriesData.getSampleStories();
-      expect(stories.length, equals(7));
+      expect(stories.length, equals(12));
 
       for (final story in stories) {
         expect(story.id.isNotEmpty, isTrue);
