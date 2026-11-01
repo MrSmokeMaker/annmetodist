@@ -1897,11 +1897,11 @@ ${_currentConspect!.content}
                             ),
                       ),
                     ),
-                    if (isWorksheet || lowerHeader.contains('ход') || lowerHeader.contains('задани') || isHomework)
-                      BlockActionToolbar(
-                        isLoading: _isRegeneratingBlockIndex == i,
-                        onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
-                      ),
+                    BlockActionToolbar(
+                      isLoading: _isRegeneratingBlockIndex == i,
+                      onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
+                      onReportError: () => _showReportErrorDialog(context),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -487,6 +487,16 @@
     };
   </script>
 
-  <script src="flutter_bootstrap.js?v=1793292149186" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var i = 0; i < regs.length; i++) { regs[i].update(); }
+      });
+    }
+    var s = document.createElement('script');
+    s.src = 'flutter_bootstrap.js?v=' + Date.now();
+    s.async = true;
+    document.body.appendChild(s);
+  </script>
 </body>
 </html>

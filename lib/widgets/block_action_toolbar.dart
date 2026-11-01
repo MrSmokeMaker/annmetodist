@@ -5,11 +5,13 @@ import '../theme.dart';
 class BlockActionToolbar extends StatelessWidget {
   final bool isLoading;
   final Function(BlockAction action, String? customTheme) onAction;
+  final VoidCallback? onReportError;
 
   const BlockActionToolbar({
     super.key,
     required this.isLoading,
     required this.onAction,
+    this.onReportError,
   });
 
   @override
@@ -80,6 +82,17 @@ class BlockActionToolbar extends StatelessWidget {
             color: const Color(0xFF8B5CF6),
             onTap: () => _showThemeDialog(context),
           ),
+          if (onReportError != null) ...[
+            const SizedBox(width: 6),
+            _buildBtn(
+              context,
+              icon: Icons.flag_outlined,
+              label: 'Ошибка',
+              tooltip: 'Сообщить об ошибке в этом блоке',
+              color: const Color(0xFFEF4444),
+              onTap: onReportError!,
+            ),
+          ],
         ],
       ),
     );
