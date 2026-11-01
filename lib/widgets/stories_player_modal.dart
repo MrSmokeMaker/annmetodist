@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/telegram/telegram_web_app_service.dart';
 import '../models/app_story.dart';
-import '../theme.dart';
 import 'telegram_bots_sheet.dart';
 import 'app_news_modal.dart';
 import '../screens/methodology_architect_screen.dart';
@@ -236,45 +235,7 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
                 ),
               ),
 
-              // Интерактивные зоны тапа (Слева: назад, Справа: вперед, Удержание: пауза)
-              Positioned.fill(
-                child: Row(
-                  children: [
-                    // Левая треть: назад
-                    Expanded(
-                      flex: 35,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapDown: (_) => _pause(),
-                        onTapUp: (_) {
-                          _resume();
-                          _onPrevSlide();
-                        },
-                        onTapCancel: () => _resume(),
-                        onLongPressStart: (_) => _pause(),
-                        onLongPressEnd: (_) => _resume(),
-                      ),
-                    ),
-                    // Правые две трети: вперед
-                    Expanded(
-                      flex: 65,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapDown: (_) => _pause(),
-                        onTapUp: (_) {
-                          _resume();
-                          _onNextSlide();
-                        },
-                        onTapCancel: () => _resume(),
-                        onLongPressStart: (_) => _pause(),
-                        onLongPressEnd: (_) => _resume(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Контент слайда (кнопки поверх зон тапа)
+              // Контент слайда и интерактивные зоны тапа
               SafeArea(
                 child: Column(
                   children: [
@@ -288,9 +249,56 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
                     // 2. Шапка автора (Аватар, Имя, Бейдж и крестик)
                     _buildAuthorHeader(),
 
-                    // 3. Центральное тело слайда
+                    // 3. Центральное тело слайда с интерактивными зонами тапа
                     Expanded(
-                      child: _buildSlideBody(),
+                      child: Stack(
+                        children: [
+                          // Визуальный контент (клики проходят сквозь в обработчик тапов)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: _buildSlideBody(),
+                            ),
+                          ),
+
+                          // Зоны тапа: левая сторона назад, правая сторона вперед
+                          Positioned.fill(
+                            child: Row(
+                              children: [
+                                // Левая зона (35%): назад
+                                Expanded(
+                                  flex: 35,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (_) => _pause(),
+                                    onTapUp: (_) {
+                                      _resume();
+                                      _onPrevSlide();
+                                    },
+                                    onTapCancel: () => _resume(),
+                                    onLongPressStart: (_) => _pause(),
+                                    onLongPressEnd: (_) => _resume(),
+                                  ),
+                                ),
+                                // Правая зона (65%): вперёд на следующую историю/слайд
+                                Expanded(
+                                  flex: 65,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (_) => _pause(),
+                                    onTapUp: (_) {
+                                      _resume();
+                                      _onNextSlide();
+                                    },
+                                    onTapCancel: () => _resume(),
+                                    onLongPressStart: (_) => _pause(),
+                                    onLongPressEnd: (_) => _resume(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     // 4. Нижняя кнопка действия (CTA)

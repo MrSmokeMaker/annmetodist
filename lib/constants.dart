@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 // Generated constants for generation types
 
-enum GenerationType { conspect, worksheet, homework, miniModule }
+enum GenerationType { conspect, worksheet, homework }
 
 extension GenerationTypeExt on GenerationType {
   String get label {
@@ -13,8 +13,6 @@ extension GenerationTypeExt on GenerationType {
         return 'Лист заданий';
       case GenerationType.homework:
         return 'Домашнее задание';
-      case GenerationType.miniModule:
-        return 'Мини-модуль на 3 урока';
     }
   }
 
@@ -26,8 +24,6 @@ extension GenerationTypeExt on GenerationType {
         return 'Лист с заданиями, сразу в PDF';
       case GenerationType.homework:
         return 'Домашнее задание в PDF';
-      case GenerationType.miniModule:
-        return 'Сквозной комплекс (Введение -> Отработка -> Квест)';
     }
   }
 
@@ -39,8 +35,6 @@ extension GenerationTypeExt on GenerationType {
         return Icons.list_alt_outlined;
       case GenerationType.homework:
         return Icons.home_work_outlined;
-      case GenerationType.miniModule:
-        return Icons.view_carousel_outlined;
     }
   }
 }

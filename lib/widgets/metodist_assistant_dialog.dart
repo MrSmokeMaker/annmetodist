@@ -13,6 +13,7 @@ class MetodistAssistantDialog extends StatefulWidget {
   final ThematicWorld? currentWorld;
   final String? currentMethod;
   final String? ageGroup;
+  final String? initialPrompt;
   final Function(String snippet)? onApplySnippet;
 
   const MetodistAssistantDialog({
@@ -21,6 +22,7 @@ class MetodistAssistantDialog extends StatefulWidget {
     this.currentWorld,
     this.currentMethod,
     this.ageGroup,
+    this.initialPrompt,
     this.onApplySnippet,
   });
 
@@ -31,6 +33,7 @@ class MetodistAssistantDialog extends StatefulWidget {
     ThematicWorld? currentWorld,
     String? currentMethod,
     String? ageGroup,
+    String? initialPrompt,
     Function(String snippet)? onApplySnippet,
   }) {
     final isDesktop = MediaQuery.of(context).size.width >= 768;
@@ -48,6 +51,7 @@ class MetodistAssistantDialog extends StatefulWidget {
             currentWorld: currentWorld,
             currentMethod: currentMethod,
             ageGroup: ageGroup,
+            initialPrompt: initialPrompt,
             onApplySnippet: onApplySnippet,
           ),
         ),
@@ -62,6 +66,7 @@ class MetodistAssistantDialog extends StatefulWidget {
           currentWorld: currentWorld,
           currentMethod: currentMethod,
           ageGroup: ageGroup,
+          initialPrompt: initialPrompt,
           onApplySnippet: onApplySnippet,
         ),
       );
@@ -116,6 +121,14 @@ class _MetodistAssistantDialogState extends State<MetodistAssistantDialog> {
         setState(() => _owlState = OwlState.idle);
       }
     });
+
+    if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _sendMessage(widget.initialPrompt!.trim());
+        }
+      });
+    }
   }
 
   @override

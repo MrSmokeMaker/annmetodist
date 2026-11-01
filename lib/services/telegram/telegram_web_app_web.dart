@@ -1,6 +1,7 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, undefined_function
 import 'dart:convert';
 import 'dart:js' as js;
+import 'dart:js' show allowInterop;
 import 'package:flutter/material.dart';
 import 'telegram_models.dart';
 

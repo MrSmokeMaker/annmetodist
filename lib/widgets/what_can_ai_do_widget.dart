@@ -5,7 +5,8 @@ import '../services/telegram/telegram_web_app_service.dart';
 import 'animated_owl_widget.dart';
 import 'metodist_assistant_dialog.dart';
 
-/// Виджет-витрина способностей AI-помощника с надписью «Что я могу»
+/// Виджет-витрина способностей AI-помощника «Что я могу 🦉»
+/// Без горизонтального скролла: интуитивная сетка 2x2 для быстрого доступа + раскрытие полного списка
 class WhatCanAiDoWidget extends StatefulWidget {
   final String? currentTopic;
   final ThematicWorld? currentWorld;
@@ -54,7 +55,7 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
   final List<Map<String, dynamic>> _capabilities = [
     {
       'icon': '✨',
-      'title': 'Улучшить с MetodistPro AI',
+      'title': 'Улучшить с MetodistPro',
       'tag': '6 в 1',
       'color': const Color(0xFFF59E0B),
       'desc': 'Глубокое 6-модульное педагогическое обогащение урока: пошаговый диалог учителя и детей, ТРИЗ-проблема, поминутный тайм-план по СанПиН, ловушка Незнайки, дифференцированное ДЗ и пост в чат родителей.',
@@ -62,7 +63,7 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
     },
     {
       'icon': '💬',
-      'title': 'Посты в чат родителей',
+      'title': 'В родительский чат',
       'tag': 'WhatsApp / TG',
       'color': const Color(0xFF10B981),
       'desc': 'Готовый доброжелательный и тактичный текст для родительского чата: чему научились, похвала ребятам за активность и короткий 5-минутный совет без стресса.',
@@ -70,7 +71,7 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
     },
     {
       'icon': '📚',
-      'title': '3 Уровня домашнего задания',
+      'title': '3 Уровня домашки',
       'tag': 'ФГОС Дифференциация',
       'color': const Color(0xFF6366F1),
       'desc': 'Разбивка ДЗ на три ясных уровня: 1) Базовый обязательный (ФГОС, 7-10 мин), 2) Продвинутый (практика с подвохом), 3) ТРИЗ-вызов (олимпиадная эвристика со звёздочкой).',
@@ -78,23 +79,23 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
     },
     {
       'icon': '🎮',
-      'title': 'Сюжетные игры и квесты',
-      'tag': '5 Игровых миров',
+      'title': 'Сюжетная игра-квест',
+      'tag': '10 мин с маскотом',
       'color': const Color(0xFFEC4899),
       'desc': '10-минутная динамическая обучающая игра или сюжетный квест по теме урока с участием маскотов (Лисёнок Астро, Совёнок Архип, Енот Шерлок, Бобёр Винтик, Медвежонок Барни).',
       'actionPrompt': 'Придумай 10-минутную сюжетную обучающую игру-квест с маскотом нашего игрового мира для закрепления темы урока.',
     },
     {
       'icon': '📝',
-      'title': 'Экспресс-тесты среза знаний',
-      'tag': 'С эталонами',
+      'title': 'Экспресс-тест',
+      'tag': '3 вопроса + эталоны',
       'color': const Color(0xFF8B5CF6),
       'desc': 'Быстрый контрольный срез из 3 вопросов с вариантами ответов, эталонными ключами для быстрой проверки учителем и критериями оценивания (⭐⭐⭐).',
       'actionPrompt': 'Составь экспресс-тест среза знаний из 3 вопросов с 4 вариантами ответов, ключами проверки и критериями оценивания.',
     },
     {
       'icon': '🪤',
-      'title': 'Ловушки Незнайки',
+      'title': 'Ловушка Незнайки',
       'tag': 'Критическое мышление',
       'color': const Color(0xFFEF4444),
       'desc': 'Забавное дидактическое задание с типичной детской ошибкой. Дети выступают в роли строгих экспертов, находят подвох и формулируют истинное правило.',
@@ -102,15 +103,15 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
     },
     {
       'icon': '🤸',
-      'title': 'Физкультминутка по СанПиН',
-      'tag': 'Здоровьесбережение',
+      'title': 'Физкультминутка',
+      'tag': 'СанПиН разминка',
       'color': const Color(0xFF06B6D4),
       'desc': 'Тематическая разминка для осанки, координации и гимнастика для снятия зрительного напряжения с экрана и тетради (2 минуты).',
       'actionPrompt': 'Предложи быструю 2-минутную физкультминутку по нормам СанПиН с упражнениями для осанки и гимнастикой для глаз.',
     },
     {
       'icon': '⚡',
-      'title': 'Свои команды и действия',
+      'title': 'Свои команды',
       'tag': 'Кастомные промпты',
       'color': const Color(0xFFEAB308),
       'desc': 'Создание собственных кнопок-команд (например, «стишок-запоминалка», «круг рефлексии», «карточка за 3 минуты») со своими шаблонами инструкций.',
@@ -120,19 +121,19 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
 
   void _triggerCapability(BuildContext context, String prompt) {
     TelegramWebAppService().hapticSelection();
-    Navigator.of(context, rootNavigator: true).pop();
     MetodistAssistantDialog.show(
       context,
       currentTopic: widget.currentTopic,
       currentWorld: widget.currentWorld,
       currentMethod: widget.currentMethod,
+      initialPrompt: prompt,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final topic = widget.currentTopic ?? 'Тема урока';
+    final hasCustomTopic = widget.currentTopic != null && widget.currentTopic!.trim().isNotEmpty && widget.currentTopic != 'Тема урока';
 
     return Container(
       decoration: BoxDecoration(
@@ -161,40 +162,51 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Шапка с анимированным Совёнком и надписью «Что я могу»
+                // Шапка с анимированным Совёнком
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const RadialGradient(
-                          colors: [Color(0xFF047857), Color(0xFF064E3B)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF10B981).withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                    GestureDetector(
+                      onTap: () {
+                        TelegramWebAppService().hapticSelection();
+                        MetodistAssistantDialog.show(
+                          context,
+                          currentTopic: widget.currentTopic,
+                          currentWorld: widget.currentWorld,
+                          currentMethod: widget.currentMethod,
+                        );
+                      },
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const RadialGradient(
+                            colors: [Color(0xFF047857), Color(0xFF064E3B)],
                           ),
-                        ],
-                        border: Border.all(color: const Color(0xFFF59E0B), width: 1.8),
-                      ),
-                      child: const Center(
-                        child: AnimatedOwlWidget(
-                          state: OwlState.speaking,
-                          size: 42,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(color: const Color(0xFFF59E0B), width: 1.8),
+                        ),
+                        child: const Center(
+                          child: AnimatedOwlWidget(
+                            state: OwlState.speaking,
+                            size: 42,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,22 +244,40 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                               if (widget.isCompact)
                                 InkWell(
                                   borderRadius: BorderRadius.circular(12),
-                                  onTap: () => setState(() => _isExpanded = !_isExpanded),
+                                  onTap: () {
+                                    TelegramWebAppService().hapticSelection();
+                                    setState(() => _isExpanded = !_isExpanded);
+                                  },
                                   child: Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: Icon(
-                                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                                      color: isDark ? Colors.white70 : Colors.black54,
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _isExpanded ? 'Свернуть' : 'Все 8 сил',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Icon(
+                                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                          size: 16,
+                                          color: isDark ? Colors.white70 : Colors.black54,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           const Text(
                             'Что я могу 🦉',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.2,
                             ),
@@ -255,7 +285,7 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                           Text(
                             'Персональный AI-ассистент учителя начальных классов',
                             style: TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 11,
                               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                             ),
                           ),
@@ -265,9 +295,9 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // Ненавязчивая интерактивная плашка-подсказка
+                // Информационная подсказка
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
@@ -279,15 +309,17 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                   ),
                   child: Row(
                     children: [
-                      const Text('💡', style: TextStyle(fontSize: 15)),
+                      const Text('💡', style: TextStyle(fontSize: 14)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Готов помочь с уроком «$topic». Выберите суперсилу или нажмите кнопку ниже:',
+                          hasCustomTopic
+                              ? 'Готов помочь с уроком «». Выберите задачу ниже:'
+                              : 'Выберите готовый сценарий для урока или нажмите зелёную кнопку:',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
-                            height: 1.3,
+                            height: 1.25,
                           ),
                         ),
                       ),
@@ -295,12 +327,12 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // Список возможностей (полный или свернутый в зависимости от compact/expanded)
+                // Блок суперсил: либо развёрнутый полный список, либо понятная сетка 2x2 без скролла
                 if (!widget.isCompact || _isExpanded)
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 360),
+                    constraints: const BoxConstraints(maxHeight: 380),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: _capabilities.length,
@@ -312,60 +344,14 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                     ),
                   )
                 else
-                  // Компактный горизонтальный слайдер чипсов
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _capabilities.map((cap) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              MetodistAssistantDialog.show(
-                                context,
-                                currentTopic: widget.currentTopic,
-                                currentWorld: widget.currentWorld,
-                                currentMethod: widget.currentMethod,
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: (cap['color'] as Color).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: (cap['color'] as Color).withOpacity(0.35),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(cap['icon'] as String, style: const TextStyle(fontSize: 14)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    cap['title'] as String,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  _buildCleanGrid(context, isDark),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Главная кнопка открытия ассистента
                 SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 46,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF047857),
@@ -401,6 +387,146 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Простая, понятная и адаптивная сетка сценариев (без горизонтального скролла)
+  Widget _buildCleanGrid(BuildContext context, bool isDark) {
+    // 4 ключевых сценария для быстрого запуска
+    final quickCards = [
+      _capabilities[1], // 💬 В родительский чат
+      _capabilities[2], // 📚 3 Уровня домашки
+      _capabilities[3], // 🎮 Сюжетная игра-квест
+      _capabilities[4], // 📝 Экспресс-тест
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildQuickActionCard(context, quickCards[0], isDark)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildQuickActionCard(context, quickCards[1], isDark)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildQuickActionCard(context, quickCards[2], isDark)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildQuickActionCard(context, quickCards[3], isDark)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Кнопка разворачивания остальных возможностей
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () {
+            TelegramWebAppService().hapticSelection();
+            setState(() => _isExpanded = true);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '✨ Ещё 4 суперсилы (Ловушка Незнайки, СанПиН...)',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: Color(0xFFF59E0B),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Компактная карточка действия в сетке
+  Widget _buildQuickActionCard(
+    BuildContext context,
+    Map<String, dynamic> cap,
+    bool isDark,
+  ) {
+    final color = cap['color'] as Color;
+    final title = cap['title'] as String;
+    final tag = cap['tag'] as String;
+    final icon = cap['icon'] as String;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          _triggerCapability(context, cap['actionPrompt'] as String);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            color: color.withOpacity(isDark ? 0.12 : 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: color.withOpacity(isDark ? 0.35 : 0.25),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(isDark ? 0.22 : 0.16),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(icon, style: const TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tag,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

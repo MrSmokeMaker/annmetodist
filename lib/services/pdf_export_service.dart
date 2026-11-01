@@ -1,3 +1,4 @@
+import 'web_file_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:metodist/models/lesson_summary_card.dart';
 import 'package:flutter/foundation.dart';
@@ -20,6 +21,51 @@ enum PdfMaterialType {
 }
 
 class PdfExportService {
+  static pw.Font? _cachedFontRegular;
+  static pw.Font? _cachedFontBold;
+  static pw.Font? _cachedFontItalic;
+
+  static Future<pw.Font> _loadRobotoRegular() async {
+    if (_cachedFontRegular != null) return _cachedFontRegular!;
+    try {
+      _cachedFontRegular = await _loadRobotoRegular().timeout(const Duration(seconds: 4));
+      return _cachedFontRegular!;
+    } catch (_) {
+      return pw.Font.helvetica();
+    }
+  }
+
+  static Future<pw.Font> _loadRobotoBold() async {
+    if (_cachedFontBold != null) return _cachedFontBold!;
+    try {
+      _cachedFontBold = await _loadRobotoBold().timeout(const Duration(seconds: 4));
+      return _cachedFontBold!;
+    } catch (_) {
+      return pw.Font.helveticaBold();
+    }
+  }
+
+  static Future<pw.Font> _loadRobotoItalic() async {
+    if (_cachedFontItalic != null) return _cachedFontItalic!;
+    try {
+      _cachedFontItalic = await _loadRobotoItalic().timeout(const Duration(seconds: 4));
+      return _cachedFontItalic!;
+    } catch (_) {
+      return pw.Font.helveticaOblique();
+    }
+  }
+
+  static Future<void> _shareOrDownloadPdf({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    if (kIsWeb) {
+      WebFileHelper.downloadPdf(bytes, filename);
+    } else {
+      await _shareOrDownloadPdf(bytes: bytes, filename: filename);
+    }
+  }
+
   static PdfColor _withOpacity(PdfColor baseColor, double opacity) =>
       PdfColor(baseColor.red, baseColor.green, baseColor.blue, opacity);
 
@@ -68,9 +114,9 @@ class PdfExportService {
   static Future<Uint8List> generateCombinedPdfBytes(Conspect conspect, {bool isPro = false}) async {
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontItalic = await PdfGoogleFonts.robotoItalic();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
+    final fontItalic = await _loadRobotoItalic();
 
     final world = conspect.thematicWorld;
     final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
@@ -147,7 +193,7 @@ class PdfExportService {
   /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
   static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false}) async {
     final bytes = await generateCombinedPdfBytes(conspect, isPro: isPro);
-    await Printing.sharePdf(
+    await _shareOrDownloadPdf(
       bytes: bytes,
       filename: 'Комплект_${conspect.title.replaceAll(' ', '_')}.pdf',
     );
@@ -167,9 +213,9 @@ class PdfExportService {
     final pdf = pw.Document();
 
     // Load Cyrillic-compatible Google Font (Roboto)
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontItalic = await PdfGoogleFonts.robotoItalic();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
+    final fontItalic = await _loadRobotoItalic();
 
     // Извлекаем только нужную часть контента строго в зависимости от типа материала
     final filteredContent = _extractMaterialContent(conspect.content, type);
@@ -266,7 +312,7 @@ class PdfExportService {
     );
 
     // Share/print the generated PDF
-    await Printing.sharePdf(
+    await _shareOrDownloadPdf(
       bytes: await pdf.save(),
       filename: _getPdfFilename(conspect.title, type),
     );
@@ -276,9 +322,9 @@ class PdfExportService {
   static Future<void> _exportLegacyPdf(Conspect conspect) async {
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontItalic = await PdfGoogleFonts.robotoItalic();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
+    final fontItalic = await _loadRobotoItalic();
 
     // Определяем все заголовки разделов и заранее загружаем их иконки
     final sectionIcons = <String, pw.MemoryImage?>{};
@@ -379,7 +425,7 @@ class PdfExportService {
     );
 
     // Share/print the generated PDF
-    await Printing.sharePdf(
+    await _shareOrDownloadPdf(
       bytes: await pdf.save(),
       filename: 'Конспект_${conspect.title.replaceAll(' ', '_')}.pdf',
     );
@@ -400,24 +446,33 @@ class PdfExportService {
   }
 
   static final List<String> _worksheetKeywords = [
+    'практические задания',
+    'практическая часть',
     'лист заданий',
     'рабочий лист',
     'раздаточный лист',
     'раздаточный материал',
+    'задания к уроку',
+    'самостоятельная работа',
+    'упражнения к уроку',
+    'упражнения',
+    'уровень 1',
+    'задания',
   ];
 
   static final List<String> _homeworkKeywords = [
     'домашнее задание',
     'домашняя работа',
-    'задания на дом',
     'блок дополнительных заданий',
+    'задания на дом',
+    'домашний практикум',
     'домашка',
   ];
 
   static final List<String> _cardsKeywords = [
     'карточки для занятия',
     'раздаточные карточки',
-    '```json',
+    '`json',
   ];
 
   static int _findSectionStartIndex(String text, List<String> keywords, [int startFrom = 0]) {
@@ -425,6 +480,23 @@ class PdfExportService {
     int minIndex = -1;
 
     for (final kw in keywords) {
+      final escapedKw = RegExp.escape(kw);
+      final regex = RegExp(
+        r'(?:^|\n)#{1,4}\s*[^a-zA-Zа-яА-ЯёЁ\n0-9]*' + escapedKw,
+        caseSensitive: false,
+      );
+      final searchArea = lower.substring(startFrom);
+      final match = regex.allMatches(searchArea).firstOrNull;
+      if (match != null) {
+        var matchIdx = startFrom + match.start;
+        if (searchArea.substring(match.start).startsWith('\n')) {
+          matchIdx += 1;
+        }
+        if (minIndex == -1 || matchIdx < minIndex) {
+          minIndex = matchIdx;
+        }
+      }
+
       final prefixes = ['\n# ', '\n## ', '\n### ', '# ', '## ', '### ', '\n'];
       for (final prefix in prefixes) {
         final pattern = '$prefix$kw';
@@ -440,7 +512,6 @@ class PdfExportService {
     return minIndex;
   }
 
-  /// Проверяет наличие конкретного материала в тексте
   static bool hasMaterialContent(String content, PdfMaterialType type) {
     final extracted = _extractMaterialContent(content, type);
     return extracted.trim().isNotEmpty;
@@ -3053,9 +3124,9 @@ static List<pw.Widget> _buildContentWidgets(
   }) async {
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontItalic = await PdfGoogleFonts.robotoItalic();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
+    final fontItalic = await _loadRobotoItalic();
 
     // Разбиваем карточки на страницы по 6 штук (2 колонки x 3 ряда)
     const cardsPerPage = 6;
@@ -3147,7 +3218,7 @@ static List<pw.Widget> _buildContentWidgets(
       );
     }
 
-    await Printing.sharePdf(
+    await _shareOrDownloadPdf(
       bytes: await pdf.save(),
       filename: 'Карточки_${lessonTitle.replaceAll(' ', '_')}.pdf',
     );
@@ -3860,9 +3931,9 @@ static List<pw.Widget> _buildContentWidgets(
     final pdf = pw.Document();
     final effectiveWorld = world ?? ThematicWorld.fromId(card.thematicWorldId);
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontItalic = await PdfGoogleFonts.robotoItalic();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
+    final fontItalic = await _loadRobotoItalic();
 
     final mascotImage = await _loadWorldMascot(effectiveWorld, null);
 
@@ -4334,15 +4405,15 @@ static List<pw.Widget> _buildContentWidgets(
   }) async {
     final bytes = await generateLessonSummaryPdfBytes(card, world: world, methodology: methodology);
     final filename = 'lesson_summary_${card.topic.replaceAll(RegExp(r'[^a-zA-Z0-9а-яА-Я]'), '_')}.pdf';
-    await Printing.sharePdf(bytes: bytes, filename: filename);
+    await _shareOrDownloadPdf(bytes: bytes, filename: filename);
   }
 
   /// Генерация Eco-Print 2-в-1 PDF: две идентичные карточки формата А5 на одном листе А4 (альбомная ориентация)
   static Future<Uint8List> generateEcoPrint2in1PdfBytes(Conspect conspect) async {
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontRegular = await _loadRobotoRegular();
+    final fontBold = await _loadRobotoBold();
 
     // Извлекаем правило и текст заданий
     String ruleText = 'Рассуждай по шагам, применяй главное правило и проверяй ответ!';
@@ -4547,6 +4618,6 @@ static List<pw.Widget> _buildContentWidgets(
   static Future<void> exportEcoPrint2in1Pdf(Conspect conspect) async {
     final bytes = await generateEcoPrint2in1PdfBytes(conspect);
     final filename = 'eco_print_2in1_${conspect.topic.replaceAll(RegExp(r'[^a-zA-Z0-9а-яА-Я]'), '_')}.pdf';
-    await Printing.sharePdf(bytes: bytes, filename: filename);
+    await _shareOrDownloadPdf(bytes: bytes, filename: filename);
   }
 }

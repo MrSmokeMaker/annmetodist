@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/pricing_plan.dart';
+import '../models/department_team.dart';
+import '../models/tariff.dart';
 import '../providers/app_provider.dart';
 import '../services/supabase_service.dart';
 import '../theme.dart';
@@ -21,6 +23,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final SupabaseService _supabaseService = SupabaseService();
   bool _isAnnualBilling = true;
   double _weeklyLessons = 16.0;
+  DepartmentTeam _team = DepartmentTeam.createDefault();
+  final TextEditingController _inviteEmailCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _inviteEmailCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +208,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   // Telegram Ecosystem Integration Card
                   _buildTelegramEcosystemCard(context, isDark),
+
+                  const SizedBox(height: 18),
+
+                  // Лицензия кафедры школы (вынесено в профиль)
+                  _buildDepartmentTeamCard(context, isDark, provider.isDirector),
 
                   const SizedBox(height: 28),
 
@@ -981,4 +996,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
 
+
+  Widget _buildDepartmentTeamCard(BuildContext context, bool isDark, bool isDirector) {
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: AppRadii.lg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.groups_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Кафедра школы',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Text(
+                            'ДО 5 МЕСТ',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFA855F7),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Командный доступ учителей к общему банку уроков и планов',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDirector
+                      ? const Color(0xFF10B981).withValues(alpha: 0.16)
+                      : const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isDirector
+                      ? '${_team.activeSeatsCount} из ${_team.maxSeats} мест'
+                      : 'Тариф Директор',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDirector ? const Color(0xFF10B981) : const Color(0xFF818CF8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          if (isDirector) ...[
+            ..._team.members.map((member) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFF6366F1),
+                      radius: 14,
+                      child: Text(
+                        member.name.isNotEmpty ? member.name[0] : 'У',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                          ),
+                          Text(
+                            '${member.role} • ${member.email}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Активен',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF10B981)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _inviteEmailCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Email коллеги (напр. ivanova@school.ru)',
+                      hintStyle: const TextStyle(fontSize: 12),
+                      filled: true,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.person_add_rounded, size: 16),
+                  label: const Text('Пригласить', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    final email = _inviteEmailCtrl.text.trim();
+                    if (email.isEmpty || !email.contains('@')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Пожалуйста, введите корректный email коллеги')),
+                      );
+                      return;
+                    }
+                    if (!_team.canAddMember) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Все 5 мест кафедры уже заняты')),
+                      );
+                      return;
+                    }
+                    setState(() {
+                      final newM = DepartmentMember(
+                        id: 'member_${DateTime.now().millisecondsSinceEpoch}',
+                        name: email.split('@').first,
+                        email: email,
+                        role: 'Учитель кафедры',
+                        joinedAt: DateTime.now(),
+                      );
+                      final list = List<DepartmentMember>.from(_team.members)..add(newM);
+                      _team = DepartmentTeam(
+                        id: _team.id,
+                        teamName: _team.teamName,
+                        maxSeats: _team.maxSeats,
+                        members: list,
+                        inviteCode: _team.inviteCode,
+                      );
+                      _inviteEmailCtrl.clear();
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('✉️ Приглашение отправлено на $email!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? Colors.white10 : Colors.black12,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_outline_rounded, color: Colors.amber, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Подключите до 5 учителей вашей школы к общему банку уроков с тарифом «Директор».',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      context.read<AppProvider>().setTariff(TariffLevel.director);
+                    },
+                    child: const Text('Подключить', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

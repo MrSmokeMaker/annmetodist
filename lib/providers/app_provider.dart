@@ -284,8 +284,6 @@ class AppProvider with ChangeNotifier {
           return 'worksheet';
         case GenerationType.homework:
           return 'homework';
-        case GenerationType.miniModule:
-          return 'mini_module';
       }
     }).toList();
   }
@@ -348,7 +346,7 @@ class AppProvider with ChangeNotifier {
         totalVariants: totalVariants,
         materials: materials,
         inclusionMode: inclusionMode,
-        miniModuleMode: materials?.contains(GenerationType.miniModule) ?? false,
+        miniModuleMode: false,
         roleShiftingMode: roleShiftingMode,
         ecoLowTechMode: ecoLowTechMode || method.id == 'singapore_cpa',
       );
@@ -385,7 +383,7 @@ class AppProvider with ChangeNotifier {
           materials: materials,
           isDeepLesson: isDeepLesson,
           inclusionMode: inclusionMode,
-          miniModuleMode: materials?.contains(GenerationType.miniModule) ?? false,
+          miniModuleMode: false,
         );
         
         finalSystemPrompt = enhancedPrompt['systemPrompt']!;

@@ -1,3 +1,4 @@
+import '../services/web_file_helper.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -310,14 +311,14 @@ ${_currentConspect!.content}
 
   bool _hasMaterial(PdfMaterialType type) {
     if (_currentConspect == null) return false;
-    final generated = _currentConspect!.generatedMaterials;
+    final content = _currentConspect!.content;
     switch (type) {
       case PdfMaterialType.conspect:
-        return generated.contains('conspect') || generated.isEmpty;
+        return true;
       case PdfMaterialType.worksheet:
-        return generated.contains('worksheet') && PdfExportService.hasMaterialContent(_currentConspect!.content, PdfMaterialType.worksheet);
+        return PdfExportService.hasMaterialContent(content, PdfMaterialType.worksheet);
       case PdfMaterialType.homework:
-        return generated.contains('homework') && PdfExportService.hasMaterialContent(_currentConspect!.content, PdfMaterialType.homework);
+        return PdfExportService.hasMaterialContent(content, PdfMaterialType.homework);
     }
   }
 
@@ -474,7 +475,7 @@ ${_currentConspect!.content}
 
     for (final line in lines) {
       final trimmed = line.trim();
-      if (trimmed.startsWith('# ') || (trimmed.startsWith('## ') && currentHeader.isEmpty)) {
+      if (trimmed.startsWith('# ') || trimmed.startsWith('## ')) {
         if (currentHeader.isNotEmpty || currentBuffer.isNotEmpty) {
           sections.add({
             'header': currentHeader.isEmpty ? 'Общие сведения' : currentHeader,
@@ -496,6 +497,473 @@ ${_currentConspect!.content}
     }
 
     return sections;
+  }
+
+  
+  void _openVisualPdfEditor() {
+    if (_currentConspect == null) return;
+    final isDirector = context.read<AppProvider>().isDirector;
+    if (!isDirector) {
+      _showDirectorPaywall(context, featureName: 'Визуальный PDF-Конструктор');
+      return;
+    }
+    WebFileHelper.saveLessonForEditor(
+      _currentConspect!.title,
+      _currentConspect!.content,
+    );
+    WebFileHelper.openUrl('pdf_editor.html');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Открываем интерактивный PDF-Конструктор [Тариф Директор]...'),
+        backgroundColor: Color(0xFF8B5CF6),
+      ),
+    );
+  }
+
+  void _showDirectorPaywall(BuildContext context, {required String featureName}) {
+    _showProFeatureDialog(
+      context: context,
+      title: '👑 Тариф «Директор»',
+      description: 'Функция «$featureName» доступна на тарифе «Директор». Она включает свободный визуальный конструктор PDF, добавление школьного логотипа, генерацию презентаций PowerPoint, экспорт для кафедры и брендирование всех печатных материалов.',
+    );
+  }
+
+  void _showReportErrorDialog(BuildContext context) {
+    if (_currentConspect == null) return;
+    String selectedReason = 'Фактическая неточность';
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.report_problem_rounded, color: Color(0xFFF59E0B)),
+              SizedBox(width: 8),
+              Text('Сообщить об ошибке', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Заметили неточность в материале урока? Расскажите, и Совёнок-Методист учтёт это и поможет исправить конспект:',
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: selectedReason,
+                  decoration: InputDecoration(
+                    labelText: 'Тип проблемы',
+                    filled: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Фактическая неточность', child: Text('Фактическая неточность')),
+                    DropdownMenuItem(value: 'Не подходит по возрасту', child: Text('Не подходит по возрасту')),
+                    DropdownMenuItem(value: 'Опечатка или ошибка формулировки', child: Text('Опечатка или формулировка')),
+                    DropdownMenuItem(value: 'Задание некорректно сформулировано', child: Text('Некорректное задание')),
+                    DropdownMenuItem(value: 'Другое', child: Text('Другое')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedReason = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Опишите ошибку или укажите блок...',
+                    filled: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Отмена'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Отправить и исправить'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryIndigo,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                final comment = commentController.text.trim();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Отчёт отправлен: $selectedReason. Совёнок анализирует исправление...'),
+                    backgroundColor: const Color(0xFF10B981),
+                  ),
+                );
+                MetodistAssistantDialog.show(
+                  context,
+                  currentTopic: _currentConspect?.topic,
+                  currentWorld: _currentConspect?.thematicWorld,
+                  currentMethod: _currentConspect?.methodName,
+                  ageGroup: _currentConspect?.ageGroup,
+                  initialPrompt: 'Пожалуйста, исправь ошибку в уроке «${_currentConspect?.title}». Причина: $selectedReason. Подробности: $comment',
+                  onApplySnippet: (snippet) {
+                    setState(() {
+                      _editController.text = '${_editController.text}\n\n$snippet';
+                    });
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showExportMaterialsModal(BuildContext context) {
+    if (_currentConspect == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasWs = _hasMaterial(PdfMaterialType.worksheet);
+    final hasHw = _hasMaterial(PdfMaterialType.homework);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF161922) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Экспорт и печать документов',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Скачайте нужный материал или весь комплект',
+                          style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white60 : Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildExportItem(
+                context,
+                icon: Icons.article_rounded,
+                iconColor: AppColors.primaryIndigo,
+                title: '📄 Конспект занятия (PDF)',
+                subtitle: 'Поминутный ход, цели, приёмы и рефлексия для учителя',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _exportMaterial(PdfMaterialType.conspect);
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildExportItem(
+                context,
+                icon: Icons.assignment_rounded,
+                iconColor: const Color(0xFF2563EB),
+                title: '📝 Рабочий лист с заданиями (PDF)',
+                subtitle: hasWs
+                    ? 'Задания для учеников, поля ответов, шкала самооценки'
+                    : 'В этом уроке блок заданий не выделен',
+                enabled: hasWs,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _exportMaterial(PdfMaterialType.worksheet);
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildExportItem(
+                context,
+                icon: Icons.home_work_rounded,
+                iconColor: const Color(0xFF059669),
+                title: '🏠 Домашнее задание (PDF)',
+                subtitle: hasHw
+                    ? 'Дифференцированные задания и памятка родителям'
+                    : 'В этом уроке блок домашки не выделен',
+                enabled: hasHw,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _exportMaterial(PdfMaterialType.homework);
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildExportItem(
+                context,
+                icon: Icons.layers_rounded,
+                iconColor: AppColors.accentAmber,
+                title: '🖨️ Пакет «Всё в одном» (PDF)',
+                subtitle: 'Конспект + Рабочий лист + Домашка в едином файле',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _exportAllCombined();
+                },
+              ),
+              const SizedBox(height: 14),
+              InkWell(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openVisualPdfEditor();
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF3B1D6E), const Color(0xFF1E1A38)]
+                          : [const Color(0xFFF3E8FF), const Color(0xFFEDE9FE)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)]),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.draw_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text('Визуальный PDF-Конструктор', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                SizedBox(width: 6),
+                                Text('👑 ДИРЕКТОР', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                              ],
+                            ),
+                            SizedBox(height: 2),
+                            Text('Интерактивная вёрстка, логотип школы, колонтитулы и печать', style: TextStyle(fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF8B5CF6)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportItem(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool enabled = true,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.45,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.white : Colors.black).withOpacity(isDark ? 0.05 : 0.03),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (enabled)
+                const Icon(Icons.download_rounded, size: 18, color: AppColors.primaryIndigo),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDirectorPdfEditorBanner(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDirector = context.watch<AppProvider>().isDirector;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF2A1B4E), const Color(0xFF181829)]
+              : [const Color(0xFFF3E8FF), const Color(0xFFEDE9FE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withOpacity(0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.draw_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'PDF-Конструктор',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.amberOrange,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '👑 ДИРЕКТОР',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Интерактивная вёрстка, логотип школы, перемещение блоков и печать',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _openVisualPdfEditor,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: Text(
+              isDirector ? 'Открыть 🎨' : 'Тариф 👑',
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -531,16 +999,16 @@ ${_currentConspect!.content}
         elevation: 0,
         actions: [
           if (!_isLoading && _currentConspect != null) ...[
-            // Улучшить с MetodistPro AI [ДИРЕКТОР]
+            // 1. Быстрый экспорт в PDF
             IconButton(
-              tooltip: 'Улучшить с MetodistPro AI [ДИРЕКТОР]',
-              icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFF59E0B)),
-              onPressed: () => _enhanceWithMetodistProAi(context),
+              tooltip: 'Экспорт в PDF / Печать',
+              icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444)),
+              onPressed: () => _showExportMaterialsModal(context),
             ),
-            // Совёнок-Методист AI
+            // 2. Персональный Совёнок AI
             IconButton(
               tooltip: 'Спросить Совёнка-Методиста AI',
-              icon: const Text('🦉', style: TextStyle(fontSize: 18)),
+              icon: const Text('🦉', style: TextStyle(fontSize: 20)),
               onPressed: () {
                 MetodistAssistantDialog.show(
                   context,
@@ -562,71 +1030,10 @@ ${_currentConspect!.content}
                 );
               },
             ),
-            // Методический аудит (QA YandexGPT Pro)
+            // 3. Режим редактирования
             IconButton(
-              tooltip: 'Методический аудит качества (ФГОС & QA)',
-              icon: const Icon(Icons.verified_rounded, color: Color(0xFF10B981)),
-              onPressed: () => _showRubricDialog(context),
-            ),
-            // Тесты и контрольный срез
-            IconButton(
-              tooltip: 'Контрольный срез (5 тестов + 3 открытых вопроса)',
-              icon: const Icon(Icons.quiz_rounded, color: AppColors.accentCyan),
-              onPressed: () => _showTestQuestionsModal(context),
-            ),
-            // Интерактивный квиз (Telegram / Яндекс.Формы)
-            IconButton(
-              tooltip: 'Интерактивный квиз (Telegram / Яндекс.Формы)',
-              icon: const Icon(Icons.dynamic_form_rounded, color: Color(0xFF38BDF8)),
-              onPressed: () => _showInteractiveQuizModal(context),
-            ),
-            // Отладочный режим YandexGPT
-            IconButton(
-              tooltip: _isDebugAuditMode ? 'Выключить отладку' : 'Отладка заданий (Оценка YandexGPT)',
-              icon: Icon(
-                Icons.biotech_rounded,
-                color: _isDebugAuditMode ? AppColors.accentCyan : null,
-              ),
-              onPressed: () {
-                setState(() => _isDebugAuditMode = !_isDebugAuditMode);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(_isDebugAuditMode
-                        ? 'Отладочный режим включен: отображаются оценки логики, орфографии, визуала и генерация в YandexART'
-                        : 'Отладочный режим выключен'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-            // Пакет дифференциации «3 в 1»
-            IconButton(
-              tooltip: 'Дифференциация «3 в 1» (Опора / База / Pro)',
-              icon: const Icon(Icons.layers_rounded, color: AppColors.accentAmber),
-              onPressed: _generateDifferentiationPackage,
-            ),
-            // Работа над ошибками
-            IconButton(
-              tooltip: 'Работа над ошибками (РНО)',
-              icon: const Icon(Icons.healing_rounded, color: Color(0xFF10B981)),
-              onPressed: () => RnoDialog.show(context, currentConspect: _currentConspect),
-            ),
-            // Word export
-            IconButton(
-              tooltip: 'Экспорт в Word (.docx)',
-              icon: const Icon(Icons.description_rounded, color: Color(0xFF3B82F6)),
-              onPressed: _exportDocx,
-            ),
-            // PowerPoint export (Тариф Директор)
-            IconButton(
-              tooltip: 'Презентация PowerPoint (.pptx) [ДИРЕКТОР]',
-              icon: const Icon(Icons.slideshow_rounded, color: Color(0xFFD97706)),
-              onPressed: _exportPptx,
-            ),
-            // Toggle edit mode
-            IconButton(
-              tooltip: _isEditing ? 'Сохранить изменения' : 'Редактировать',
-              icon: Icon(_isEditing ? Icons.check_circle_outline : Icons.edit_note),
+              tooltip: _isEditing ? 'Сохранить изменения' : 'Редактировать текст',
+              icon: Icon(_isEditing ? Icons.check_circle_rounded : Icons.edit_note_rounded),
               color: _isEditing ? AppColors.success : null,
               onPressed: () {
                 if (_isEditing) {
@@ -638,59 +1045,263 @@ ${_currentConspect!.content}
                 }
               },
             ),
-            // Share
-            IconButton(
-              tooltip: 'Поделиться',
-              icon: const Icon(Icons.share_outlined),
-              onPressed: _shareConspectText,
-            ),
-            // Шаг 7: В календарь (.ics)
-            IconButton(
-              tooltip: 'В календарь (.ics)',
-              icon: const Icon(Icons.calendar_month_outlined),
-              onPressed: _showCalendarExportDialog,
-            ),
-            // Шаг 7: Для коллеги
-            IconButton(
-              tooltip: 'Для коллеги',
-              icon: const Icon(Icons.people_alt_outlined),
-              onPressed: _showColleagueBriefSheet,
-            ),
-            // Студия «Аудио-заметка родителю» [PRO]
-            IconButton(
-              tooltip: 'Студия «Аудио-заметка родителю» [PRO]',
-              icon: const Icon(Icons.headphones_rounded, color: Color(0xFF06B6D4)),
-              onPressed: () => ParentAudioStudioModal.show(context, _currentConspect!),
-            ),
-            // Интерактивный аудио-диктант [PRO]
-            IconButton(
-              tooltip: 'Интерактивный аудио-диктант [PRO]',
-              icon: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6)),
-              onPressed: () => AudioDictationModal.show(context, _currentConspect!),
-            ),
-            // Eco-печать 2-в-1
-            IconButton(
-              tooltip: 'Eco-печать 2-в-1 (2 ученика на 1 лист А4)',
-              icon: const Icon(Icons.print_outlined, color: Color(0xFF10B981)),
-              onPressed: _exportEcoPrintPdf,
-            ),
-            // План меловой доски (Zero-Paper)
-            IconButton(
-              tooltip: 'План меловой доски (Zero-Paper)',
-              icon: const Icon(Icons.space_dashboard_outlined, color: Color(0xFF06B6D4)),
-              onPressed: () => _showChalkboardModal(context),
-            ),
-            // Шаг 4: Вести урок
-            IconButton(
-              tooltip: 'Вести урок',
-              icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.cyan),
-              onPressed: () {
-                Navigator.of(context).push(
-                  FadeSlidePageRoute(
-                    page: LessonRunScreen(conspect: _currentConspect!),
-                  ),
-                );
+            // 4. Меню всех инструментов (⋮)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              tooltip: 'Все инструменты и функции',
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              onSelected: (value) {
+                switch (value) {
+                  case 'pdf_editor':
+                    _openVisualPdfEditor();
+                    break;
+                  case 'run_lesson':
+                    Navigator.of(context).push(
+                      FadeSlidePageRoute(
+                        page: LessonRunScreen(conspect: _currentConspect!),
+                      ),
+                    );
+                    break;
+                  case 'enhance_ai':
+                    _enhanceWithMetodistProAi(context);
+                    break;
+                  case 'fgos_audit':
+                    _showRubricDialog(context);
+                    break;
+                  case 'tests':
+                    _showTestQuestionsModal(context);
+                    break;
+                  case 'quiz':
+                    _showInteractiveQuizModal(context);
+                    break;
+                  case 'diff_package':
+                    _generateDifferentiationPackage();
+                    break;
+                  case 'rno':
+                    RnoDialog.show(context, currentConspect: _currentConspect);
+                    break;
+                  case 'docx':
+                    _exportDocx();
+                    break;
+                  case 'pptx':
+                    _exportPptx();
+                    break;
+                  case 'eco_print':
+                    _exportEcoPrintPdf();
+                    break;
+                  case 'chalkboard':
+                    _showChalkboardModal(context);
+                    break;
+                  case 'audio_parent':
+                    ParentAudioStudioModal.show(context, _currentConspect!);
+                    break;
+                  case 'audio_dictation':
+                    AudioDictationModal.show(context, _currentConspect!);
+                    break;
+                  case 'calendar':
+                    _showCalendarExportDialog();
+                    break;
+                  case 'colleague':
+                    _showColleagueBriefSheet();
+                    break;
+                  case 'copy':
+                    Clipboard.setData(ClipboardData(text: _currentConspect!.content));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Текст урока скопирован в буфер обмена!')),
+                    );
+                    break;
+                  case 'share':
+                    _shareConspectText();
+                    break;
+                  case 'report_error':
+                    _showReportErrorDialog(context);
+                    break;
+                }
               },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'run_lesson',
+                  child: Row(
+                    children: [
+                      Icon(Icons.play_circle_fill_rounded, color: AppColors.cyan, size: 20),
+                      SizedBox(width: 12),
+                      Text('Вести урок по таймингу'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'pdf_editor',
+                  child: Row(
+                    children: [
+                      Icon(Icons.draw_rounded, color: Color(0xFF8B5CF6), size: 20),
+                      SizedBox(width: 12),
+                      Text('👑 PDF-Конструктор (Директор)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'fgos_audit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 20),
+                      SizedBox(width: 12),
+                      Text('Методический аудит (ФГОС)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'diff_package',
+                  child: Row(
+                    children: [
+                      Icon(Icons.layers_rounded, color: AppColors.accentAmber, size: 20),
+                      SizedBox(width: 12),
+                      Text('Дифференциация «3 в 1»'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'tests',
+                  child: Row(
+                    children: [
+                      Icon(Icons.quiz_rounded, color: AppColors.accentCyan, size: 20),
+                      SizedBox(width: 12),
+                      Text('Контрольный срез / Тесты'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'quiz',
+                  child: Row(
+                    children: [
+                      Icon(Icons.dynamic_form_rounded, color: Color(0xFF38BDF8), size: 20),
+                      SizedBox(width: 12),
+                      Text('Интерактивный квиз'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'docx',
+                  child: Row(
+                    children: [
+                      Icon(Icons.description_rounded, color: Color(0xFF3B82F6), size: 20),
+                      SizedBox(width: 12),
+                      Text('Экспорт в Word (.docx)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'pptx',
+                  child: Row(
+                    children: [
+                      Icon(Icons.slideshow_rounded, color: Color(0xFFD97706), size: 20),
+                      SizedBox(width: 12),
+                      Text('Презентация PowerPoint [Директор]'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'eco_print',
+                  child: Row(
+                    children: [
+                      Icon(Icons.print_outlined, color: Color(0xFF10B981), size: 20),
+                      SizedBox(width: 12),
+                      Text('Eco-печать 2-в-1 (на 1 лист)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'chalkboard',
+                  child: Row(
+                    children: [
+                      Icon(Icons.space_dashboard_outlined, color: Color(0xFF06B6D4), size: 20),
+                      SizedBox(width: 12),
+                      Text('План для меловой доски'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'audio_parent',
+                  child: Row(
+                    children: [
+                      Icon(Icons.headphones_rounded, color: Color(0xFF06B6D4), size: 20),
+                      SizedBox(width: 12),
+                      Text('Аудио-заметка родителю'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'audio_dictation',
+                  child: Row(
+                    children: [
+                      Icon(Icons.record_voice_over_rounded, color: Color(0xFF8B5CF6), size: 20),
+                      SizedBox(width: 12),
+                      Text('Аудио-диктант'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'calendar',
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined, size: 20),
+                      SizedBox(width: 12),
+                      Text('Добавить в календарь (.ics)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'colleague',
+                  child: Row(
+                    children: [
+                      Icon(Icons.people_alt_outlined, size: 20),
+                      SizedBox(width: 12),
+                      Text('Памятка для коллеги'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'rno',
+                  child: Row(
+                    children: [
+                      Icon(Icons.healing_rounded, color: Color(0xFF10B981), size: 20),
+                      SizedBox(width: 12),
+                      Text('Работа над ошибками учеников (РНО)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'copy',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_rounded, size: 20),
+                      SizedBox(width: 12),
+                      Text('Скопировать весь текст'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'share',
+                  child: Row(
+                    children: [
+                      Icon(Icons.share_outlined, size: 20),
+                      SizedBox(width: 12),
+                      Text('Поделиться текстом'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'report_error',
+                  child: Row(
+                    children: [
+                      Icon(Icons.report_problem_outlined, color: Color(0xFFEF4444), size: 20),
+                      SizedBox(width: 12),
+                      Text('🚩 Сообщить об ошибке в уроке', style: TextStyle(color: Color(0xFFEF4444))),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -1088,6 +1699,9 @@ ${_currentConspect!.content}
                         ),
                       ),
                     ] else ...[
+                      // VIP Director PDF Editor Banner
+                      _buildDirectorPdfEditorBanner(context),
+
                       // Render structured sections with gradient underline headers
                       ..._buildStructuredSections(
                         _currentConspect!.content,
@@ -1226,7 +1840,7 @@ ${_currentConspect!.content}
       final sectionBody = section['content']!;
       final lowerHeader = header.toLowerCase();
 
-      final bool isWorksheet = lowerHeader.contains('лист заданий') || lowerHeader.contains('раздаточн');
+      final bool isWorksheet = lowerHeader.contains('лист заданий') || lowerHeader.contains('раздаточн') || lowerHeader.contains('практическ') || lowerHeader.contains('задани');
       final bool isHomework = lowerHeader.contains('домашн') || lowerHeader.contains('блок дополнительных');
       // Place conspect button after the last conspect section (or after 'ход занятия')
       final bool isConspectKeySection = lowerHeader.contains('дифференциация') ||
@@ -1283,7 +1897,7 @@ ${_currentConspect!.content}
                             ),
                       ),
                     ),
-                    if (isWorksheet || lowerHeader.contains('ход') || lowerHeader.contains('задани'))
+                    if (isWorksheet || lowerHeader.contains('ход') || lowerHeader.contains('задани') || isHomework)
                       BlockActionToolbar(
                         isLoading: _isRegeneratingBlockIndex == i,
                         onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
