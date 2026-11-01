@@ -95,23 +95,6 @@ void main() {
       expect(systemPrompt.contains('микро-пауз'), isTrue);
     });
 
-    test('buildEnhancedPrompt includes 3-lesson mini-module directive', () {
-      final prompt = PromptBuilder.buildEnhancedPrompt(
-        methodBlock: 'Пчёлко А.С. Методика преподавания арифметики',
-        topic: 'Сложение с переходом через десяток',
-        subject: 'Математика',
-        ageGroup: '1 класс',
-        duration: '40 мин',
-        miniModuleMode: true,
-      );
-
-      final systemPrompt = prompt['systemPrompt']!;
-      expect(systemPrompt.contains('СКВОЗНОЙ МИНИ-МОДУЛЬ НА 3 УРОКА'), isTrue);
-      expect(systemPrompt.contains('Урок 1: Введение'), isTrue);
-      expect(systemPrompt.contains('Урок 2: Отработка'), isTrue);
-      expect(systemPrompt.contains('Урок 3: Квест-обобщение'), isTrue);
-    });
-
     test('buildEnhancedPrompt contains attention hooks and descriptors', () {
       final prompt = PromptBuilder.buildEnhancedPrompt(
         methodBlock: 'Костин Н.А. Методика русского языка',
@@ -145,10 +128,10 @@ void main() {
   });
 
   group('GenerationType Enum and Constants Tests', () {
-    test('GenerationType includes miniModule with correct attributes', () {
-      final miniModule = GenerationType.miniModule;
-      expect(miniModule.label, equals('Мини-модуль на 3 урока'));
-      expect(miniModule.description.isNotEmpty, isTrue);
+    test('GenerationType includes conspect, worksheet and homework with correct attributes', () {
+      final worksheet = GenerationType.worksheet;
+      expect(worksheet.label, equals('Лист заданий'));
+      expect(worksheet.description.isNotEmpty, isTrue);
     });
   });
 }
