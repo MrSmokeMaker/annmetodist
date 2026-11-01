@@ -28,7 +28,7 @@ class PdfExportService {
   static Future<pw.Font> _loadRobotoRegular() async {
     if (_cachedFontRegular != null) return _cachedFontRegular!;
     try {
-      _cachedFontRegular = await _loadRobotoRegular().timeout(const Duration(seconds: 4));
+      _cachedFontRegular = await PdfGoogleFonts.robotoRegular().timeout(const Duration(seconds: 4));
       return _cachedFontRegular!;
     } catch (_) {
       return pw.Font.helvetica();
@@ -38,7 +38,7 @@ class PdfExportService {
   static Future<pw.Font> _loadRobotoBold() async {
     if (_cachedFontBold != null) return _cachedFontBold!;
     try {
-      _cachedFontBold = await _loadRobotoBold().timeout(const Duration(seconds: 4));
+      _cachedFontBold = await PdfGoogleFonts.robotoBold().timeout(const Duration(seconds: 4));
       return _cachedFontBold!;
     } catch (_) {
       return pw.Font.helveticaBold();
@@ -48,7 +48,7 @@ class PdfExportService {
   static Future<pw.Font> _loadRobotoItalic() async {
     if (_cachedFontItalic != null) return _cachedFontItalic!;
     try {
-      _cachedFontItalic = await _loadRobotoItalic().timeout(const Duration(seconds: 4));
+      _cachedFontItalic = await PdfGoogleFonts.robotoItalic().timeout(const Duration(seconds: 4));
       return _cachedFontItalic!;
     } catch (_) {
       return pw.Font.helveticaOblique();
@@ -62,7 +62,7 @@ class PdfExportService {
     if (kIsWeb) {
       WebFileHelper.downloadPdf(bytes, filename);
     } else {
-      await _shareOrDownloadPdf(bytes: bytes, filename: filename);
+      await Printing.sharePdf(bytes: bytes, filename: filename);
     }
   }
 

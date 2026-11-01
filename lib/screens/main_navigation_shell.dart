@@ -373,6 +373,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               ),
                             ),
                           ),
+                          // Hidden for now per user request
+                          if (false)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             child: InkWell(

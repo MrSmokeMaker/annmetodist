@@ -344,7 +344,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TelegramBotsMenuButton(isCompact: !isDesktop),
+              // TelegramBotsMenuButton hidden for now per user request
+              if (false) TelegramBotsMenuButton(isCompact: !isDesktop),
               const SizedBox(width: 6),
               InkWell(
                 onTap: () => AppNewsModal.show(context),
@@ -681,6 +682,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 10),
         // Telegram Bots Quick Banner
+        // Hidden for now per user request
+        if (false)
         InkWell(
           onTap: () => TelegramBotsSheet.show(context),
           borderRadius: BorderRadius.circular(16),

@@ -171,7 +171,7 @@ class _StoriesPlayerModalState extends State<StoriesPlayerModal>
         AppNewsModal.show(context);
         break;
       case StoryActionType.openBotsSheet:
-        TelegramBotsSheet.show(context);
+        // TelegramBotsSheet.show(context);
         break;
       case StoryActionType.openNews:
         AppNewsModal.show(context);
