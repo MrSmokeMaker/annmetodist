@@ -3,6 +3,7 @@ import os
 import stat
 import subprocess
 import tempfile
+import sys
 
 def remove_readonly(func, path, excinfo):
     try:
@@ -68,9 +69,9 @@ def main():
 
         status = subprocess.run(['git', 'status', '--porcelain'], cwd=temp_worktree, text=True, capture_output=True, check=True)
         if status.stdout.strip():
+            commit_msg = sys.argv[1] if len(sys.argv) > 1 else 'deploy: v1.2.1 - Zveno AI (DeepSeek v3 & Gemini Flash Image), Gemini, quarter planning and PDF validation'
             subprocess.run([
-                'git', 'commit', '-m', 
-                'deploy: release v0.6.0 with Parent Audio Speech Studio, Interactive Audio Dictation Master and Silence Bell'
+                'git', 'commit', '-m', commit_msg
             ], cwd=temp_worktree, check=True)
             print("Pushing gh-pages to origin...")
             subprocess.run(['git', 'push', 'origin', 'gh-pages'], cwd=temp_worktree, check=True)

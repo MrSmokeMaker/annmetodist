@@ -247,6 +247,30 @@ class StorageService {
       if (existingProxy == null || existingProxy.isEmpty) {
         await _sharedPreferences.setString(_proxyUrlStorageKey, defaultProxyUrl);
       }
+
+      // Seed Zveno AI defaults
+      final existingZvenoKey = _sharedPreferences.getString(_zvenoApiKeyStorageKey);
+      if (existingZvenoKey == null || existingZvenoKey.isEmpty) {
+        await _sharedPreferences.setString(_zvenoApiKeyStorageKey, ZvenoConfig.apiKey);
+      }
+      final existingZvenoModel = _sharedPreferences.getString(_zvenoModelStorageKey);
+      if (existingZvenoModel == null || existingZvenoModel.isEmpty) {
+        await _sharedPreferences.setString(_zvenoModelStorageKey, ZvenoConfig.defaultModel);
+      }
+      final existingZvenoImageModel = _sharedPreferences.getString(_zvenoImageModelStorageKey);
+      if (existingZvenoImageModel == null || existingZvenoImageModel.isEmpty) {
+        await _sharedPreferences.setString(_zvenoImageModelStorageKey, ZvenoConfig.defaultImageModel);
+      }
+      final existingZvenoBaseUrl = _sharedPreferences.getString(_zvenoBaseUrlStorageKey);
+      if (existingZvenoBaseUrl == null || existingZvenoBaseUrl.isEmpty) {
+        await _sharedPreferences.setString(_zvenoBaseUrlStorageKey, ZvenoConfig.baseUrl);
+      }
+
+      // Seed active provider default to zveno
+      final existingAiProvider = _sharedPreferences.getString(_aiProviderStorageKey);
+      if (existingAiProvider == null || existingAiProvider.isEmpty || existingAiProvider == 'yandex') {
+        await _sharedPreferences.setString(_aiProviderStorageKey, 'zveno');
+      }
     } catch (e) {
       debugPrint('StorageService init error: $e');
       _isInitialized = false;
