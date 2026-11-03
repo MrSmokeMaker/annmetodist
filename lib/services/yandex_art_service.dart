@@ -1471,9 +1471,12 @@ class YandexArtService {
   /// Генерация иллюстраций через Zveno AI (Gemini Flash Image / GPT-5 Image)
   Future<String?> _generateZvenoImage({required String prompt}) async {
     try {
-      final key = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
-          ? _storageService.getZvenoApiKey()!
+      var key = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
+          ? _storageService.getZvenoApiKey()!.trim()
           : ZvenoConfig.apiKey;
+      if (key.isEmpty) {
+        key = ZvenoConfig.defaultKey;
+      }
       if (key.trim().isEmpty) return null;
       final baseUrl = _storageService.getZvenoBaseUrl();
       final imageModel = _storageService.getZvenoImageModel();

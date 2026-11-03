@@ -1983,10 +1983,50 @@ class PdfExportService {
       // 2. Подзаголовки всех уровней (##, ###, ####, #####, ######)
       final hnMatch = RegExp(r'^#{2,6}\s+(.+)$').firstMatch(trimmed);
       if (hnMatch != null) {
-        flushCurrentBlock();
         final hText = hnMatch.group(1)!.trim();
-        currentHeader = hText;
         final lower = hText.toLowerCase();
+
+        // Проверяем, не является ли это заголовком-дублем инструкции ловушки
+        final isFollowupTrap = currentType == 'trap' &&
+            (lower.contains('найди ошибк') ||
+                lower.contains('исправь ошибк') ||
+                lower.contains('незнайк') ||
+                lower.contains('запиши правильн'));
+
+        if (isFollowupTrap) {
+          final cleanInstruction = hText.replaceAll(
+            RegExp(r'^(?:задание|упражнение)?[:\.\-\s]*', caseSensitive: false),
+            '',
+          ).trim();
+          if (cleanInstruction.isNotEmpty) {
+            currentBlockLines.add('**Инструкция**: $cleanInstruction');
+          }
+          continue;
+        }
+
+        // Проверяем, не является ли это строкой решения/примера после образца
+        final isFollowupSample = (currentHeader?.toLowerCase().contains('образец') == true ||
+                currentBlockLines.any((b) => b.toLowerCase().contains('образец'))) &&
+            hText.contains('—') &&
+            !lower.contains('задание 2') &&
+            !lower.contains('задание 3');
+
+        if (isFollowupSample) {
+          final cleanItem = hText.replaceAll(
+            RegExp(r'^(?:задание|упражнение)?[:\.\-\s]*', caseSensitive: false),
+            '',
+          ).trim();
+          final parts = cleanItem.split('—');
+          if (parts.length >= 2) {
+            currentBlockLines.add('1) ${parts[0].trim()} — _______________________');
+          } else {
+            currentBlockLines.add('1) $cleanItem');
+          }
+          continue;
+        }
+
+        flushCurrentBlock();
+        currentHeader = hText;
 
         if (lower.contains('уровень')) {
           currentType = 'level_header';
@@ -4130,6 +4170,7 @@ class PdfExportService {
             fullContent.contains('уравнени') ||
             RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent));
 
+    final bool isPureSample = displayHeader.toLowerCase().contains('образец выполнения') && !effectiveLines.any((l) => l.contains('1)') || l.contains('____'));
     final bool alreadyHasAnswerArea = effectiveLines.any((l) {
       final low = l.toLowerCase();
       return low.contains('____') ||
@@ -4176,7 +4217,7 @@ class PdfExportService {
             pw.SizedBox(height: 6),
             _buildLinesContent(effectiveLines),
           ],
-          if (isWorksheet && !alreadyHasAnswerArea) ...[
+          if (isWorksheet && !alreadyHasAnswerArea && !isPureSample) ...[
             pw.SizedBox(height: 6),
             if (isMathTask)
               _buildMathGridArea(height: 56)

@@ -2,17 +2,14 @@ import 'dart:convert';
 
 /// Конфигурация Zveno AI API (российский агрегатор OpenAI-совместимых моделей)
 class ZvenoConfig {
-  static const String _defaultEncodedKey = 'c2stVUxsdmQ4YkY1LVgtdGs1ZkhleG5MTUV1akVpRjd0NXVwakxjODZhYTdzMA==';
+  /// Ключ API Zveno AI по умолчанию
+  static const String defaultKey = 'sk-ULlvd8bF5-X-tk5fHexnLMEujEiF7t5upjLc86aa7s0';
 
   /// Ключ API Zveno AI (встроен по умолчанию, переопределяется через .env или Настройки)
   static String get apiKey {
     const envVar = String.fromEnvironment('ZVENO_API_KEY');
     if (envVar.isNotEmpty) return envVar;
-    try {
-      return utf8.decode(base64.decode(_defaultEncodedKey));
-    } catch (_) {
-      return '';
-    }
+    return defaultKey;
   }
 
   /// Базовый адрес API Zveno AI

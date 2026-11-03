@@ -311,15 +311,22 @@ ${_currentConspect!.content}
 
   bool _hasMaterial(PdfMaterialType type) {
     if (_currentConspect == null) return false;
-    final content = _currentConspect!.content;
-    switch (type) {
-      case PdfMaterialType.conspect:
-        return true;
-      case PdfMaterialType.worksheet:
-        return PdfExportService.hasMaterialContent(content, PdfMaterialType.worksheet);
-      case PdfMaterialType.homework:
-        return PdfExportService.hasMaterialContent(content, PdfMaterialType.homework);
+    final materials = _currentConspect!.generatedMaterials;
+    if (materials.isNotEmpty) {
+      switch (type) {
+        case PdfMaterialType.conspect:
+          if (!materials.contains('conspect')) return false;
+          break;
+        case PdfMaterialType.worksheet:
+          if (!materials.contains('worksheet')) return false;
+          break;
+        case PdfMaterialType.homework:
+          if (!materials.contains('homework')) return false;
+          break;
+      }
     }
+    final content = _currentConspect!.content;
+    return PdfExportService.hasMaterialContent(content, type);
   }
 
   Future<void> _exportMaterial(PdfMaterialType type) async {
@@ -1424,84 +1431,90 @@ ${_currentConspect!.content}
                         GlassCard(
                           padding: const EdgeInsets.all(AppSpacing.md),
                           borderRadius: AppRadii.xl,
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  gradient: AppGradients.indigoViolet,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: AppShadows.glowPrimary,
-                                ),
-                                child: const Icon(
-                                  Icons.school_rounded,
-                                  color: Colors.white,
-                                  size: 22,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _currentConspect!.title,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.2,
-                                      ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isCompact = constraints.maxWidth < 480;
+                              final infoRow = Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      gradient: AppGradients.indigoViolet,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: AppShadows.glowPrimary,
                                     ),
-                                    const SizedBox(height: 3),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 4,
+                                    child: const Icon(
+                                      Icons.school_rounded,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            gradient: AppGradients.indigoViolet,
-                                            borderRadius: BorderRadius.circular(5),
-                                          ),
-                                          child: Text(
-                                            _currentConspect!.methodName,
-                                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                                        Text(
+                                          _currentConspect!.title,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.2,
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.05),
-                                            borderRadius: BorderRadius.circular(5),
-                                          ),
-                                          child: Text(
-                                            _currentConspect!.subject,
-                                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? const Color(0x14FFFFFF) : Colors.black.withOpacity(0.04),
-                                            borderRadius: BorderRadius.circular(5),
-                                          ),
-                                          child: Text(
-                                            '${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
-                                            style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
-                                          ),
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                gradient: AppGradients.indigoViolet,
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              child: Text(
+                                                _currentConspect!.methodName,
+                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0x18FFFFFF) : Colors.black.withOpacity(0.05),
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              child: Text(
+                                                _currentConspect!.subject,
+                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0x14FFFFFF) : Colors.black.withOpacity(0.04),
+                                                borderRadius: BorderRadius.circular(5),
+                                              ),
+                                              child: Text(
+                                                '${Topic.getAgeGroupLabel(_currentConspect!.ageGroup)} • ${_currentConspect!.duration}',
+                                                style: TextStyle(fontSize: 10, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              ElevatedButton.icon(
+                                  ),
+                                ],
+                              );
+
+                              final leadLessonBtn = ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.cyan,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(AppRadii.md),
                                   ),
@@ -1519,8 +1532,27 @@ ${_currentConspect!.content}
                                     ),
                                   );
                                 },
-                              ),
-                            ],
+                              );
+
+                              if (isCompact) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    infoRow,
+                                    const SizedBox(height: AppSpacing.sm),
+                                    leadLessonBtn,
+                                  ],
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(child: infoRow),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  leadLessonBtn,
+                                ],
+                              );
+                            },
                           ),
                         ),
 
@@ -1876,6 +1908,7 @@ ${_currentConspect!.content}
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header with Modern Icon Tag
+                // Header with Modern Icon Tag
                 Row(
                   children: [
                     Container(
@@ -1897,12 +1930,16 @@ ${_currentConspect!.content}
                             ),
                       ),
                     ),
-                    BlockActionToolbar(
-                      isLoading: _isRegeneratingBlockIndex == i,
-                      onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
-                      onReportError: () => _showReportErrorDialog(context),
-                    ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: BlockActionToolbar(
+                    isLoading: _isRegeneratingBlockIndex == i,
+                    onAction: (action, customTheme) => _handleBlockAction(i, section, action, customTheme),
+                    onReportError: () => _showReportErrorDialog(context),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(

@@ -779,10 +779,13 @@ class AiService {
     required String systemPrompt,
     required String userPrompt,
   }) async {
-    final apiKey = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
-        ? _storageService.getZvenoApiKey()!
+    var apiKey = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
+        ? _storageService.getZvenoApiKey()!.trim()
         : ZvenoConfig.apiKey;
-    if (apiKey.trim().isEmpty) {
+    if (apiKey.isEmpty) {
+      apiKey = ZvenoConfig.defaultKey;
+    }
+    if (apiKey.isEmpty) {
       throw Exception('API-ключ Zveno AI не задан.');
     }
 

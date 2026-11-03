@@ -217,22 +217,30 @@ class PdfLayoutIntegrityValidator {
       // Отслеживание перехода в разделы листа заданий / домашки / ключей
       final lowerTrimmed = trimmed.toLowerCase();
       if (trimmed.startsWith('#')) {
-        // Сначала сбрасываем завершённое предыдущее задание до смены флагов раздела
-        flushTaskBlock();
-
-        if (lowerTrimmed.contains('лист заданий') ||
+        final isMajorSectionHeader = (trimmed.startsWith('# ') && !trimmed.startsWith('##')) ||
+            lowerTrimmed.contains('лист заданий') ||
             lowerTrimmed.contains('рабочий лист') ||
             lowerTrimmed.contains('домашн') ||
-            lowerTrimmed.contains('раздаточн')) {
-          inWorksheetOrHomework = true;
-          inKeysSection = false;
-        } else if (lowerTrimmed.contains('ключи') || lowerTrimmed.contains('ответы')) {
-          inKeysSection = true;
-        } else if (trimmed.startsWith('# ') && !trimmed.startsWith('##')) {
-          inWorksheetOrHomework = false;
-          inKeysSection = false;
-        }
+            lowerTrimmed.contains('раздаточн') ||
+            lowerTrimmed.contains('ключи') ||
+            lowerTrimmed.contains('ответы');
 
+        if (isMajorSectionHeader) {
+          flushTaskBlock();
+
+          if (lowerTrimmed.contains('лист заданий') ||
+              lowerTrimmed.contains('рабочий лист') ||
+              lowerTrimmed.contains('домашн') ||
+              lowerTrimmed.contains('раздаточн')) {
+            inWorksheetOrHomework = true;
+            inKeysSection = false;
+          } else if (lowerTrimmed.contains('ключи') || lowerTrimmed.contains('ответы')) {
+            inKeysSection = true;
+          } else if (trimmed.startsWith('# ') && !trimmed.startsWith('##')) {
+            inWorksheetOrHomework = false;
+            inKeysSection = false;
+          }
+        }
         // Проверка на сиротский заголовок (заголовок без содержимого перед следующим заголовком)
         if (i + 1 < lines.length) {
           int nextIdx = i + 1;
