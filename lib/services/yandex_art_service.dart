@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
+import '../config/zveno_config.dart';
 import '../models/thematic_world.dart';
 
 class YandexArtService {
@@ -1470,8 +1471,10 @@ class YandexArtService {
   /// Генерация иллюстраций через Zveno AI (Gemini Flash Image / GPT-5 Image)
   Future<String?> _generateZvenoImage({required String prompt}) async {
     try {
-      final key = _storageService.getZvenoApiKey();
-      if (key == null || key.isEmpty) return null;
+      final key = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
+          ? _storageService.getZvenoApiKey()!
+          : ZvenoConfig.apiKey;
+      if (key.trim().isEmpty) return null;
       final baseUrl = _storageService.getZvenoBaseUrl();
       final imageModel = _storageService.getZvenoImageModel();
 

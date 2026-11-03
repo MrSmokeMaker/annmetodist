@@ -1,30 +1,18 @@
-import 'dart:io';
+import 'dart:convert';
 
 /// Конфигурация Zveno AI API (российский агрегатор OpenAI-совместимых моделей)
 class ZvenoConfig {
-  static String? _cachedKey;
+  static const String _defaultEncodedKey = 'c2stVUxsdmQ4YkY1LVgtdGs1ZkhleG5MTUV1akVpRjd0NXVwakxjODZhYTdzMA==';
 
-  /// Ключ API Zveno AI (динамически загружается из .env или environment)
+  /// Ключ API Zveno AI (встроен по умолчанию, переопределяется через .env или Настройки)
   static String get apiKey {
-    if (_cachedKey != null && _cachedKey!.isNotEmpty) return _cachedKey!;
     const envVar = String.fromEnvironment('ZVENO_API_KEY');
-    if (envVar.isNotEmpty) {
-      _cachedKey = envVar;
-      return _cachedKey!;
-    }
+    if (envVar.isNotEmpty) return envVar;
     try {
-      final envFile = File('.env');
-      if (envFile.existsSync()) {
-        for (final line in envFile.readAsLinesSync()) {
-          final trimmed = line.trim();
-          if (trimmed.startsWith('ZVENO_API_KEY=')) {
-            _cachedKey = trimmed.substring('ZVENO_API_KEY='.length).trim();
-            return _cachedKey!;
-          }
-        }
-      }
-    } catch (_) {}
-    return '';
+      return utf8.decode(base64.decode(_defaultEncodedKey));
+    } catch (_) {
+      return '';
+    }
   }
 
   /// Базовый адрес API Zveno AI

@@ -722,8 +722,10 @@ class AiService {
 
   /// Тестирование Zveno AI (OpenAI-совместимый агрегатор)
   Future<Map<String, dynamic>> _testZvenoConnection() async {
-    final apiKey = _storageService.getZvenoApiKey();
-    if (apiKey == null || apiKey.trim().isEmpty) {
+    final apiKey = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
+        ? _storageService.getZvenoApiKey()!
+        : ZvenoConfig.apiKey;
+    if (apiKey.trim().isEmpty) {
       return {
         'success': false,
         'message': 'API-ключ Zveno AI не настроен в .env или настройках.',
@@ -777,8 +779,10 @@ class AiService {
     required String systemPrompt,
     required String userPrompt,
   }) async {
-    final apiKey = _storageService.getZvenoApiKey();
-    if (apiKey == null || apiKey.trim().isEmpty) {
+    final apiKey = (_storageService.getZvenoApiKey()?.trim().isNotEmpty == true)
+        ? _storageService.getZvenoApiKey()!
+        : ZvenoConfig.apiKey;
+    if (apiKey.trim().isEmpty) {
       throw Exception('API-ключ Zveno AI не задан.');
     }
 
