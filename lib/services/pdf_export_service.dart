@@ -4090,9 +4090,20 @@ class PdfExportService {
 
   static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet) {
     final sanitized = sanitizeTaskHeader(header);
-    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни задание';
+    var displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни задание';
+    final List<String> effectiveLines = List<String>.from(lines);
 
-    final fullContent = (header + ' ' + lines.join(' ')).toLowerCase();
+    // Если в заголовок попал не вопрос, а готовый пример или словосочетание с тире
+    if (displayHeader.contains('—') &&
+        (displayHeader.toLowerCase().contains('время') ||
+            displayHeader.toLowerCase().contains('признак') ||
+            displayHeader.toLowerCase().contains('число') ||
+            displayHeader.toLowerCase().contains('род '))) {
+      effectiveLines.insert(0, displayHeader);
+      displayHeader = 'Выполни задание по образцу';
+    }
+
+    final fullContent = (header + ' ' + effectiveLines.join(' ')).toLowerCase();
     final bool isRussianOrLanguage = fullContent.contains('слово') ||
         fullContent.contains('букв') ||
         fullContent.contains('предложен') ||
@@ -4119,7 +4130,7 @@ class PdfExportService {
             fullContent.contains('уравнени') ||
             RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent));
 
-    final bool alreadyHasAnswerArea = lines.any((l) {
+    final bool alreadyHasAnswerArea = effectiveLines.any((l) {
       final low = l.toLowerCase();
       return low.contains('____') ||
           low.contains('линии для ответа') ||
@@ -4150,7 +4161,7 @@ class PdfExportService {
                   color: PdfColors.indigo600,
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ $num', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
@@ -4161,9 +4172,9 @@ class PdfExportService {
               ),
             ],
           ),
-          if (lines.isNotEmpty) ...[
+          if (effectiveLines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines),
+            _buildLinesContent(effectiveLines),
           ],
           if (isWorksheet && !alreadyHasAnswerArea) ...[
             pw.SizedBox(height: 6),

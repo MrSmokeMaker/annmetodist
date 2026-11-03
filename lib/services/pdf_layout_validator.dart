@@ -186,6 +186,15 @@ class PdfLayoutIntegrityValidator {
         hasDidacticField = true;
       }
 
+      // Если в задании с образцом остался только сам образец без пунктов для работы ученика
+      if (lower.contains('образец') && !currentTaskBody.any((b) => b.contains('1)') || b.contains('1.') || b.contains('___'))) {
+        currentTaskBody.add('**Инструкция**: Прочитай образец и выполни задание для остальных слов (сделай сам):');
+        currentTaskBody.add('1) _______________________ — _______________________');
+        currentTaskBody.add('2) _______________________ — _______________________');
+        currentTaskBody.add('3) _______________________ — _______________________');
+        issues.add('К заданию с образцом добавлены интерактивные пункты для самостоятельной работы ученика');
+      }
+
       if (hasDidacticField) {
         tasksWithFields++;
       }
@@ -246,6 +255,56 @@ class PdfLayoutIntegrityValidator {
 
       // Проверка на обнаружение заголовка задания
       final isTaskHeader = _isTaskHeaderLine(trimmed);
+
+      // 1. Проверяем, не является ли это ложным заголовком-инструкцией от предыдущей ловушки
+      final bool isFollowupTrapInstruction = isTaskHeader &&
+          currentTaskHeader != null &&
+          (lowerTrimmed.contains('найди ошибк') ||
+              lowerTrimmed.contains('исправь ошибк') ||
+              lowerTrimmed.contains('незнайк') ||
+              lowerTrimmed.contains('запиши правильн')) &&
+          (currentTaskHeader!.toLowerCase().contains('ловушк') ||
+              currentTaskBody.any((b) => b.toLowerCase().contains('незнайк')));
+
+      if (isFollowupTrapInstruction) {
+        final cleanInstruction = trimmed.replaceAll(
+          RegExp(r'^#{1,6}\s*(?:задание|упражнение)?[:\.\-\s]*', caseSensitive: false),
+          '',
+        ).trim();
+        if (cleanInstruction.isNotEmpty) {
+          currentTaskBody.add('**Инструкция**: $cleanInstruction');
+          issues.add('Объединен дублирующий заголовок инструкции ловушки с основным заданием');
+        }
+        i++;
+        continue;
+      }
+
+      // 2. Проверяем, не является ли это пунктом-решением, ошибочно оформленным как отдельный заголовок после Образца
+      final bool isFollowupSampleItem = isTaskHeader &&
+          currentTaskHeader != null &&
+          (currentTaskHeader!.toLowerCase().contains('образец') ||
+              currentTaskBody.any((b) => b.toLowerCase().contains('образец'))) &&
+          trimmed.contains('—') &&
+          !lowerTrimmed.contains('задание 2') &&
+          !lowerTrimmed.contains('задание 3');
+
+      if (isFollowupSampleItem) {
+        final cleanItem = trimmed.replaceAll(
+          RegExp(r'^#{1,6}\s*(?:задание|упражнение)?[:\.\-\s]*', caseSensitive: false),
+          '',
+        ).trim();
+        final parts = cleanItem.split('—');
+        if (parts.length >= 2) {
+          final wordPart = parts[0].trim();
+          currentTaskBody.add('1) $wordPart — _______________________');
+        } else {
+          currentTaskBody.add('1) $cleanItem');
+        }
+        issues.add('Преобразован решенный пункт образца в интерактивное упражнение с пропуском');
+        i++;
+        continue;
+      }
+
       if (isTaskHeader && !inKeysSection) {
         flushTaskBlock();
         currentTaskHeader = trimmed;
