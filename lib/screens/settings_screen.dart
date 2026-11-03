@@ -1151,4 +1151,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Widget _buildProviderChip(String id, String label, bool isDark) {
+    final isSelected = _selectedProvider == id;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedProvider = id;
+          _checkStatus = null;
+          _isCheckSuccessful = null;
+        });
+      },
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppGradients.indigoViolet : null,
+          color: isSelected
+              ? null
+              : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryIndigo.withOpacity(0.5)
+                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          ),
+          boxShadow: isSelected ? AppShadows.glowPrimary : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+          ),
+        ),
+      ),
+    );
+  }
 }
