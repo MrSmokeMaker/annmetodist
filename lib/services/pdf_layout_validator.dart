@@ -44,6 +44,7 @@ class PdfLayoutIntegrityValidator {
     '[знаки сравнения]',
     '[окошки]',
     '[шифр]',
+    '[шифровка]',
     '[числовой луч]',
     '[хорошо-плохо]',
     '[выбор]',
@@ -61,11 +62,25 @@ class PdfLayoutIntegrityValidator {
     '[кластер]',
     '[древо понятий]',
     '[соедини стрелками]',
+    '[ловушка]',
+    '[образец]',
+    '[звуковой анализ]',
+    '[сортировка]',
     '____',
     'линии для ответа',
     'место для ответа',
-    'слова для распределения:',
-    'слова для справок:',
+    'слова для распределения',
+    'слова для справок',
+    'буквы-помощницы',
+    'ловушка',
+    'найди ошибк',
+    'образец выполнения',
+    'образец:',
+    'соедини пары',
+    'соедини стрелками',
+    'секретный код',
+    'детектив pro',
+    'разгадай',
   ];
 
   /// Проводит аудит Markdown-контента и устраняет дефекты вёрстки:
@@ -125,13 +140,31 @@ class PdfLayoutIntegrityValidator {
 
       // Если задание находится в листе заданий или домашке, но не имеет поля — автоматически добавляем его!
       if (!hasDidacticField && inWorksheetOrHomework && !inKeysSection) {
-        final isMath = lower.contains('вычисли') ||
-            lower.contains('реши') ||
-            lower.contains('пример') ||
-            lower.contains('задач') ||
-            lower.contains('уравнен') ||
-            lower.contains('счет') ||
-            RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(lower);
+        final isRussianOrNonMath = lower.contains('слово') ||
+            lower.contains('букв') ||
+            lower.contains('предложен') ||
+            lower.contains('текст') ||
+            lower.contains('прилагательн') ||
+            lower.contains('существительн') ||
+            lower.contains('глагол') ||
+            lower.contains('звук') ||
+            lower.contains('слог') ||
+            lower.contains('орфограмм') ||
+            lower.contains('падеж') ||
+            lower.contains('род ') ||
+            lower.contains('читай') ||
+            lower.contains('чистописан') ||
+            lower.contains('пропис') ||
+            lower.contains('каллиграф') ||
+            lower.contains('сказк');
+
+        final isMath = !isRussianOrNonMath &&
+            (lower.contains('вычисли') ||
+                lower.contains('реши пример') ||
+                lower.contains('задач') ||
+                lower.contains('уравнен') ||
+                lower.contains('счет') ||
+                RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(lower));
 
         final isWriting = lower.contains('спиши') ||
             lower.contains('прописи') ||

@@ -1440,48 +1440,54 @@ class PdfExportService {
   }
 
   /// Частая узкая косая линейка под углом 65° (по В. Д. Мазиной)
-  /// Обязательна для всех классов начальной школы для чистописания и письма.
+  /// Единый цельный каллиграфический блок с наклоном линий ВПРАВО (// 65°).
+  /// Обязательна для начальной школы для чистописания и письменных заданий.
   static pw.Widget _buildNarrowObliqueRuling({
-    int rows = 2,
+    int rows = 3,
     double rowHeight = 22.0,
   }) {
+    final totalHeight = rows * rowHeight;
     return pw.Container(
-      margin: const pw.EdgeInsets.symmetric(vertical: 3),
-      child: pw.Column(
-        children: [
-          for (int r = 0; r < rows; r++)
-            pw.Container(
-              margin: const pw.EdgeInsets.symmetric(vertical: 2.5),
-              height: rowHeight,
-              child: pw.CustomPaint(
-                size: PdfPoint(500, rowHeight),
-                painter: (canvas, size) {
-                  // Верхняя рабочая строка и нижняя базовая линия
-                  canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
-                  canvas.setLineWidth(0.75);
-                  canvas.drawLine(0, 0, size.x, 0);
-                  canvas.drawLine(0, size.y, size.x, size.y);
-                  canvas.strokePath();
+      margin: const pw.EdgeInsets.symmetric(vertical: 4),
+      height: totalHeight,
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFFAFCFF),
+        borderRadius: pw.BorderRadius.circular(4),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFCBD5E1), width: 0.7),
+      ),
+      child: pw.CustomPaint(
+        size: PdfPoint(500, totalHeight),
+        painter: (canvas, size) {
+          // 1. Горизонтальные рабочие линии строк и вспомогательные пунктиры
+          for (int r = 0; r <= rows; r++) {
+            final y = r * rowHeight;
+            canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
+            canvas.setLineWidth(0.65);
+            canvas.drawLine(0, y, size.x, y);
+            canvas.strokePath();
 
-                  // Средняя вспомогательная линия (45% высоты строки)
-                  canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
-                  canvas.setLineWidth(0.45);
-                  canvas.drawLine(0, size.y * 0.45, size.x, size.y * 0.45);
-                  canvas.strokePath();
+            if (r < rows) {
+              // Средняя вспомогательная линия строки (45% высоты строки)
+              canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
+              canvas.setLineWidth(0.4);
+              final midY = y + rowHeight * 0.45;
+              canvas.drawLine(0, midY, size.x, midY);
+              canvas.strokePath();
+            }
+          }
 
-                  // Частые косые наклонные линии под углом 65 градусов (tan 65° ~= 2.1445)
-                  canvas.setColor(const PdfColor.fromInt(0xFFE2E8F0));
-                  canvas.setLineWidth(0.4);
-                  final dx = size.y / 2.1445;
-                  const step = 14.0;
-                  for (double x = -dx; x < size.x + dx; x += step) {
-                    canvas.drawLine(x, size.y, x + dx, 0);
-                  }
-                  canvas.strokePath();
-                },
-              ),
-            ),
-        ],
+          // 2. Частые косые наклонные линии под углом 65 градусов ВПРАВО (методика Воскресенской / Илюхиной / Мазиной)
+          // В PDF координатах y=0 это низ, y=size.y это верх.
+          // Наклон вправо (/): нижняя точка левее верхней -> x снизу, x + dx сверху.
+          canvas.setColor(const PdfColor.fromInt(0xFFE2E8F0));
+          canvas.setLineWidth(0.4);
+          final dx = size.y / 2.1445;
+          const step = 14.0;
+          for (double x = -dx; x < size.x + dx; x += step) {
+            canvas.drawLine(x, 0, x + dx, size.y);
+          }
+          canvas.strokePath();
+        },
       ),
     );
   }
@@ -1531,6 +1537,7 @@ class PdfExportService {
   static pw.Widget _buildSortingTaskCard(String header, List<String> lines, int num) {
     final sanitized = sanitizeTaskHeader(header);
     final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Распредели слова по группам';
+    final hasTable = lines.any((l) => l.trim().startsWith('|') && l.trim().endsWith('|'));
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -1551,7 +1558,7 @@ class PdfExportService {
                   color: const PdfColor.fromInt(0xFF0D9488),
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num • СОРТИРОВКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ  • СОРТИРОВКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
@@ -1566,63 +1573,65 @@ class PdfExportService {
             pw.SizedBox(height: 6),
             _buildLinesContent(lines),
           ],
-          pw.SizedBox(height: 6),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(6),
-            decoration: pw.BoxDecoration(
-              color: const PdfColor.fromInt(0xFFF0FDFA),
-              borderRadius: pw.BorderRadius.circular(6),
-              border: pw.Border.all(color: const PdfColor.fromInt(0xFF99F6E4), width: 0.8),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('Запиши слова в соответствующие колонки (в узкую косую линейку):',
-                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF115E59))),
-                pw.SizedBox(height: 4),
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Expanded(
-                      child: pw.Container(
-                        padding: const pw.EdgeInsets.all(4),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(4),
-                          border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
-                        ),
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text('Группа 1:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
-                            _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                    pw.SizedBox(width: 8),
-                    pw.Expanded(
-                      child: pw.Container(
-                        padding: const pw.EdgeInsets.all(4),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(4),
-                          border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
-                        ),
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text('Группа 2:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
-                            _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
-                          ],
+          if (!hasTable) ...[
+            pw.SizedBox(height: 6),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(6),
+              decoration: pw.BoxDecoration(
+                color: const PdfColor.fromInt(0xFFF0FDFA),
+                borderRadius: pw.BorderRadius.circular(6),
+                border: pw.Border.all(color: const PdfColor.fromInt(0xFF99F6E4), width: 0.8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Запиши слова в соответствующие колонки (в узкую косую линейку 65°):',
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF115E59))),
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        child: pw.Container(
+                          padding: const pw.EdgeInsets.all(4),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.white,
+                            borderRadius: pw.BorderRadius.circular(4),
+                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Группа 1:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
+                              _buildNarrowObliqueRuling(rows: 3, rowHeight: 20),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      pw.SizedBox(width: 8),
+                      pw.Expanded(
+                        child: pw.Container(
+                          padding: const pw.EdgeInsets.all(4),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.white,
+                            borderRadius: pw.BorderRadius.circular(4),
+                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Группа 2:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
+                              _buildNarrowObliqueRuling(rows: 3, rowHeight: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1714,6 +1723,26 @@ class PdfExportService {
     int currentLevel = 0;
     List<String> currentBlockLines = [];
     int taskNumber = 0;
+    String? pendingLevelHeader;
+
+    void addCardWidget(pw.Widget card) {
+      if (pendingLevelHeader != null) {
+        final levelHeaderWidget = _buildLevelHeader(pendingLevelHeader!);
+        pendingLevelHeader = null;
+        widgets.add(KeepTogether(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              levelHeaderWidget,
+              pw.SizedBox(height: 4),
+              card,
+            ],
+          ),
+        ));
+      } else {
+        widgets.add(KeepTogether(child: card));
+      }
+    }
 
     void flushCurrentBlock() {
       if (currentHeader == null && currentBlockLines.isEmpty) return;
@@ -1757,11 +1786,9 @@ class PdfExportService {
       }
 
       // 2. Баннер разделителя уровней (Уровень 1: Старт...)
+      // Неразрывно связывается со следующим за ним первым заданием уровня, чтобы исключить сиротские заголовки!
       if (type == 'level_header') {
-        if (widgets.isNotEmpty) {
-          widgets.add(pw.NewPage(freeSpace: 85));
-        }
-        widgets.add(_buildLevelHeader(header));
+        pendingLevelHeader = header;
         return;
       }
 
@@ -1771,31 +1798,31 @@ class PdfExportService {
           lowerHeader.contains('рефлексия') ||
           fullText.contains('⭐⭐⭐') ||
           fullText.contains('оцени свои успехи')) {
-        widgets.add(KeepTogether(child: _buildSelfAssessmentCard(header, lines, starGold, starGray)));
+        addCardWidget(_buildSelfAssessmentCard(header, lines, starGold, starGray));
         return;
       }
 
       // 4. Памятка для родителей
       if (lowerHeader.contains('памятка для родителей') || fullText.contains('памятка для родителей')) {
-        widgets.add(KeepTogether(child: _buildParentBriefingCard(lines.isNotEmpty ? lines.join('\n') : header)));
+        addCardWidget(_buildParentBriefingCard(lines.isNotEmpty ? lines.join('\n') : header));
         return;
       }
 
       // 5. Талон обратной связи учителю
       if (lowerHeader.contains('обратная связь') || lowerHeader.contains('талон') || fullText.contains('отрезной корешок')) {
-        widgets.add(KeepTogether(child: _buildParentFeedbackSlip()));
+        addCardWidget(_buildParentFeedbackSlip());
         return;
       }
 
       // 6. Карточка «Правило урока / Теория / Памятка»
       if (type == 'rule' || lowerHeader.contains('правило') || lowerHeader.contains('теория')) {
-        widgets.add(KeepTogether(child: _buildRuleCard(header, lines)));
+        addCardWidget(_buildRuleCard(header, lines));
         return;
       }
 
       // 7. Карточка «Ключи и ответы для учителя»
       if (type == 'keys' || lowerHeader.contains('ключи') || lowerHeader.contains('ответы для учителя')) {
-        widgets.add(KeepTogether(child: _buildTeacherKeysCard(header, lines)));
+        addCardWidget(_buildTeacherKeysCard(header, lines));
         return;
       }
 
@@ -1811,132 +1838,132 @@ class PdfExportService {
 
       // 7b. Отрезная карточка-помощница (Ступенька вниз ✂)
       if (lowerHeader.contains('карточка-помощница') || lowerHeader.contains('карточка помощница') || fullText.contains('карточка-помощница') || fullText.contains('ступенька вниз')) {
-        widgets.add(KeepTogether(child: _buildScaffoldingHelperCard(header, lines)));
+        addCardWidget(_buildScaffoldingHelperCard(header, lines));
         return;
       }
 
       // 7c. Недельный трекер привычек на холодильник («Паспорт исследователя»)
       if (lowerHeader.contains('паспорт исследователя') || lowerHeader.contains('трекер привычек') || lowerHeader.contains('трекер на холодильник') || fullText.contains('паспорт исследователя')) {
-        widgets.add(KeepTogether(child: _buildFridgeTrackerCard(header, lines, starGold, starGray)));
+        addCardWidget(_buildFridgeTrackerCard(header, lines, starGold, starGray));
         return;
       }
 
       // 8. Ловушка Незнайки / Ловушка для внимательных
       if (type == 'trap' || lowerHeader.contains('ловушка') || fullText.contains('ловушка незнайки') || fullText.contains('найди ошибки')) {
-        widgets.add(KeepTogether(child: _buildTrapCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildTrapCard(header, lines, currentTaskNum));
         return;
       }
 
       // 9. Прописи / каллиграфия / узкая косая линейка (для всей начальной школы)
       if (type == 'handwriting' || fullText.contains('[прописи]') || lowerHeader.contains('каллиграфическ') || lowerHeader.contains('чистописан') || lowerHeader.contains('спиши') || lowerHeader.contains('прописи')) {
-        widgets.add(KeepTogether(child: _buildHandwritingCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildHandwritingCard(header, lines, currentTaskNum));
         return;
       }
 
       // 9b. Математическая векторная сетка клеток 5х5 мм (по методике Пчёлко)
       if (type == 'math_grid' || fullText.contains('[клетка]') || fullText.contains('[математическая сетка]') || fullText.contains('в клетку') || (lowerHeader.contains('матем') && (lowerHeader.contains('сетка') || lowerHeader.contains('клетк') || lowerHeader.contains('арифмет') || lowerHeader.contains('пример')))) {
-        widgets.add(KeepTogether(child: _buildMathGridCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildMathGridCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10. Соедини стрелками / найди пару
       if (type == 'matching' || fullText.contains('[соедини стрелками]') || lowerHeader.contains('соедини') || lowerHeader.contains('найди пару')) {
-        widgets.add(KeepTogether(child: _buildMatchingTaskCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildMatchingTaskCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10b. Корзинка слов и сортировка по группам
       if (type == 'sorting' || lowerHeader.contains('распредели') || lowerHeader.contains('раздели на группы') || fullText.contains('корзинк') || lowerHeader.contains('по группам')) {
-        widgets.add(KeepTogether(child: _buildSortingTaskCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildSortingTaskCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10c. Звуковой анализ и фонетическая схема
       if (type == 'phonetic' || lowerHeader.contains('звуков') || lowerHeader.contains('фонетическ') || fullText.contains('звуковая схем')) {
-        widgets.add(KeepTogether(child: _buildPhoneticTaskCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildPhoneticTaskCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10d. Числовой домик / Состав числа
       if (type == 'number_house' || lowerHeader.contains('домик') || lowerHeader.contains('состав числа') || fullText.contains('[числовой домик]') || fullText.contains('[домик числа]')) {
-        widgets.add(KeepTogether(child: _buildNumberHouseCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildNumberHouseCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10e. Сравнение чисел и выражений (> < =)
       if (type == 'comparison' || lowerHeader.contains('сравн') || lowerHeader.contains('> <') || fullText.contains('[сравнение]') || fullText.contains('[знаки сравнения]')) {
-        widgets.add(KeepTogether(child: _buildComparisonCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildComparisonCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10f. Орфографические окошки / Вставка букв
       if (type == 'letter_boxes' || lowerHeader.contains('окошк') || (lowerHeader.contains('вставь') && lowerHeader.contains('букв')) || fullText.contains('[окошки]')) {
-        widgets.add(KeepTogether(child: _buildLetterBoxesCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildLetterBoxesCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10g. Шифровка / Секретный код (Детектив Pro)
       if (type == 'cipher_code' || lowerHeader.contains('шифр') || lowerHeader.contains('секретный код') || lowerHeader.contains('дешифратор') || fullText.contains('[шифр]')) {
-        widgets.add(KeepTogether(child: _buildCipherCodeCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildCipherCodeCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10h. Числовой луч / Числовая прямая
       if (type == 'number_line' || lowerHeader.contains('числовой луч') || lowerHeader.contains('числовая прямая') || fullText.contains('[числовой луч]')) {
-        widgets.add(KeepTogether(child: _buildNumberLineCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildNumberLineCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10i. ТРИЗ-противоречие (Хорошо — Плохо)
       if (type == 'triz_contradiction' || lowerHeader.contains('хорошо-плохо') || lowerHeader.contains('противоречие') || fullText.contains('[хорошо-плохо]')) {
-        widgets.add(KeepTogether(child: _buildTrizContradictionCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildTrizContradictionCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10j. Тестовый выбор с чекбоксами
       if (type == 'multiple_choice' || lowerHeader.contains('тест') || lowerHeader.contains('выбери правильный') || fullText.contains('[выбор]')) {
-        widgets.add(KeepTogether(child: _buildMultipleChoiceCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildMultipleChoiceCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10k. Предметный счёт YandexART
       if (type == 'math_counting_art' || lowerHeader.contains('предметный счет') || lowerHeader.contains('сосчитай предметы') || fullText.contains('[предметный счет]')) {
-        widgets.add(KeepTogether(child: _buildMathCountingArtCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildMathCountingArtCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10l. Схема предложения и морфемный разбор (состав слова)
       if (type == 'sentence_morpheme' || lowerHeader.contains('схема предложени') || lowerHeader.contains('состав слова') || lowerHeader.contains('морфемн') || fullText.contains('[схема предложения]') || fullText.contains('[состав слова]')) {
-        widgets.add(KeepTogether(child: _buildSentenceAndMorphemeCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildSentenceAndMorphemeCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10m. Вычислительная цепочка и числовая пирамида
       if (type == 'math_chain_pyramid' || lowerHeader.contains('цепочка') || lowerHeader.contains('числовая цепочка') || lowerHeader.contains('пирамида') || lowerHeader.contains('числовая пирамида') || fullText.contains('[цепочка]') || fullText.contains('[пирамида]')) {
-        widgets.add(KeepTogether(child: _buildMathChainAndPyramidCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildMathChainAndPyramidCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10n. Графический диктант по клеточкам
       if (type == 'graphic_dictation' || lowerHeader.contains('графический диктант') || lowerHeader.contains('диктант по клеткам') || fullText.contains('[графический диктант]')) {
-        widgets.add(KeepTogether(child: _buildGraphicDictationCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildGraphicDictationCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10o. Диаграмма Венна / Круги Эйлера
       if (type == 'venn_diagram' || lowerHeader.contains('диаграмма венна') || lowerHeader.contains('круги эйлера') || fullText.contains('[диаграмма венна]') || fullText.contains('[круги эйлера]')) {
-        widgets.add(KeepTogether(child: _buildVennDiagramCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildVennDiagramCard(header, lines, currentTaskNum));
         return;
       }
 
       // 10p. Кластер / Древо понятий (Mind Map)
       if (type == 'concept_cluster' || lowerHeader.contains('кластер') || lowerHeader.contains('древо понятий') || lowerHeader.contains('схема понятий') || fullText.contains('[кластер]') || fullText.contains('[древо понятий]')) {
-        widgets.add(KeepTogether(child: _buildConceptClusterCard(header, lines, currentTaskNum)));
+        addCardWidget(_buildConceptClusterCard(header, lines, currentTaskNum));
         return;
       }
 
       // 11. Стандартная неделимая карточка задания
-      widgets.add(KeepTogether(child: _buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework)));
+      addCardWidget(_buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework));
     }
 
     for (final rawLine in rawLines) {
@@ -2027,6 +2054,10 @@ class PdfExportService {
       currentBlockLines.add(trimmed);
     }
     flushCurrentBlock();
+    if (pendingLevelHeader != null) {
+      widgets.add(_buildLevelHeader(pendingLevelHeader!));
+      pendingLevelHeader = null;
+    }
 
     return widgets;
   }
@@ -2547,7 +2578,7 @@ class PdfExportService {
                   color: const PdfColor.fromInt(0xFFD97706),
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num • ЛОВУШКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ  • ЛОВУШКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
@@ -2560,12 +2591,12 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
           pw.SizedBox(height: 6),
           pw.Text('Исправленный вариант запиши каллиграфически правильно:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
           pw.SizedBox(height: 3),
-          _buildNarrowObliqueRuling(rows: 2),
+          _buildNarrowObliqueRuling(rows: 3),
         ],
       ),
     );
@@ -2915,7 +2946,7 @@ class PdfExportService {
                   color: const PdfColor.fromInt(0xFF0284C7),
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num • ОРФОГРАФИЧЕСКИЕ ОКОШКИ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ  • ОКОШКИ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
@@ -2928,13 +2959,13 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[окошки]')).toList()),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[окошки]') && !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
           pw.SizedBox(height: 6),
           pw.Text('Спиши проверенные слова каллиграфически аккуратно в косую строку:',
               style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF075985))),
           pw.SizedBox(height: 4),
-          _buildNarrowObliqueRuling(rows: 2),
+          _buildNarrowObliqueRuling(rows: 3),
         ],
       ),
     );
@@ -4062,13 +4093,43 @@ class PdfExportService {
     final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни задание';
 
     final fullContent = (header + ' ' + lines.join(' ')).toLowerCase();
-    final isMathTask = fullContent.contains('вычисли') ||
-        fullContent.contains('реши') ||
-        fullContent.contains('пример') ||
-        fullContent.contains('задач') ||
-        fullContent.contains('счет') ||
-        fullContent.contains('уравнени') ||
-        RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent);
+    final bool isRussianOrLanguage = fullContent.contains('слово') ||
+        fullContent.contains('букв') ||
+        fullContent.contains('предложен') ||
+        fullContent.contains('текст') ||
+        fullContent.contains('прилагательн') ||
+        fullContent.contains('существительн') ||
+        fullContent.contains('глагол') ||
+        fullContent.contains('орфограмм') ||
+        fullContent.contains('звук') ||
+        fullContent.contains('слог') ||
+        fullContent.contains('падеж') ||
+        fullContent.contains('род ') ||
+        fullContent.contains('чистописан') ||
+        fullContent.contains('пропис') ||
+        fullContent.contains('каллиграф') ||
+        fullContent.contains('сказк') ||
+        fullContent.contains('стихотворен');
+
+    final isMathTask = !isRussianOrLanguage &&
+        (fullContent.contains('вычисли') ||
+            fullContent.contains('реши пример') ||
+            fullContent.contains('задач') ||
+            fullContent.contains('счет') ||
+            fullContent.contains('уравнени') ||
+            RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent));
+
+    final bool alreadyHasAnswerArea = lines.any((l) {
+      final low = l.toLowerCase();
+      return low.contains('____') ||
+          low.contains('линии для ответа') ||
+          low.contains('место для ответа') ||
+          (l.trim().startsWith('|') && l.trim().endsWith('|')) ||
+          low.contains('[прописи]') ||
+          low.contains('[клетка]') ||
+          low.contains('[математическая сетка]') ||
+          low.contains('[окошки]');
+    });
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -4089,7 +4150,7 @@ class PdfExportService {
                   color: PdfColors.indigo600,
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
@@ -4104,12 +4165,12 @@ class PdfExportService {
             pw.SizedBox(height: 6),
             _buildLinesContent(lines),
           ],
-          if (isWorksheet) ...[
+          if (isWorksheet && !alreadyHasAnswerArea) ...[
             pw.SizedBox(height: 6),
             if (isMathTask)
-              _buildMathGridArea(height: 48)
+              _buildMathGridArea(height: 56)
             else
-              _buildNarrowObliqueRuling(rows: 2),
+              _buildNarrowObliqueRuling(rows: 3),
           ],
         ],
       ),
@@ -4652,10 +4713,22 @@ class PdfExportService {
     final cleanLine = _replaceEmojisWithSymbols(line);
     final prefix = cleanLine.replaceAll(RegExp(r'_{2,}'), '').trim();
     final lower = prefix.toLowerCase();
-    final isMath = lower.contains('решени') ||
-        lower.contains('ответ') ||
-        lower.contains('вычисл') ||
-        RegExp(r'[\d\+\-\*\=]').hasMatch(prefix);
+    
+    // Клетки 5х5 мм — ТОЛЬКО для чистой математики (вычисления, примеры, уравнения).
+    // Для русского языка, чтения, прописей и общих ответов ВСЕГДА используется частая косая линейка 65°!
+    final bool isPureMath = (lower.contains('вычисли') ||
+            lower.contains('реши пример') ||
+            lower.contains('найди значение') ||
+            lower.contains('математическ') ||
+            RegExp(r'^\s*решение\s*[\:\=]?\s*$').hasMatch(lower) ||
+            RegExp(r'^\s*[\d\+\-\*\/\=\(\)\s]{4,}\s*$').hasMatch(prefix)) &&
+        !lower.contains('линии для ответа') &&
+        !lower.contains('слово') &&
+        !lower.contains('букв') &&
+        !lower.contains('предложен') &&
+        !lower.contains('текст') &&
+        !lower.contains('род') &&
+        !lower.contains('падеж');
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 3),
@@ -4675,10 +4748,10 @@ class PdfExportService {
             ),
             pw.SizedBox(height: 3),
           ],
-          if (isMath)
-            _buildMathGridArea(height: 44)
+          if (isPureMath)
+            _buildMathGridArea(height: 56)
           else
-            _buildNarrowObliqueRuling(rows: 2),
+            _buildNarrowObliqueRuling(rows: 3),
         ],
       ),
     );
