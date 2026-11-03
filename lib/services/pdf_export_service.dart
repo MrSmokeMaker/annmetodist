@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'web_file_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:metodist/models/lesson_summary_card.dart';
@@ -12,12 +13,40 @@ import 'package:metodist/services/yandex_art_service.dart';
 import 'package:metodist/models/printable_card.dart';
 import 'package:metodist/services/pdf_icons_helper.dart';
 import 'prompt_builder.dart';
+import 'pdf_layout_validator.dart';
 
 /// Типы материалов для генерации
 enum PdfMaterialType {
   conspect,    // Основной конспект занятия
   worksheet,   // Лист заданий для печати
   homework     // Домашняя работа
+}
+
+/// Интеллектуальный контейнер неразрывности:
+/// гарантирует, что блок задания и его дидактическое поле
+/// (сетка клеток, косые линейки, схемы, домики) ВСЕГДА
+/// остаются на одной странице и не разрываются на стыке страниц.
+class KeepTogether extends pw.Inseparable {
+  KeepTogether({required pw.Widget child, this.maxSafeHeight = 680.0})
+      : super(child: child);
+
+  final double maxSafeHeight;
+
+  @override
+  bool get canSpan {
+    if (box != null && box!.height > maxSafeHeight) {
+      return super.canSpan || true;
+    }
+    return false;
+  }
+
+  @override
+  bool get hasMoreWidgets {
+    if (box != null && box!.height > maxSafeHeight) {
+      return super.hasMoreWidgets;
+    }
+    return false;
+  }
 }
 
 class PdfExportService {
@@ -28,30 +57,48 @@ class PdfExportService {
   static Future<pw.Font> _loadRobotoRegular() async {
     if (_cachedFontRegular != null) return _cachedFontRegular!;
     try {
-      _cachedFontRegular = await PdfGoogleFonts.robotoRegular().timeout(const Duration(seconds: 4));
+      final fontData = await rootBundle.load('assets/fonts/Nunito-Regular.ttf');
+      _cachedFontRegular = pw.Font.ttf(fontData);
       return _cachedFontRegular!;
     } catch (_) {
-      return pw.Font.helvetica();
+      try {
+        _cachedFontRegular = await PdfGoogleFonts.robotoRegular().timeout(const Duration(seconds: 4));
+        return _cachedFontRegular!;
+      } catch (_) {
+        return pw.Font.helvetica();
+      }
     }
   }
 
   static Future<pw.Font> _loadRobotoBold() async {
     if (_cachedFontBold != null) return _cachedFontBold!;
     try {
-      _cachedFontBold = await PdfGoogleFonts.robotoBold().timeout(const Duration(seconds: 4));
+      final fontData = await rootBundle.load('assets/fonts/Nunito-Bold.ttf');
+      _cachedFontBold = pw.Font.ttf(fontData);
       return _cachedFontBold!;
     } catch (_) {
-      return pw.Font.helveticaBold();
+      try {
+        _cachedFontBold = await PdfGoogleFonts.robotoBold().timeout(const Duration(seconds: 4));
+        return _cachedFontBold!;
+      } catch (_) {
+        return pw.Font.helveticaBold();
+      }
     }
   }
 
   static Future<pw.Font> _loadRobotoItalic() async {
     if (_cachedFontItalic != null) return _cachedFontItalic!;
     try {
-      _cachedFontItalic = await PdfGoogleFonts.robotoItalic().timeout(const Duration(seconds: 4));
+      final fontData = await rootBundle.load('assets/fonts/Nunito-Regular.ttf');
+      _cachedFontItalic = pw.Font.ttf(fontData);
       return _cachedFontItalic!;
     } catch (_) {
-      return pw.Font.helveticaOblique();
+      try {
+        _cachedFontItalic = await PdfGoogleFonts.robotoItalic().timeout(const Duration(seconds: 4));
+        return _cachedFontItalic!;
+      } catch (_) {
+        return pw.Font.helveticaOblique();
+      }
     }
   }
 
@@ -121,6 +168,8 @@ class PdfExportService {
     final world = conspect.thematicWorld;
     final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
     final bannerImage = await _loadWorldBanner(world);
+    final coloringFallback = await PdfIconsHelper.loadColoring(world.id);
+    final medalFallback = await PdfIconsHelper.loadMedal();
     final starGold = await PdfIconsHelper.loadStarGold();
     final starGray = await PdfIconsHelper.loadStarGray();
 
@@ -183,6 +232,10 @@ class PdfExportService {
             starGray: starGray,
             isWorksheetOrHomework: false,
           ),
+          if (isPro) ...[
+            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring, fallbackImage: coloringFallback)),
+            KeepTogether(child: _buildProRewardSection(conspect.illustrationReward, fallbackImage: medalFallback)),
+          ],
         ],
       ),
     );
@@ -231,6 +284,8 @@ class PdfExportService {
     final world = conspect.thematicWorld;
     final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
     final bannerImage = await _loadWorldBanner(world);
+    final coloringFallback = await PdfIconsHelper.loadColoring(world.id);
+    final medalFallback = await PdfIconsHelper.loadMedal();
     final starGold = await PdfIconsHelper.loadStarGold();
     final starGray = await PdfIconsHelper.loadStarGray();
 
@@ -301,12 +356,12 @@ class PdfExportService {
           ),
 
           // Pro: Творческая разминка / раскраска для рабочего листа
-          if (isPro && type == PdfMaterialType.worksheet && conspect.illustrationColoring != null)
-            _buildProColoringSection(conspect.illustrationColoring!),
+          if (isPro && (type == PdfMaterialType.worksheet || conspect.illustrationColoring != null))
+            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring, fallbackImage: coloringFallback)),
 
           // Pro: Наградной стикер / медаль для домашней работы
-          if (isPro && type == PdfMaterialType.homework && conspect.illustrationReward != null)
-            _buildProRewardSection(conspect.illustrationReward!),
+          if (isPro && (type == PdfMaterialType.homework || conspect.illustrationReward != null))
+            KeepTogether(child: _buildProRewardSection(conspect.illustrationReward, fallbackImage: medalFallback)),
         ],
       ),
     );
@@ -660,40 +715,19 @@ class PdfExportService {
       } catch (_) {}
     }
 
-    final assetIcon = await PdfIconsHelper.loadIcon('mascot_${world.id}');
-    if (assetIcon != null) return assetIcon;
-
-    try {
-      final base64Png = await YandexArtService.generateFallbackEducationalArt(
-        type: 'world_mascot_${world.id}',
-        label: world.mascotName,
-        width: 140,
-        height: 140,
-      );
-      return pw.MemoryImage(base64Decode(base64Png));
-    } catch (_) {}
+    final worldMascot = await PdfIconsHelper.loadWorldMascot(world.id);
+    if (worldMascot != null) return worldMascot;
 
     return await PdfIconsHelper.loadMascot();
   }
 
   static Future<pw.MemoryImage?> _loadWorldBanner(ThematicWorld world) async {
-    final assetBanner = await PdfIconsHelper.loadIcon('banner_${world.id}');
+    final assetBanner = await PdfIconsHelper.loadWorldBanner(world.id);
     if (assetBanner != null) return assetBanner;
-
-    try {
-      final base64Png = await YandexArtService.generateFallbackEducationalArt(
-        type: 'world_banner_${world.id}',
-        label: world.title,
-        width: 640,
-        height: 160,
-      );
-      return pw.MemoryImage(base64Decode(base64Png));
-    } catch (_) {}
 
     return null;
   }
 
-  /// Создает заголовок в формате "Тема: название темы" с иконкой и легким оформлением
   static pw.Widget _buildPdfTitle(
     Conspect conspect,
     PdfMaterialType type,
@@ -1317,7 +1351,347 @@ class PdfExportService {
     );
   }
 
-static List<pw.Widget> _buildContentWidgets(
+  /// Очищает и структурирует заголовок задания: удаляет Markdown (*, **, #, -),
+  /// извлекает порядковый номер задания и чистую формулировку задания.
+  static ({int? number, String title, bool isTask}) sanitizeTaskHeader(String raw) {
+    var cleaned = raw.replaceAll(RegExp(r'^\s*[-*•]+\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'^#{1,6}\s*'), '');
+    cleaned = cleaned.replaceAll('**', '').replaceAll('*', '').replaceAll('`', '').trim();
+    cleaned = _replaceEmojisWithSymbols(cleaned).trim();
+
+    // Паттерн 1: "Задание 1: ..." или "Задание 1. ..." или "1. Задание: ..."
+    final explicitTask = RegExp(
+      r'^(?:задание\s*№?\s*(\d+)[:\.\-\s]*(.*)|(\d+)\.\s*задание[:\.\-\s]*(.*))',
+      caseSensitive: false,
+    ).firstMatch(cleaned);
+
+    if (explicitTask != null) {
+      final numStr = explicitTask.group(1) ?? explicitTask.group(3);
+      final rest = explicitTask.group(2) ?? explicitTask.group(4) ?? '';
+      final num = int.tryParse(numStr ?? '');
+      return (
+        number: num,
+        title: rest.replaceAll(RegExp(r'^[:\.\-\s]+'), '').trim(),
+        isTask: true,
+      );
+    }
+
+    // Паттерн 2: Просто "Задание: ..." без номера
+    if (RegExp(r'^задание[:\.\-\s]+', caseSensitive: false).hasMatch(cleaned)) {
+      final rest = cleaned.replaceFirst(RegExp(r'^задание[:\.\-\s]+', caseSensitive: false), '').trim();
+      return (number: null, title: rest, isTask: true);
+    }
+
+    // Паттерн 3: Нумерованный заголовок верхнего уровня "1. Соедини стрелками..."
+    final numberedMatch = RegExp(r'^(\d+)[\.\)]\s+(.*)$').firstMatch(cleaned);
+    if (numberedMatch != null) {
+      final num = int.tryParse(numberedMatch.group(1)!);
+      final rest = numberedMatch.group(2)!.trim();
+      return (number: num, title: rest, isTask: true);
+    }
+
+    return (number: null, title: cleaned, isTask: false);
+  }
+
+  /// Рендерит форматированный текст без Markdown-артефактов (**жирный**, *курсив*)
+  static pw.Widget _buildFormattedText(
+    String rawText, {
+    pw.TextStyle? defaultStyle,
+    pw.TextStyle? boldStyle,
+    pw.TextStyle? italicStyle,
+    int? maxLines,
+    pw.TextAlign? textAlign,
+  }) {
+    final clean = _replaceEmojisWithSymbols(rawText).trim();
+    final baseStyle = defaultStyle ?? const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800);
+    final bStyle = boldStyle ?? baseStyle.copyWith(fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900);
+    final iStyle = italicStyle ?? baseStyle.copyWith(fontStyle: pw.FontStyle.italic);
+
+    if (!clean.contains('*') && !clean.contains('`')) {
+      return pw.Text(clean, style: baseStyle, maxLines: maxLines, textAlign: textAlign);
+    }
+
+    final List<pw.InlineSpan> spans = [];
+    final regex = RegExp(r'\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`');
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(clean)) {
+      if (match.start > lastEnd) {
+        spans.add(pw.TextSpan(text: clean.substring(lastEnd, match.start), style: baseStyle));
+      }
+      if (match.group(1) != null) {
+        spans.add(pw.TextSpan(text: match.group(1)!, style: bStyle));
+      } else if (match.group(2) != null) {
+        spans.add(pw.TextSpan(text: match.group(2)!, style: iStyle));
+      } else if (match.group(3) != null) {
+        spans.add(pw.TextSpan(text: match.group(3)!, style: bStyle));
+      }
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < clean.length) {
+      spans.add(pw.TextSpan(text: clean.substring(lastEnd), style: baseStyle));
+    }
+
+    return pw.RichText(
+      textAlign: textAlign ?? pw.TextAlign.left,
+      text: pw.TextSpan(children: spans),
+    );
+  }
+
+  /// Частая узкая косая линейка под углом 65° (по В. Д. Мазиной)
+  /// Обязательна для всех классов начальной школы для чистописания и письма.
+  static pw.Widget _buildNarrowObliqueRuling({
+    int rows = 2,
+    double rowHeight = 22.0,
+  }) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 3),
+      child: pw.Column(
+        children: [
+          for (int r = 0; r < rows; r++)
+            pw.Container(
+              margin: const pw.EdgeInsets.symmetric(vertical: 2.5),
+              height: rowHeight,
+              child: pw.CustomPaint(
+                size: PdfPoint(500, rowHeight),
+                painter: (canvas, size) {
+                  // Верхняя рабочая строка и нижняя базовая линия
+                  canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
+                  canvas.setLineWidth(0.75);
+                  canvas.drawLine(0, 0, size.x, 0);
+                  canvas.drawLine(0, size.y, size.x, size.y);
+                  canvas.strokePath();
+
+                  // Средняя вспомогательная линия (45% высоты строки)
+                  canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
+                  canvas.setLineWidth(0.45);
+                  canvas.drawLine(0, size.y * 0.45, size.x, size.y * 0.45);
+                  canvas.strokePath();
+
+                  // Частые косые наклонные линии под углом 65 градусов (tan 65° ~= 2.1445)
+                  canvas.setColor(const PdfColor.fromInt(0xFFE2E8F0));
+                  canvas.setLineWidth(0.4);
+                  final dx = size.y / 2.1445;
+                  const step = 14.0;
+                  for (double x = -dx; x < size.x + dx; x += step) {
+                    canvas.drawLine(x, size.y, x + dx, 0);
+                  }
+                  canvas.strokePath();
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Математическая векторная сетка клеток 5х5 мм (по методике А. С. Пчёлко)
+  static pw.Widget _buildMathGridArea({
+    double height = 56.0,
+  }) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 3),
+      height: height,
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFFAFCFF),
+        borderRadius: pw.BorderRadius.circular(4),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFCBD5E1), width: 0.6),
+      ),
+      child: pw.CustomPaint(
+        size: PdfPoint(500, height),
+        painter: (canvas, size) {
+          const cellSize = 14.17; // 5 мм в пунктах (72 pt / 25.4 * 5)
+          // Горизонтальные линии клеток
+          canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
+          canvas.setLineWidth(0.45);
+          for (double y = 0; y <= size.y; y += cellSize) {
+            canvas.drawLine(0, y, size.x, y);
+          }
+          // Вертикальные линии клеток
+          for (double x = 0; x <= size.x; x += cellSize) {
+            canvas.drawLine(x, 0, x, size.y);
+          }
+          canvas.strokePath();
+
+          // Опорные точки в узлах клеток
+          canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
+          for (double y = cellSize; y < size.y; y += cellSize) {
+            for (double x = cellSize; x < size.x; x += cellSize) {
+              canvas.drawRect(x - 0.5, y - 0.5, 1, 1);
+            }
+          }
+          canvas.fillPath();
+        },
+      ),
+    );
+  }
+
+  /// Карточка «Корзинка слов и сортировка по группам»
+  static pw.Widget _buildSortingTaskCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Распредели слова по группам';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF0D9488), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF0D9488),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • СОРТИРОВКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF134E4A)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(6),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0FDFA),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFF99F6E4), width: 0.8),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Запиши слова в соответствующие колонки (в узкую косую линейку):',
+                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF115E59))),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(4),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(4),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('Группа 1:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
+                            _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(4),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(4),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('Группа 2:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
+                            _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Карточка звукового анализа и схем (по Букварю Редозубова)
+  static pw.Widget _buildPhoneticTaskCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Звуковой анализ слова';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFE11D48), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFFE11D48),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ЗВУКОВОЙ АНАЛИЗ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF881337)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Text('Заполни звуковую схему слова (красный - гласный, синий - твердый согласный, зеленый - мягкий согласный):',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          pw.SizedBox(height: 4),
+          pw.Row(
+            children: [
+              for (int c = 0; c < 5; c++)
+                pw.Container(
+                  width: 22,
+                  height: 22,
+                  margin: const pw.EdgeInsets.only(right: 6),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFF94A3B8), width: 1),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static List<pw.Widget> _buildContentWidgets(
     String content,
     pw.Font regular,
     pw.Font bold,
@@ -1326,7 +1700,12 @@ static List<pw.Widget> _buildContentWidgets(
     pw.MemoryImage? starGray,
     bool isWorksheetOrHomework = false,
   }) {
-    final cleanedContent = _cleanHtmlTags(content);
+    // Аудит и нормализация вёрстки: гарантируем привязку дидактических полей и устранение сиротских заголовков
+    final audit = PdfLayoutIntegrityValidator.auditAndRepair(
+      content,
+      type: isWorksheetOrHomework ? PdfMaterialType.worksheet : PdfMaterialType.conspect,
+    );
+    final cleanedContent = _cleanHtmlTags(audit.repairedContent);
     final rawLines = cleanedContent.split('\n');
     final List<pw.Widget> widgets = [];
 
@@ -1363,6 +1742,9 @@ static List<pw.Widget> _buildContentWidgets(
         // Гарантируем, что Лист заданий и Домашка всегда начинаются с нового листа!
         if (isMajorMaterialHeader && widgets.isNotEmpty) {
           widgets.add(pw.NewPage());
+        } else if (widgets.isNotEmpty) {
+          // Исключаем сиротские заголовки разделов внизу листа!
+          widgets.add(pw.NewPage(freeSpace: 110));
         }
 
         final iconName = PdfIconsHelper.getSectionIconName(header);
@@ -1376,6 +1758,9 @@ static List<pw.Widget> _buildContentWidgets(
 
       // 2. Баннер разделителя уровней (Уровень 1: Старт...)
       if (type == 'level_header') {
+        if (widgets.isNotEmpty) {
+          widgets.add(pw.NewPage(freeSpace: 85));
+        }
         widgets.add(_buildLevelHeader(header));
         return;
       }
@@ -1386,38 +1771,38 @@ static List<pw.Widget> _buildContentWidgets(
           lowerHeader.contains('рефлексия') ||
           fullText.contains('⭐⭐⭐') ||
           fullText.contains('оцени свои успехи')) {
-        widgets.add(_buildSelfAssessmentCard(header, lines, starGold, starGray));
+        widgets.add(KeepTogether(child: _buildSelfAssessmentCard(header, lines, starGold, starGray)));
         return;
       }
 
       // 4. Памятка для родителей
       if (lowerHeader.contains('памятка для родителей') || fullText.contains('памятка для родителей')) {
-        widgets.add(_buildParentBriefingCard(lines.isNotEmpty ? lines.join('\n') : header));
+        widgets.add(KeepTogether(child: _buildParentBriefingCard(lines.isNotEmpty ? lines.join('\n') : header)));
         return;
       }
 
       // 5. Талон обратной связи учителю
       if (lowerHeader.contains('обратная связь') || lowerHeader.contains('талон') || fullText.contains('отрезной корешок')) {
-        widgets.add(_buildParentFeedbackSlip());
+        widgets.add(KeepTogether(child: _buildParentFeedbackSlip()));
         return;
       }
 
       // 6. Карточка «Правило урока / Теория / Памятка»
       if (type == 'rule' || lowerHeader.contains('правило') || lowerHeader.contains('теория')) {
-        widgets.add(_buildRuleCard(header, lines));
+        widgets.add(KeepTogether(child: _buildRuleCard(header, lines)));
         return;
       }
 
       // 7. Карточка «Ключи и ответы для учителя»
       if (type == 'keys' || lowerHeader.contains('ключи') || lowerHeader.contains('ответы для учителя')) {
-        widgets.add(_buildTeacherKeysCard(header, lines));
+        widgets.add(KeepTogether(child: _buildTeacherKeysCard(header, lines)));
         return;
       }
 
       int currentTaskNum = taskNumber;
-      final explicitTaskMatch = RegExp(r'^Задание\s+(\d+)[:\.]?\s*(.*)$', caseSensitive: false).firstMatch(header);
-      if (explicitTaskMatch != null) {
-        currentTaskNum = int.tryParse(explicitTaskMatch.group(1)!) ?? (taskNumber + 1);
+      final taskHeaderInfo = sanitizeTaskHeader(header);
+      if (taskHeaderInfo.number != null) {
+        currentTaskNum = taskHeaderInfo.number!;
         taskNumber = currentTaskNum;
       } else {
         taskNumber++;
@@ -1426,42 +1811,132 @@ static List<pw.Widget> _buildContentWidgets(
 
       // 7b. Отрезная карточка-помощница (Ступенька вниз ✂)
       if (lowerHeader.contains('карточка-помощница') || lowerHeader.contains('карточка помощница') || fullText.contains('карточка-помощница') || fullText.contains('ступенька вниз')) {
-        widgets.add(_buildScaffoldingHelperCard(header, lines));
+        widgets.add(KeepTogether(child: _buildScaffoldingHelperCard(header, lines)));
         return;
       }
 
       // 7c. Недельный трекер привычек на холодильник («Паспорт исследователя»)
       if (lowerHeader.contains('паспорт исследователя') || lowerHeader.contains('трекер привычек') || lowerHeader.contains('трекер на холодильник') || fullText.contains('паспорт исследователя')) {
-        widgets.add(_buildFridgeTrackerCard(header, lines, starGold, starGray));
+        widgets.add(KeepTogether(child: _buildFridgeTrackerCard(header, lines, starGold, starGray)));
         return;
       }
 
       // 8. Ловушка Незнайки / Ловушка для внимательных
       if (type == 'trap' || lowerHeader.contains('ловушка') || fullText.contains('ловушка незнайки') || fullText.contains('найди ошибки')) {
-        widgets.add(_buildTrapCard(header, lines, currentTaskNum));
+        widgets.add(KeepTogether(child: _buildTrapCard(header, lines, currentTaskNum)));
         return;
       }
 
-      // 9. Прописи / каллиграфия (для начальной школы и чистописания)
-      if (type == 'handwriting' || fullText.contains('[прописи]') || lowerHeader.contains('каллиграфическ') || lowerHeader.contains('чистописан')) {
-        widgets.add(_buildHandwritingCard(header, lines, currentTaskNum));
+      // 9. Прописи / каллиграфия / узкая косая линейка (для всей начальной школы)
+      if (type == 'handwriting' || fullText.contains('[прописи]') || lowerHeader.contains('каллиграфическ') || lowerHeader.contains('чистописан') || lowerHeader.contains('спиши') || lowerHeader.contains('прописи')) {
+        widgets.add(KeepTogether(child: _buildHandwritingCard(header, lines, currentTaskNum)));
         return;
       }
 
       // 9b. Математическая векторная сетка клеток 5х5 мм (по методике Пчёлко)
-      if (type == 'math_grid' || fullText.contains('[клетка]') || fullText.contains('[математическая сетка]') || fullText.contains('в клетку') || (lowerHeader.contains('матем') && (lowerHeader.contains('сетка') || lowerHeader.contains('клетк') || lowerHeader.contains('арифмет')))) {
-        widgets.add(_buildMathGridCard(header, lines, currentTaskNum));
+      if (type == 'math_grid' || fullText.contains('[клетка]') || fullText.contains('[математическая сетка]') || fullText.contains('в клетку') || (lowerHeader.contains('матем') && (lowerHeader.contains('сетка') || lowerHeader.contains('клетк') || lowerHeader.contains('арифмет') || lowerHeader.contains('пример')))) {
+        widgets.add(KeepTogether(child: _buildMathGridCard(header, lines, currentTaskNum)));
         return;
       }
 
-      // 10. Соедини стрелками
-      if (type == 'matching' || fullText.contains('[соедини стрелками]') || lowerHeader.contains('соедини стрелк')) {
-        widgets.add(_buildMatchingTaskCard(header, lines, currentTaskNum));
+      // 10. Соедини стрелками / найди пару
+      if (type == 'matching' || fullText.contains('[соедини стрелками]') || lowerHeader.contains('соедини') || lowerHeader.contains('найди пару')) {
+        widgets.add(KeepTogether(child: _buildMatchingTaskCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10b. Корзинка слов и сортировка по группам
+      if (type == 'sorting' || lowerHeader.contains('распредели') || lowerHeader.contains('раздели на группы') || fullText.contains('корзинк') || lowerHeader.contains('по группам')) {
+        widgets.add(KeepTogether(child: _buildSortingTaskCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10c. Звуковой анализ и фонетическая схема
+      if (type == 'phonetic' || lowerHeader.contains('звуков') || lowerHeader.contains('фонетическ') || fullText.contains('звуковая схем')) {
+        widgets.add(KeepTogether(child: _buildPhoneticTaskCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10d. Числовой домик / Состав числа
+      if (type == 'number_house' || lowerHeader.contains('домик') || lowerHeader.contains('состав числа') || fullText.contains('[числовой домик]') || fullText.contains('[домик числа]')) {
+        widgets.add(KeepTogether(child: _buildNumberHouseCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10e. Сравнение чисел и выражений (> < =)
+      if (type == 'comparison' || lowerHeader.contains('сравн') || lowerHeader.contains('> <') || fullText.contains('[сравнение]') || fullText.contains('[знаки сравнения]')) {
+        widgets.add(KeepTogether(child: _buildComparisonCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10f. Орфографические окошки / Вставка букв
+      if (type == 'letter_boxes' || lowerHeader.contains('окошк') || (lowerHeader.contains('вставь') && lowerHeader.contains('букв')) || fullText.contains('[окошки]')) {
+        widgets.add(KeepTogether(child: _buildLetterBoxesCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10g. Шифровка / Секретный код (Детектив Pro)
+      if (type == 'cipher_code' || lowerHeader.contains('шифр') || lowerHeader.contains('секретный код') || lowerHeader.contains('дешифратор') || fullText.contains('[шифр]')) {
+        widgets.add(KeepTogether(child: _buildCipherCodeCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10h. Числовой луч / Числовая прямая
+      if (type == 'number_line' || lowerHeader.contains('числовой луч') || lowerHeader.contains('числовая прямая') || fullText.contains('[числовой луч]')) {
+        widgets.add(KeepTogether(child: _buildNumberLineCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10i. ТРИЗ-противоречие (Хорошо — Плохо)
+      if (type == 'triz_contradiction' || lowerHeader.contains('хорошо-плохо') || lowerHeader.contains('противоречие') || fullText.contains('[хорошо-плохо]')) {
+        widgets.add(KeepTogether(child: _buildTrizContradictionCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10j. Тестовый выбор с чекбоксами
+      if (type == 'multiple_choice' || lowerHeader.contains('тест') || lowerHeader.contains('выбери правильный') || fullText.contains('[выбор]')) {
+        widgets.add(KeepTogether(child: _buildMultipleChoiceCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10k. Предметный счёт YandexART
+      if (type == 'math_counting_art' || lowerHeader.contains('предметный счет') || lowerHeader.contains('сосчитай предметы') || fullText.contains('[предметный счет]')) {
+        widgets.add(KeepTogether(child: _buildMathCountingArtCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10l. Схема предложения и морфемный разбор (состав слова)
+      if (type == 'sentence_morpheme' || lowerHeader.contains('схема предложени') || lowerHeader.contains('состав слова') || lowerHeader.contains('морфемн') || fullText.contains('[схема предложения]') || fullText.contains('[состав слова]')) {
+        widgets.add(KeepTogether(child: _buildSentenceAndMorphemeCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10m. Вычислительная цепочка и числовая пирамида
+      if (type == 'math_chain_pyramid' || lowerHeader.contains('цепочка') || lowerHeader.contains('числовая цепочка') || lowerHeader.contains('пирамида') || lowerHeader.contains('числовая пирамида') || fullText.contains('[цепочка]') || fullText.contains('[пирамида]')) {
+        widgets.add(KeepTogether(child: _buildMathChainAndPyramidCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10n. Графический диктант по клеточкам
+      if (type == 'graphic_dictation' || lowerHeader.contains('графический диктант') || lowerHeader.contains('диктант по клеткам') || fullText.contains('[графический диктант]')) {
+        widgets.add(KeepTogether(child: _buildGraphicDictationCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10o. Диаграмма Венна / Круги Эйлера
+      if (type == 'venn_diagram' || lowerHeader.contains('диаграмма венна') || lowerHeader.contains('круги эйлера') || fullText.contains('[диаграмма венна]') || fullText.contains('[круги эйлера]')) {
+        widgets.add(KeepTogether(child: _buildVennDiagramCard(header, lines, currentTaskNum)));
+        return;
+      }
+
+      // 10p. Кластер / Древо понятий (Mind Map)
+      if (type == 'concept_cluster' || lowerHeader.contains('кластер') || lowerHeader.contains('древо понятий') || lowerHeader.contains('схема понятий') || fullText.contains('[кластер]') || fullText.contains('[древо понятий]')) {
+        widgets.add(KeepTogether(child: _buildConceptClusterCard(header, lines, currentTaskNum)));
         return;
       }
 
       // 11. Стандартная неделимая карточка задания
-      widgets.add(_buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework));
+      widgets.add(KeepTogether(child: _buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework)));
     }
 
     for (final rawLine in rawLines) {
@@ -1503,26 +1978,45 @@ static List<pw.Widget> _buildContentWidgets(
         continue;
       }
 
-      // 3. Задания (Задание 1: ... или 1. ...)
-      final isExplicitTask = RegExp(r'^Задание\s+\d+', caseSensitive: false).hasMatch(trimmed);
-      final currentIsExplicitTask = currentHeader != null &&
-          RegExp(r'^Задание\s+\d+', caseSensitive: false).hasMatch(currentHeader!);
+      // 3. Задания (Задание 1: ..., **Задание 1**, - **Задание 1**, 1. ...)
+      final taskDetect = sanitizeTaskHeader(trimmed);
+      final isExplicitTask = taskDetect.isTask && (
+        trimmed.toLowerCase().contains('задание') ||
+        (!rawLine.startsWith(' ') && !rawLine.startsWith('\t') && RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed))
+      );
 
-      final isTopLevelNumbered = !rawLine.startsWith(' ') &&
-          !rawLine.startsWith('\t') &&
-          RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed) &&
-          !currentIsExplicitTask;
-
-      if ((isExplicitTask || isTopLevelNumbered) && currentType != 'assessment' && currentType != 'keys') {
+      if (isExplicitTask && currentType != 'assessment' && currentType != 'keys') {
         flushCurrentBlock();
         currentHeader = trimmed;
         final lower = trimmed.toLowerCase();
         if (lower.contains('ловушка')) {
           currentType = 'trap';
-        } else if (lower.contains('соедини')) {
+        } else if (lower.contains('соедини') || lower.contains('найди пару')) {
           currentType = 'matching';
-        } else if (lower.contains('чистописан') || lower.contains('каллиграф') || lower.contains('прописи')) {
+        } else if (lower.contains('чистописан') || lower.contains('каллиграф') || lower.contains('прописи') || lower.contains('спиши')) {
           currentType = 'handwriting';
+        } else if (lower.contains('распредели') || lower.contains('раздели на группы') || lower.contains('корзинк')) {
+          currentType = 'sorting';
+        } else if (lower.contains('звуков') || lower.contains('фонетическ') || lower.contains('звуковая схем')) {
+          currentType = 'phonetic';
+        } else if (lower.contains('домик') || lower.contains('состав числа') || lower.contains('[числовой домик]')) {
+          currentType = 'number_house';
+        } else if (lower.contains('сравн') || lower.contains('> <') || lower.contains('[сравнение]')) {
+          currentType = 'comparison';
+        } else if (lower.contains('окошк') || (lower.contains('вставь') && lower.contains('букв')) || lower.contains('[окошки]')) {
+          currentType = 'letter_boxes';
+        } else if (lower.contains('шифр') || lower.contains('секретный код') || lower.contains('дешифратор') || lower.contains('[шифр]')) {
+          currentType = 'cipher_code';
+        } else if (lower.contains('числовой луч') || lower.contains('числовая прямая') || lower.contains('[числовой луч]')) {
+          currentType = 'number_line';
+        } else if (lower.contains('хорошо-плохо') || lower.contains('противоречие') || lower.contains('[хорошо-плохо]')) {
+          currentType = 'triz_contradiction';
+        } else if (lower.contains('тест') || lower.contains('выбери правильный') || lower.contains('[выбор]')) {
+          currentType = 'multiple_choice';
+        } else if (lower.contains('предметный счет') || lower.contains('сосчитай предметы') || lower.contains('[предметный счет]')) {
+          currentType = 'math_counting_art';
+        } else if (lower.contains('клетк') || lower.contains('сетк') || lower.contains('арифмет') || lower.contains('вычисли')) {
+          currentType = 'math_grid';
         } else {
           currentType = 'standard';
         }
@@ -1801,17 +2295,8 @@ static List<pw.Widget> _buildContentWidgets(
 
   /// Карточка чистописания с разлиновкой в косую линейку под 65 градусов
   static pw.Widget _buildHandwritingCard(String header, List<String> lines, int num) {
-    final cleanHeader = _replaceEmojisWithSymbols(header);
-    String displayHeader = cleanHeader;
-    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
-    if (explicitMatch != null) {
-      displayHeader = displayHeader.substring(explicitMatch.end).trim();
-    } else {
-      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-      if (numPrefixMatch != null) {
-        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
-      }
-    }
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Спиши каллиграфически аккуратно';
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -1834,12 +2319,13 @@ static List<pw.Widget> _buildContentWidgets(
                 ),
                 child: pw.Text('ЗАДАНИЕ $num • ЧИСТОПИСАНИЕ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
-              if (displayHeader.isNotEmpty) ...[
-                pw.SizedBox(width: 8),
-                pw.Expanded(
-                  child: pw.Text(displayHeader, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
-              ],
+              ),
             ],
           ),
           if (lines.isNotEmpty) ...[
@@ -1847,36 +2333,10 @@ static List<pw.Widget> _buildContentWidgets(
             _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[прописи]')).toList()),
           ],
           pw.SizedBox(height: 6),
-          pw.Text('Образец и письмо элементов в косую строку:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.cyan900)),
+          pw.Text('Письмо элементов и слов в частую узкую косую линейку (угол наклона 65°):',
+              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.cyan900)),
           pw.SizedBox(height: 4),
-          for (int r = 0; r < 2; r++)
-            pw.Container(
-              margin: const pw.EdgeInsets.symmetric(vertical: 2.5),
-              height: 20,
-              child: pw.CustomPaint(
-                size: const PdfPoint(500, 20),
-                painter: (canvas, size) {
-                  canvas.setColor(PdfColor.fromInt(0xFF94A3B8));
-                  canvas.setLineWidth(0.8);
-                  canvas.drawLine(0, 0, size.x, 0);
-                  canvas.drawLine(0, size.y, size.x, size.y);
-                  canvas.strokePath();
-
-                  canvas.setColor(PdfColor.fromInt(0xFFCBD5E1));
-                  canvas.setLineWidth(0.5);
-                  canvas.drawLine(0, size.y * 0.45, size.x, size.y * 0.45);
-                  canvas.strokePath();
-
-                  canvas.setColor(PdfColor.fromInt(0xFFE2E8F0));
-                  canvas.setLineWidth(0.5);
-                  final dx = size.y / 2.14;
-                  for (double x = -20; x < size.x + 20; x += 18) {
-                    canvas.drawLine(x, size.y, x + dx, 0);
-                  }
-                  canvas.strokePath();
-                },
-              ),
-            ),
+          _buildNarrowObliqueRuling(rows: 3),
         ],
       ),
     );
@@ -1884,12 +2344,8 @@ static List<pw.Widget> _buildContentWidgets(
 
   /// Карточка математической сетки клеток 5х5 мм (по методике Пчёлко)
   static pw.Widget _buildMathGridCard(String header, List<String> lines, int num) {
-    final cleanHeader = _replaceEmojisWithSymbols(header);
-    String displayHeader = cleanHeader;
-    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
-    if (explicitMatch != null) {
-      displayHeader = displayHeader.substring(explicitMatch.end).trim();
-    }
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Вычисли и запиши решение по клеткам';
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -1910,16 +2366,16 @@ static List<pw.Widget> _buildContentWidgets(
                   color: PdfColors.blue700,
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num • МАТЕМАТИЧЕСКАЯ СЕТКА КЛЕТОК',
+                child: pw.Text('ЗАДАНИЕ $num • СЧЕТ ПО КЛЕТКАМ',
                     style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
-              if (displayHeader.isNotEmpty) ...[
-                pw.SizedBox(width: 8),
-                pw.Expanded(
-                  child: pw.Text(displayHeader,
-                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
                 ),
-              ],
+              ),
             ],
           ),
           if (lines.isNotEmpty) ...[
@@ -1927,38 +2383,10 @@ static List<pw.Widget> _buildContentWidgets(
             _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[клетка]')).toList()),
           ],
           pw.SizedBox(height: 6),
-          pw.Text('Запиши решение и ответ аккуратно по клеткам (1 цифра в 1 клетке):',
+          pw.Text('Запиши решение и ответ по клеткам 5х5 мм (1 цифра в 1 клетке):',
               style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
           pw.SizedBox(height: 4),
-          pw.Container(
-            height: 44,
-            child: pw.CustomPaint(
-              size: const PdfPoint(500, 44),
-              painter: (canvas, size) {
-                const cellSize = 14.17; // ~5 мм в пунктах (72 pt / 25.4 мм * 5 мм)
-                // Горизонтальные линии клеток
-                canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
-                canvas.setLineWidth(0.5);
-                for (double y = 0; y <= size.y; y += cellSize) {
-                  canvas.drawLine(0, y, size.x, y);
-                }
-                // Вертикальные линии клеток
-                for (double x = 0; x <= size.x; x += cellSize) {
-                  canvas.drawLine(x, 0, x, size.y);
-                }
-                canvas.strokePath();
-
-                // Точки-ориентиры в углах клеток
-                canvas.setColor(const PdfColor.fromInt(0xFF94A3B8));
-                for (double y = cellSize; y < size.y; y += cellSize) {
-                  for (double x = cellSize; x < size.x; x += cellSize) {
-                    canvas.drawRect(x - 0.5, y - 0.5, 1, 1);
-                  }
-                }
-                canvas.fillPath();
-              },
-            ),
-          ),
+          _buildMathGridArea(height: 60),
         ],
       ),
     );
@@ -2089,24 +2517,15 @@ static List<pw.Widget> _buildContentWidgets(
 
   /// Карточка «Ловушка Незнайки»
   static pw.Widget _buildTrapCard(String header, List<String> lines, int num) {
-    final cleanHeader = _replaceEmojisWithSymbols(header);
-    String displayHeader = cleanHeader;
-    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
-    if (explicitMatch != null) {
-      displayHeader = displayHeader.substring(explicitMatch.end).trim();
-    } else {
-      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-      if (numPrefixMatch != null) {
-        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
-      }
-    }
+    final sanitized = sanitizeTaskHeader(header);
+    var displayHeader = sanitized.title;
     if (displayHeader.toLowerCase().startsWith('ловушка незнайки:')) {
       displayHeader = displayHeader.substring('ловушка незнайки:'.length).trim();
     } else if (displayHeader.toLowerCase().startsWith('ловушка для внимательных:')) {
       displayHeader = displayHeader.substring('ловушка для внимательных:'.length).trim();
     }
     if (displayHeader.isEmpty) {
-      displayHeader = 'Найди и исправь хитрые ошибки:';
+      displayHeader = 'Найди и исправь хитрые ошибки';
     }
 
     return pw.Container(
@@ -2132,7 +2551,10 @@ static List<pw.Widget> _buildContentWidgets(
               ),
               pw.SizedBox(width: 8),
               pw.Expanded(
-                child: pw.Text(displayHeader, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF78350F))),
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF78350F)),
+                ),
               ),
             ],
           ),
@@ -2141,7 +2563,9 @@ static List<pw.Widget> _buildContentWidgets(
             _buildLinesContent(lines),
           ],
           pw.SizedBox(height: 6),
-          pw.Text('Исправленный вариант: __________________________________________________________________', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700)),
+          pw.Text('Исправленный вариант запиши каллиграфически правильно:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
+          pw.SizedBox(height: 3),
+          _buildNarrowObliqueRuling(rows: 2),
         ],
       ),
     );
@@ -2149,15 +2573,20 @@ static List<pw.Widget> _buildContentWidgets(
 
   /// Карточка задания «Соедини стрелками»
   static pw.Widget _buildMatchingTaskCard(String header, List<String> lines, int num) {
-    final cleanHeader = _replaceEmojisWithSymbols(header);
-    String displayHeader = cleanHeader;
-    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
-    if (explicitMatch != null) {
-      displayHeader = displayHeader.substring(explicitMatch.end).trim();
-    } else {
-      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-      if (numPrefixMatch != null) {
-        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Соедини подходящие пары стрелками';
+
+    final List<String> leftItems = [];
+    final List<String> rightItems = [];
+    for (final line in lines) {
+      final clean = line.replaceAll('*', '').replaceAll(RegExp(r'^\s*[-•]\s*'), '').trim();
+      if (clean.contains(' - ') || clean.contains(' — ') || clean.contains(':')) {
+        final separator = clean.contains(' — ') ? ' — ' : (clean.contains(' - ') ? ' - ' : ':');
+        final parts = clean.split(separator);
+        if (parts.length >= 2) {
+          leftItems.add(parts[0].trim());
+          rightItems.add(parts.sublist(1).join(' ').trim());
+        }
       }
     }
 
@@ -2180,14 +2609,373 @@ static List<pw.Widget> _buildContentWidgets(
                   color: PdfColors.indigo600,
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
-                child: pw.Text('ЗАДАНИЕ $num • СОЕДИНИ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('ЗАДАНИЕ $num • СОЕДИНИ ПАРЫ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
               ),
-              if (displayHeader.isNotEmpty) ...[
-                pw.SizedBox(width: 8),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          if (leftItems.isNotEmpty && rightItems.isNotEmpty) ...[
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
                 pw.Expanded(
-                  child: pw.Text(displayHeader, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                    children: [
+                      for (final left in leftItems)
+                        pw.Container(
+                          margin: const pw.EdgeInsets.symmetric(vertical: 3),
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: pw.BoxDecoration(
+                            color: const PdfColor.fromInt(0xFFF8FAFC),
+                            borderRadius: pw.BorderRadius.circular(5),
+                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCBD5E1), width: 0.8),
+                          ),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Expanded(child: pw.Text(left, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey900))),
+                              pw.Text('  •', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo600)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 24),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                    children: [
+                      for (final right in rightItems)
+                        pw.Container(
+                          margin: const pw.EdgeInsets.symmetric(vertical: 3),
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: pw.BoxDecoration(
+                            color: const PdfColor.fromInt(0xFFF8FAFC),
+                            borderRadius: pw.BorderRadius.circular(5),
+                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCBD5E1), width: 0.8),
+                          ),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('•  ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo600)),
+                              pw.Expanded(child: pw.Text(right, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey900))),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
+            ),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Text('Соедини подходящие точки аккуратными прямыми линиями по линейке.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ),
+    );
+  }
+
+  /// Стандартная неразрывная карточка задания
+    /// 1. Карточка «Числовой домик / Состав числа» (по методике Пчёлко и Сингапур CPA)
+  static pw.Widget _buildNumberHouseCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Засели числовой домик: состав числа';
+
+    // Извлекаем целевое число домика (из заголовка или строк)
+    final numMatch = RegExp(r'(?:числа|домик)\s*(\d+)', caseSensitive: false).firstMatch(header + ' ' + lines.join(' '));
+    final houseNumber = numMatch != null ? numMatch.group(1)! : '10';
+
+    // Формируем пары этажей (до 4 этажей)
+    final List<(String, String)> floorPairs = [];
+    final targetInt = int.tryParse(houseNumber) ?? 10;
+    for (int i = 1; i <= 4; i++) {
+      if (i < targetInt) {
+        floorPairs.add((i.toString(), ''));
+      }
+    }
+    if (floorPairs.isEmpty) {
+      floorPairs.addAll([('1', ''), ('2', ''), ('3', ''), ('4', '')]);
+    }
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF3B82F6), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF2563EB),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • СОСТАВ ЧИСЛА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF1E3A8A)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[домик]')).toList()),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Center(
+            child: pw.Container(
+              width: 150,
+              child: pw.Column(
+                children: [
+                  // Крыша домика с целевым числом
+                  pw.Container(
+                    height: 26,
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColor.fromInt(0xFF2563EB),
+                      borderRadius: pw.BorderRadius.vertical(top: pw.Radius.circular(6)),
+                    ),
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(houseNumber, style: pw.TextStyle(color: PdfColors.white, fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                  ),
+                  // Этажи с ячейками
+                  for (final pair in floorPairs)
+                    pw.Container(
+                      height: 22,
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(
+                          left: pw.BorderSide(color: PdfColor.fromInt(0xFF60A5FA), width: 1),
+                          right: pw.BorderSide(color: PdfColor.fromInt(0xFF60A5FA), width: 1),
+                          bottom: pw.BorderSide(color: PdfColor.fromInt(0xFF93C5FD), width: 0.8),
+                        ),
+                      ),
+                      child: pw.Row(
+                        children: [
+                          pw.Expanded(
+                            child: pw.Container(
+                              alignment: pw.Alignment.center,
+                              decoration: const pw.BoxDecoration(
+                                color: PdfColor.fromInt(0xFFEFF6FF),
+                                border: pw.Border(right: pw.BorderSide(color: PdfColor.fromInt(0xFF93C5FD), width: 1)),
+                              ),
+                              child: pw.Text(pair.$1, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF1E40AF))),
+                            ),
+                          ),
+                          pw.Expanded(
+                            child: pw.Container(
+                              alignment: pw.Alignment.center,
+                              color: PdfColors.white,
+                              child: pw.Text(pair.$2, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text('Заполни пустые окошки так, чтобы сумма чисел на каждом этаже равнялась числу на крыше.',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ),
+    );
+  }
+
+  /// 2. Карточка «Сравнение чисел и выражений: >, <, =»
+  static pw.Widget _buildComparisonCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Сравни числа и выражения: поставь знаки >, <, =';
+
+    final List<(String, String)> expressions = [];
+    for (final line in lines) {
+      final clean = line.replaceAll('*', '').replaceAll(RegExp(r'^\s*[-•]\s*'), '').trim();
+      if (clean.contains('...') || clean.contains('___') || clean.contains('О') || clean.contains('O') || clean.contains('?')) {
+        final parts = clean.split(RegExp(r'\.{2,}|_{2,}|\s*[ОO\?]\s*'));
+        if (parts.length >= 2) {
+          expressions.add((parts[0].trim(), parts[1].trim()));
+        }
+      }
+    }
+
+    if (expressions.isEmpty) {
+      expressions.addAll([('7 + 3', '12 - 4'), ('15 - 6', '8 + 2'), ('4 * 2', '10 - 2')]);
+    }
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF6366F1), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF4F46E5),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • СРАВНЕНИЕ (> < =)', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF312E81)),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          for (final expr in expressions)
+            pw.Container(
+              margin: const pw.EdgeInsets.symmetric(vertical: 3),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: pw.BoxDecoration(
+                color: const PdfColor.fromInt(0xFFF8FAFC),
+                borderRadius: pw.BorderRadius.circular(6),
+                border: pw.Border.all(color: const PdfColor.fromInt(0xFFCBD5E1), width: 0.8),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(expr.$1, style: pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF1E293B))),
+                  pw.SizedBox(width: 14),
+                  pw.Container(
+                    width: 18,
+                    height: 18,
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      shape: pw.BoxShape.circle,
+                      border: pw.Border.all(color: const PdfColor.fromInt(0xFF6366F1), width: 1.2),
+                    ),
+                  ),
+                  pw.SizedBox(width: 14),
+                  pw.Text(expr.$2, style: pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF1E293B))),
+                ],
+              ),
+            ),
+          pw.SizedBox(height: 6),
+          pw.Text('Впиши в кружок знак больше (>), меньше (<) или равно (=).', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ),
+    );
+  }
+
+  /// 3. Карточка «Вставка букв в орфографические окошки»
+  static pw.Widget _buildLetterBoxesCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Вставь пропущенные буквы в орфографические окошки';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF0284C7), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF0284C7),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ОРФОГРАФИЧЕСКИЕ ОКОШКИ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0369A1)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[окошки]')).toList()),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Text('Спиши проверенные слова каллиграфически аккуратно в косую строку:',
+              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF075985))),
+          pw.SizedBox(height: 4),
+          _buildNarrowObliqueRuling(rows: 2),
+        ],
+      ),
+    );
+  }
+
+  /// 4. Карточка «Шифровка / Секретный код / Детектив Pro»
+  static pw.Widget _buildCipherCodeCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Разгадай секретный код (Детектив Pro)';
+
+    const keySymbols = ['1', '2', '3', '4', '5', '6', '7'];
+    const keyLetters = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'К'];
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFFAF5FF),
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF9333EA), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF7E22CE),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ШИФРОВКА • ДЕТЕКТИВ PRO', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF581C87)),
+                ),
+              ),
             ],
           ),
           if (lines.isNotEmpty) ...[
@@ -2195,25 +2983,222 @@ static List<pw.Widget> _buildContentWidgets(
             _buildLinesContent(lines),
           ],
           pw.SizedBox(height: 6),
-          pw.Text('Соедини аккуратными цветными стрелочками нужные пары.', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600)),
+          // Таблица-ключ дешифратора
+          pw.Text('Таблица-ключ шифра:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF6B21A8))),
+          pw.SizedBox(height: 3),
+          pw.Table(
+            border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFC084FC), width: 0.8),
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF3E8FF)),
+                children: [
+                  for (final sym in keySymbols)
+                    pw.Container(
+                      height: 18,
+                      alignment: pw.Alignment.center,
+                      child: pw.Text(sym, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF581C87))),
+                    ),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  for (final let in keyLetters)
+                    pw.Container(
+                      height: 18,
+                      alignment: pw.Alignment.center,
+                      child: pw.Text(let, style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey900)),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text('Запиши разгаданное слово в клеточки:', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          pw.SizedBox(height: 3),
+          pw.Row(
+            children: [
+              for (int c = 0; c < 6; c++)
+                pw.Container(
+                  width: 20,
+                  height: 20,
+                  margin: const pw.EdgeInsets.only(right: 5),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(3),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFF7E22CE), width: 1),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  /// Стандартная неразрывная карточка задания
-  static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet) {
-    final cleanHeader = _replaceEmojisWithSymbols(header);
-    String displayHeader = cleanHeader;
-    final explicitMatch = RegExp(r'^Задание\s+\d+[:\.]?\s*', caseSensitive: false).firstMatch(displayHeader);
-    if (explicitMatch != null) {
-      displayHeader = displayHeader.substring(explicitMatch.end).trim();
-    } else {
-      final numPrefixMatch = RegExp(r'^\d+[\.\)]\s*').firstMatch(cleanHeader);
-      if (numPrefixMatch != null) {
-        displayHeader = cleanHeader.substring(numPrefixMatch.end).trim();
-      }
-    }
+  /// 5. Карточка «Числовой луч / Числовая прямая»
+  static pw.Widget _buildNumberLineCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни действие по числовому лучу';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF059669), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF059669),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ЧИСЛОВОЙ ЛУЧ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF065F46)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          // Векторный числовой луч
+          pw.Container(
+            height: 38,
+            child: pw.CustomPaint(
+              size: const PdfPoint(500, 38),
+              painter: (canvas, size) {
+                // Главная ось
+                canvas.setColor(const PdfColor.fromInt(0xFF059669));
+                canvas.setLineWidth(1.2);
+                canvas.drawLine(10, size.y / 2, size.x - 10, size.y / 2);
+                // Стрелочка в конце
+                canvas.drawLine(size.x - 16, size.y / 2 - 4, size.x - 10, size.y / 2);
+                canvas.drawLine(size.x - 16, size.y / 2 + 4, size.x - 10, size.y / 2);
+                canvas.strokePath();
+
+                // Деления и засечки
+                canvas.setColor(const PdfColor.fromInt(0xFF047857));
+                canvas.setLineWidth(0.8);
+                const step = 42.0;
+                for (double x = 20; x < size.x - 30; x += step) {
+                  canvas.drawLine(x, size.y / 2 - 5, x, size.y / 2 + 5);
+                }
+                canvas.strokePath();
+              },
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text('Отметь шаги дугами над числовым лучом и запиши верный ответ.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ),
+    );
+  }
+
+  /// 6. Карточка «ТРИЗ: анализ противоречия (Хорошо — Плохо)»
+  static pw.Widget _buildTrizContradictionCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'ТРИЗ-анализ объекта: Хорошо — Плохо';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFD97706), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFFD97706),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ТРИЗ • ХОРОШО - ПЛОХО', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF78350F)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(6),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFFF0FDF4),
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFF86EFAC), width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('ХОРОШО (+)', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF166534))),
+                      pw.SizedBox(height: 3),
+                      _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(6),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFFFFFBEB),
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFFFDE68A), width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('ПЛОХО (-)', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
+                      pw.SizedBox(height: 3),
+                      _buildNarrowObliqueRuling(rows: 2, rowHeight: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 7. Карточка «Тестовый выбор с чекбоксами»
+  static pw.Widget _buildMultipleChoiceCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выбери правильный ответ из предложенных';
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -2226,40 +3211,905 @@ static List<pw.Widget> _buildContentWidgets(
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          if (displayHeader.isNotEmpty)
-            pw.Row(
-              children: [
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.indigo600,
-                    borderRadius: pw.BorderRadius.circular(4),
-                  ),
-                  child: pw.Text('ЗАДАНИЕ $num', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.indigo600,
+                  borderRadius: pw.BorderRadius.circular(4),
                 ),
-                pw.SizedBox(width: 8),
-                pw.Expanded(
-                  child: pw.Text(
-                    displayHeader,
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                child: pw.Text('ЗАДАНИЕ $num • ТЕСТОВЫЙ ВЫБОР', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 4),
+          pw.Text('Отметь галочкой верный кружок или квадратик.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+        ],
+      ),
+    );
+  }
+
+  /// 8. Карточка «Предметный счёт YandexART»
+  static pw.Widget _buildMathCountingArtCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Сосчитай предметы и запиши число';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF16A34A), width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF16A34A),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ПРЕДМЕТНЫЙ СЧЁТ YANDEXART', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF14532D)),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 6),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0FDF4),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFBBF7D0), width: 0.8),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Сколько всего предметов? Запиши число в клетку:',
+                    style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF15803D))),
+                pw.Container(
+                  width: 24,
+                  height: 24,
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFF16A34A), width: 1.2),
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 1. Схема предложения и морфемные рамки (состав слова)
+  static pw.Widget _buildSentenceAndMorphemeCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Составь предложение по схеме и разбери слова по составу';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF0284C7), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF0284C7),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • СХЕМА ПРЕДЛОЖЕНИЯ / РАЗБОР СЛОВА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
           if (lines.isNotEmpty) ...[
-            if (displayHeader.isNotEmpty) pw.SizedBox(height: 6),
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0F9FF),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFBAE6FD), width: 0.8),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Графическая модель предложения:', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 6),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 55,
+                      height: 14,
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(
+                          left: pw.BorderSide(color: PdfColors.indigo900, width: 2),
+                          bottom: pw.BorderSide(color: PdfColors.indigo900, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 14),
+                    pw.Container(
+                      width: 65,
+                      height: 14,
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(
+                          bottom: pw.BorderSide(color: PdfColors.indigo900, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 14),
+                    pw.Container(
+                      width: 60,
+                      height: 14,
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(
+                          bottom: pw.BorderSide(color: PdfColors.indigo900, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Container(
+                      width: 4,
+                      height: 4,
+                      margin: const pw.EdgeInsets.only(top: 10),
+                      decoration: const pw.BoxDecoration(
+                        color: PdfColors.indigo900,
+                        shape: pw.BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 8),
+                pw.Row(
+                  children: [
+                    pw.Text('Обозначения морфем:  ', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                    pw.Text('[приставка]  |  [корень]  |  [суффикс]  |  [окончание]', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo800)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text('Запиши составленное предложение каллиграфически:', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          pw.SizedBox(height: 2),
+          _buildNarrowObliqueRuling(rows: 2, rowHeight: 22.0),
+        ],
+      ),
+    );
+  }
+
+  /// 2. Вычислительная цепочка и числовая пирамида
+  static pw.Widget _buildMathChainAndPyramidCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Вычислительная цепочка и числовая пирамида';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF7C3AED), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF7C3AED),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ВЫЧИСЛИТЕЛЬНАЯ ЦЕПОЧКА / ПИРАМИДА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              // 1. Вычислительная цепочка
+              pw.Expanded(
+                flex: 6,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFFF5F3FF),
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFFDDD6FE), width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Цепочка вычислений:', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Container(
+                            width: 26,
+                            height: 26,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              shape: pw.BoxShape.circle,
+                              border: pw.Border.all(color: const PdfColor.fromInt(0xFF7C3AED), width: 1.5),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text('8', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Column(
+                            children: [
+                              pw.Text('+ 4', style: const pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                              pw.Text('-->', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                            ],
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Container(
+                            width: 26,
+                            height: 26,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              shape: pw.BoxShape.circle,
+                              border: pw.Border.all(color: PdfColors.grey400, width: 1.2),
+                            ),
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Column(
+                            children: [
+                              pw.Text('- 3', style: const pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                              pw.Text('-->', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                            ],
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Container(
+                            width: 26,
+                            height: 26,
+                            decoration: pw.BoxDecoration(
+                              color: const PdfColor.fromInt(0xFFFEF3C7),
+                              borderRadius: pw.BorderRadius.circular(4),
+                              border: pw.Border.all(color: const PdfColor.fromInt(0xFFD97706), width: 1.5),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text('?', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              // 2. Числовая пирамидка (кирпичики)
+              pw.Expanded(
+                flex: 5,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFFF5F3FF),
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFFDDD6FE), width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Text('Числовая пирамида:', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                      pw.SizedBox(height: 4),
+                      pw.Container(
+                        width: 26,
+                        height: 18,
+                        decoration: pw.BoxDecoration(
+                          color: const PdfColor.fromInt(0xFFFEF3C7),
+                          borderRadius: pw.BorderRadius.circular(3),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFFD97706), width: 1.2),
+                        ),
+                        alignment: pw.Alignment.center,
+                        child: pw.Text('?', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900)),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Container(
+                            width: 24,
+                            height: 18,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(3),
+                              border: pw.Border.all(color: PdfColors.grey400, width: 1),
+                            ),
+                          ),
+                          pw.SizedBox(width: 4),
+                          pw.Container(
+                            width: 24,
+                            height: 18,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(3),
+                              border: pw.Border.all(color: PdfColors.grey400, width: 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Container(
+                            width: 22,
+                            height: 18,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(3),
+                              border: pw.Border.all(color: const PdfColor.fromInt(0xFF7C3AED), width: 1.2),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text('2', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Container(
+                            width: 22,
+                            height: 18,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(3),
+                              border: pw.Border.all(color: const PdfColor.fromInt(0xFF7C3AED), width: 1.2),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text('3', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                          ),
+                          pw.SizedBox(width: 3),
+                          pw.Container(
+                            width: 22,
+                            height: 18,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.circular(3),
+                              border: pw.Border.all(color: const PdfColor.fromInt(0xFF7C3AED), width: 1.2),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pw.Text('4', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 3. Графический диктант по клеточкам
+  static pw.Widget _buildGraphicDictationCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Графический диктант по клеточкам';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFFEA580C), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFFEA580C),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ГРАФИЧЕСКИЙ ДИКТАНТ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                flex: 6,
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFFFFF7ED),
+                    borderRadius: pw.BorderRadius.circular(6),
+                    border: pw.Border.all(color: const PdfColor.fromInt(0xFFFED7AA), width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Алгоритм шагов (от точки СТАРТ):', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
+                      pw.SizedBox(height: 6),
+                      pw.Wrap(
+                        spacing: 6,
+                        runSpacing: 5,
+                        children: [
+                          for (final step in ['2 ->', '1 v', '3 ->', '2 ^', '2 ->', '3 v', '1 <-', '2 v', '4 <-', '1 ^'])
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: pw.BoxDecoration(
+                                color: PdfColors.white,
+                                borderRadius: pw.BorderRadius.circular(4),
+                                border: pw.Border.all(color: const PdfColor.fromInt(0xFFF97316), width: 0.8),
+                              ),
+                              child: pw.Text(step, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
+                            ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text('Что за фигура получилась? Запиши отгадку:', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+                      pw.SizedBox(height: 3),
+                      pw.Text('Ответ: _________________________________', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.indigo900)),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              pw.Container(
+                width: 140,
+                height: 110,
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(6),
+                  border: pw.Border.all(color: PdfColors.blueGrey300, width: 0.8),
+                ),
+                child: pw.Stack(
+                  children: [
+                    pw.CustomPaint(
+                      size: const PdfPoint(140, 110),
+                      painter: (canvas, size) {
+                        final cellSize = 5.0 * 2.83465;
+                        final cols = (size.x / cellSize).floor();
+                        final rows = (size.y / cellSize).floor();
+
+                        for (int c = 0; c <= cols; c++) {
+                          final x = c * cellSize;
+                          canvas.drawLine(x, 0, x, rows * cellSize);
+                        }
+                        for (int r = 0; r <= rows; r++) {
+                          final y = r * cellSize;
+                          canvas.drawLine(0, y, cols * cellSize, y);
+                        }
+                        canvas.setColor(const PdfColor.fromInt(0xFFCBD5E1));
+                        canvas.setLineWidth(0.4);
+                        canvas.strokePath();
+
+                        final startX = 2 * cellSize;
+                        final startY = 2 * cellSize;
+                        canvas.drawEllipse(startX, startY, 2.5, 2.5);
+                        canvas.setColor(const PdfColor.fromInt(0xFFEA580C));
+                        canvas.fillPath();
+                      },
+                    ),
+                    pw.Positioned(
+                      left: 32,
+                      top: 10,
+                      child: pw.Text('СТАРТ *', style: pw.TextStyle(fontSize: 6.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 4. Диаграмма Венна / Круги Эйлера
+  static pw.Widget _buildVennDiagramCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Диаграмма Венна / Круги Эйлера: распредели понятия';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF0D9488), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF0D9488),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • ДИАГРАММА ВЕННА / КРУГИ ЭЙЛЕРА', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0FDFA),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFF99F6E4), width: 0.8),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 4,
+                  child: pw.Container(
+                    height: 80,
+                    padding: const pw.EdgeInsets.all(6),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: const pw.BorderRadius.horizontal(left: pw.Radius.circular(40)),
+                      border: pw.Border.all(color: const PdfColor.fromInt(0xFF0D9488), width: 1.2),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('ТОЛЬКО СВОЙСТВО А:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('1. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('2. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('3. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Container(
+                    height: 80,
+                    margin: const pw.EdgeInsets.symmetric(horizontal: 2),
+                    padding: const pw.EdgeInsets.all(6),
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor.fromInt(0xFFCCFBF1),
+                      borderRadius: pw.BorderRadius.circular(6),
+                      border: pw.Border.all(color: const PdfColor.fromInt(0xFF0F766E), width: 1.5),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.Text('ОБЩЕЕ (И А, И Б):', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('* _____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.indigo900)),
+                        pw.Text('* _____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.indigo900)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 4,
+                  child: pw.Container(
+                    height: 80,
+                    padding: const pw.EdgeInsets.all(6),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: const pw.BorderRadius.horizontal(right: pw.Radius.circular(40)),
+                      border: pw.Border.all(color: const PdfColor.fromInt(0xFF0D9488), width: 1.2),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('ТОЛЬКО СВОЙСТВО Б:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('1. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('2. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('3. ________________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.grey300, width: 0.6),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Text('Банк слов для распределения: ', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+                pw.Expanded(
+                  child: pw.Text('выбери из предложенных вариантов и впиши в нужную область диаграммы', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700, fontStyle: pw.FontStyle.italic)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 5. Кластер / Древо понятий (Mind Map)
+  static pw.Widget _buildConceptClusterCard(String header, List<String> lines, int num) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Кластер понятий: систематизируй материал';
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: const PdfColor.fromInt(0xFF4F46E5), width: 1.2),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF4F46E5),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num • КЛАСТЕР / ДРЕВО ПОНЯТИЙ', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
+            _buildLinesContent(lines),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFEEF2FF),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFC7D2FE), width: 0.8),
+            ),
+            child: pw.Column(
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: pw.BoxDecoration(
+                    color: const PdfColor.fromInt(0xFF4F46E5),
+                    borderRadius: pw.BorderRadius.circular(12),
+                  ),
+                  child: pw.Text('ГЛАВНОЕ ПОНЯТИЕ / ТЕМА', style: pw.TextStyle(color: PdfColors.white, fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    pw.Text('[Группа 1]', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo700)),
+                    pw.Text('[Группа 2]', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo700)),
+                    pw.Text('[Группа 3]', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo700)),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(6),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(6),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFF818CF8), width: 1),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('ВЕТВЬ А', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+                            pw.SizedBox(height: 3),
+                            pw.Text('1. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                            pw.Text('2. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 6),
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(6),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(6),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFF818CF8), width: 1),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('ВЕТВЬ Б', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+                            pw.SizedBox(height: 3),
+                            pw.Text('1. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                            pw.Text('2. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(width: 6),
+                    pw.Expanded(
+                      child: pw.Container(
+                        padding: const pw.EdgeInsets.all(6),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(6),
+                          border: pw.Border.all(color: const PdfColor.fromInt(0xFF818CF8), width: 1),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('ВЕТВЬ В', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+                            pw.SizedBox(height: 3),
+                            pw.Text('1. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                            pw.Text('2. ____________', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet) {
+    final sanitized = sanitizeTaskHeader(header);
+    final displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни задание';
+
+    final fullContent = (header + ' ' + lines.join(' ')).toLowerCase();
+    final isMathTask = fullContent.contains('вычисли') ||
+        fullContent.contains('реши') ||
+        fullContent.contains('пример') ||
+        fullContent.contains('задач') ||
+        fullContent.contains('счет') ||
+        fullContent.contains('уравнени') ||
+        RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent);
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.white,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: PdfColors.indigo200, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.indigo600,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text('ЗАДАНИЕ $num', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: _buildFormattedText(
+                  displayHeader,
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                ),
+              ),
+            ],
+          ),
+          if (lines.isNotEmpty) ...[
+            pw.SizedBox(height: 6),
             _buildLinesContent(lines),
           ],
           if (isWorksheet) ...[
             pw.SizedBox(height: 6),
-            pw.Container(
-              height: 1,
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(
-                  bottom: pw.BorderSide(color: PdfColor.fromInt(0xFFCBD5E1), width: 0.8),
-                ),
-              ),
-            ),
+            if (isMathTask)
+              _buildMathGridArea(height: 48)
+            else
+              _buildNarrowObliqueRuling(rows: 2),
           ],
         ],
       ),
@@ -2339,7 +4189,210 @@ static List<pw.Widget> _buildContentWidgets(
 
       // Поля для ответа / пропуски
       if (line.contains('____') || line.toLowerCase().contains('линии для ответа')) {
-        widgets.add(_buildAnswerLine(line));
+        widgets.add(KeepTogether(child: _buildAnswerLine(line)));
+        i++;
+        continue;
+      }
+
+      // Хронометраж этапа: [Тайминг: ХХ мин]
+      final timingMatch = RegExp(r'^\s*\[(?:Тайминг|Время)[:\s]*([^\]]+)\]', caseSensitive: false).firstMatch(line);
+      if (timingMatch != null) {
+        final timeStr = timingMatch.group(1)?.trim() ?? '';
+        final restOfLine = line.substring(timingMatch.end).trim();
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
+            child: pw.Row(
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.amber50,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: PdfColors.amber600, width: 0.6),
+                  ),
+                  child: pw.Text(
+                    'Время: $timeStr',
+                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900),
+                  ),
+                ),
+                if (restOfLine.isNotEmpty) ...[
+                  pw.SizedBox(width: 6),
+                  pw.Expanded(
+                    child: _buildFormattedText(
+                      restOfLine,
+                      defaultStyle: const pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+        i++;
+        continue;
+      }
+
+      // Речь учителя: "Учитель: ..."
+      final teacherMatch = RegExp(r'^\s*(?:Учитель|Педагог|Ведущий)[:\s]+(.*)$', caseSensitive: false).firstMatch(line);
+      if (teacherMatch != null) {
+        final speechText = teacherMatch.group(1)?.trim() ?? '';
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(vertical: 2.5),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF8FAFC),
+              borderRadius: pw.BorderRadius.circular(5),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFE2E8F0), width: 0.8),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 3,
+                  height: 12,
+                  margin: const pw.EdgeInsets.only(right: 6, top: 1),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.indigo600,
+                    borderRadius: pw.BorderRadius.circular(1.5),
+                  ),
+                ),
+                pw.Text('Учитель: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5, color: PdfColors.indigo900)),
+                pw.Expanded(
+                  child: _buildFormattedText(
+                    speechText,
+                    defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900, fontStyle: pw.FontStyle.italic),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        i++;
+        continue;
+      }
+
+      // Реплика учеников: "Дети: ..." или "Дети хором: ..."
+      final studentMatch = RegExp(r'^\s*(?:Дети(?:\s+хором)?|Ученик|Ученики|Ученица|Ответ детей|Предполагаемый ответ)[:\s]+(.*)$', caseSensitive: false).firstMatch(line);
+      if (studentMatch != null) {
+        final studentText = studentMatch.group(1)?.trim() ?? '';
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(vertical: 2),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0FDFA),
+              borderRadius: pw.BorderRadius.circular(5),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 3,
+                  height: 12,
+                  margin: const pw.EdgeInsets.only(right: 6, top: 1),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.teal600,
+                    borderRadius: pw.BorderRadius.circular(1.5),
+                  ),
+                ),
+                pw.Text('Дети: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5, color: PdfColors.teal900)),
+                pw.Expanded(
+                  child: _buildFormattedText(
+                    studentText,
+                    defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        i++;
+        continue;
+      }
+
+      // Сократовский диалог и перехват ошибки
+      final socraticMatch = RegExp(r'^\s*(?:Педагогический перехват ошибки|Сократовский диалог|Разбор ошибки)[:\s]+(.*)$', caseSensitive: false).firstMatch(line);
+      if (socraticMatch != null) {
+        final errText = socraticMatch.group(1)?.trim() ?? '';
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(vertical: 3),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFFFFBEB),
+              borderRadius: pw.BorderRadius.circular(5),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFFFDE68A), width: 0.8),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 3,
+                  height: 14,
+                  margin: const pw.EdgeInsets.only(right: 6, top: 1),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.amber700,
+                    borderRadius: pw.BorderRadius.circular(1.5),
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Педагогический перехват ошибки:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.amber900)),
+                      pw.SizedBox(height: 2),
+                      _buildFormattedText(
+                        errText,
+                        defaultStyle: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        i++;
+        continue;
+      }
+
+      // Интерактивные разминки: Физкультминутка / Нейрогимнастика
+      final pauseMatch = RegExp(r'^\s*#*\s*(?:Физкультминутка|Пальчиковая гимнастика|Нейрогимнастика|Динамическая пауза|Разминка)[:\s]*(.*)$', caseSensitive: false).firstMatch(line);
+      if (pauseMatch != null) {
+        final pauseTitle = pauseMatch.group(0)?.replaceAll(RegExp(r'^#+\s*'), '').trim() ?? 'Разминка';
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(vertical: 3),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF0FDF4),
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: const PdfColor.fromInt(0xFF86EFAC), width: 0.8),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.green700,
+                    borderRadius: pw.BorderRadius.circular(3),
+                  ),
+                  child: pw.Text('РАЗМИНКА', style: pw.TextStyle(color: PdfColors.white, fontSize: 7.5, fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.SizedBox(width: 6),
+                pw.Expanded(
+                  child: _buildFormattedText(
+                    pauseTitle,
+                    defaultStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
         i++;
         continue;
       }
@@ -2371,9 +4424,9 @@ static List<pw.Widget> _buildContentWidgets(
                   ),
                 ),
                 pw.Expanded(
-                  child: pw.Text(
-                    _replaceEmojisWithSymbols(itemText),
-                    style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900),
+                  child: _buildFormattedText(
+                    itemText,
+                    defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900),
                   ),
                 ),
               ],
@@ -2404,9 +4457,9 @@ static List<pw.Widget> _buildContentWidgets(
                   ),
                 ),
                 pw.Expanded(
-                  child: pw.Text(
-                    _replaceEmojisWithSymbols(bulletText),
-                    style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800),
+                  child: _buildFormattedText(
+                    bulletText,
+                    defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800),
                   ),
                 ),
               ],
@@ -2421,9 +4474,9 @@ static List<pw.Widget> _buildContentWidgets(
       widgets.add(
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
-          child: pw.Text(
-            _replaceEmojisWithSymbols(line),
-            style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800),
+          child: _buildFormattedText(
+            line,
+            defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey800),
           ),
         ),
       );
@@ -2598,6 +4651,12 @@ static List<pw.Widget> _buildContentWidgets(
   static pw.Widget _buildAnswerLine(String line) {
     final cleanLine = _replaceEmojisWithSymbols(line);
     final prefix = cleanLine.replaceAll(RegExp(r'_{2,}'), '').trim();
+    final lower = prefix.toLowerCase();
+    final isMath = lower.contains('решени') ||
+        lower.contains('ответ') ||
+        lower.contains('вычисл') ||
+        RegExp(r'[\d\+\-\*\=]').hasMatch(prefix);
+
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 3),
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -2610,17 +4669,16 @@ static List<pw.Widget> _buildContentWidgets(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           if (prefix.isNotEmpty) ...[
-            pw.Text(prefix, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+            _buildFormattedText(
+              prefix,
+              defaultStyle: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+            ),
             pw.SizedBox(height: 3),
           ],
-          pw.Container(
-            height: 12,
-            decoration: const pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(color: PdfColor.fromInt(0xFF94A3B8), width: 0.8),
-              ),
-            ),
-          ),
+          if (isMath)
+            _buildMathGridArea(height: 44)
+          else
+            _buildNarrowObliqueRuling(rows: 2),
         ],
       ),
     );
@@ -3689,7 +5747,7 @@ static List<pw.Widget> _buildContentWidgets(
                 ),
                 child: pw.Text(
                   cardImage != null
-                      ? '★ PRO • ${PrintableCard.getTypeLabel(card.type).toUpperCase()}'
+                      ? 'PRO • ${PrintableCard.getTypeLabel(card.type).toUpperCase()}'
                       : PrintableCard.getTypeLabel(card.type).toUpperCase(),
                   style: pw.TextStyle(
                     fontSize: 7.5,
@@ -3771,12 +5829,15 @@ static List<pw.Widget> _buildContentWidgets(
   }
 
   /// Pro-блок раскраски для рабочего листа
-  static pw.Widget _buildProColoringSection(String coloringBase64) {
+  static pw.Widget _buildProColoringSection(String? coloringBase64, {pw.MemoryImage? fallbackImage}) {
     pw.MemoryImage? img;
-    try {
-      final clean = coloringBase64.contains(',') ? coloringBase64.split(',').last : coloringBase64;
-      img = pw.MemoryImage(base64Decode(clean));
-    } catch (_) {}
+    if (coloringBase64 != null && coloringBase64.isNotEmpty) {
+      try {
+        final clean = coloringBase64.contains(',') ? coloringBase64.split(',').last : coloringBase64;
+        img = pw.MemoryImage(base64Decode(clean));
+      } catch (_) {}
+    }
+    img ??= fallbackImage;
 
     if (img == null) return pw.SizedBox();
 
@@ -3795,7 +5856,7 @@ static List<pw.Widget> _buildContentWidgets(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                '🎨 Творческая разминка: раскрась по образцу',
+                'Творческая разминка: раскрась по образцу',
                 style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
               ),
               pw.Container(
@@ -3806,7 +5867,7 @@ static List<pw.Widget> _buildContentWidgets(
                   border: pw.Border.all(color: PdfColors.indigo200, width: 0.5),
                 ),
                 child: pw.Text(
-                  '★ YandexART Pro',
+                  'YandexART Pro',
                   style: pw.TextStyle(fontSize: 7.5, color: PdfColors.indigo800, fontWeight: pw.FontWeight.bold),
                 ),
               ),
@@ -3830,12 +5891,15 @@ static List<pw.Widget> _buildContentWidgets(
   }
 
   /// Pro-блок наградной медали / стикера для домашнего задания
-  static pw.Widget _buildProRewardSection(String rewardBase64) {
+  static pw.Widget _buildProRewardSection(String? rewardBase64, {pw.MemoryImage? fallbackImage}) {
     pw.MemoryImage? img;
-    try {
-      final clean = rewardBase64.contains(',') ? rewardBase64.split(',').last : rewardBase64;
-      img = pw.MemoryImage(base64Decode(clean));
-    } catch (_) {}
+    if (rewardBase64 != null && rewardBase64.isNotEmpty) {
+      try {
+        final clean = rewardBase64.contains(',') ? rewardBase64.split(',').last : rewardBase64;
+        img = pw.MemoryImage(base64Decode(clean));
+      } catch (_) {}
+    }
+    img ??= fallbackImage;
 
     if (img == null) return pw.SizedBox();
 
@@ -3863,7 +5927,7 @@ static List<pw.Widget> _buildContentWidgets(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(
-                      '🏆 Знак отличия: «Успешно пройдено!»',
+                      'Знак отличия: «Успешно пройдено!»',
                       style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900),
                     ),
                     pw.Text(

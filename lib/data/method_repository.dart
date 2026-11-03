@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../models/activity_technique.dart';
 import '../models/method_prompt.dart';
+import '../models/methodology_definition.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
 
 class MethodRepository {
   List<MethodPrompt> _methods = [];
+  final List<MethodologyDefinition> _customMethodologies = [];
   List<Topic> _topics = [];
   List<SituationTemplate> _situationTemplates = [];
   List<ActivityTechnique> _activityLibrary = [];
@@ -14,6 +16,7 @@ class MethodRepository {
 
   bool get isLoaded => _isLoaded;
   List<MethodPrompt> get methods => List.unmodifiable(_methods);
+  List<MethodologyDefinition> get customMethodologies => List.unmodifiable(_customMethodologies);
   List<Topic> get topics => List.unmodifiable(_topics);
   List<SituationTemplate> get situationTemplates =>
       List.unmodifiable(_situationTemplates);
@@ -99,5 +102,29 @@ class MethodRepository {
       final matchAge = t.ageGroup == ageGroup;
       return matchMethod && matchAge;
     }).toList();
+  }
+  /// Регистрация новой авторской методики в системе
+  void registerCustomMethodology(MethodologyDefinition definition) {
+    _customMethodologies.removeWhere((m) => m.id == definition.id);
+    _customMethodologies.add(definition);
+
+    final methodPrompt = definition.toMethodPrompt();
+    _methods.removeWhere((m) => m.id == definition.id);
+    _methods.add(methodPrompt);
+  }
+
+  /// Удаление пользовательской методики
+  void removeCustomMethodology(String id) {
+    _customMethodologies.removeWhere((m) => m.id == id);
+    _methods.removeWhere((m) => m.id == id);
+  }
+
+  /// Получение расширенного описания методики по ID
+  MethodologyDefinition? getCustomMethodologyById(String id) {
+    try {
+      return _customMethodologies.firstWhere((m) => m.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 }

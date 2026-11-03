@@ -20,8 +20,32 @@ class YandexArtService {
   /// Генерация иллюстрации для дидактической карточки
   Future<String?> generateCardIllustration(String hint, {String? word}) async {
     final query = hint.trim().isNotEmpty ? hint : (word ?? 'учебный предмет');
-    final prompt = 'детская обучающая карточка, рисунок: $query, чистый белый фон, векторная книжная графика, яркие сочные цвета, четкие контуры, изолировано, без текста';
+    final prompt = 'детская наглядная дидактическая карточка для вырезания, предметная иллюстрация: $query. Чистый абсолютно белый фон, изолированный предмет строго по центру, крупные узнаваемые очертания, яркие сочные натуральные цвета, мягкие тени, книжная графика для начальной школы, без текста, без рамок, без надписей';
     return generateImage(prompt: prompt, widthRatio: 1, heightRatio: 1, type: 'card', label: query);
+  }
+
+  /// Дидактическая иллюстрация для математического пересчета (по Пчёлке)
+  Future<String?> generateTaskMathCountingArt(String objectName, int count) async {
+    final prompt = 'детская математическая дидактическая карточка: ровно $count наглядных одинаковых предметов ($objectName) в аккуратный ряд на чистом белом фоне для пересчета детьми. Книжная графика для начальной школы, четкие контуры, реалистичные цвета, без цифр, без текста';
+    return generateImage(prompt: prompt, widthRatio: 4, heightRatio: 1, type: 'math_counting', label: '$count $objectName');
+  }
+
+  /// Предметная картинка для звукового анализа (по Редозубову)
+  Future<String?> generateTaskPhoneticArt(String word) async {
+    final prompt = 'предметная дидактическая картинка для звукового анализа по букварю: предмет "$word" крупным планом строго по центру. Чистый белый фон, реалистичный детский рисунок, яркие естественные цвета, четкий силуэт, без букв, без текста';
+    return generateImage(prompt: prompt, widthRatio: 1, heightRatio: 1, type: 'phonetic', label: word);
+  }
+
+  /// Сюжетная иллюстрация к условию задания
+  Future<String?> generateTaskStoryArt(String topic, String taskDescription) async {
+    final prompt = 'сюжетная детская иллюстрация к школьному заданию на тему "$topic": $taskDescription. Дружелюбная книжная графика для младших школьников, чистый светлый фон, понятный детям сюжет, качественный рисунок, без текста';
+    return generateImage(prompt: prompt, widthRatio: 4, heightRatio: 3, type: 'story', label: topic);
+  }
+
+  /// Набор детских пиктограмм-значков для шифровок и секретных кодов
+  Future<String?> generateTaskCipherPictoArt(String theme) async {
+    final prompt = 'детские дидактические значки-пиктограммы для урока на тему "$theme": 4 простых чётких контрастных символа в аккуратный ряд на абсолютно белом фоне для шифровки, книжная детская графика, чёткие контуры, изолировано, без букв, без текста';
+    return generateImage(prompt: prompt, widthRatio: 4, heightRatio: 1, type: 'cipher_picto', label: theme);
   }
 
   /// Генерация маскота-персонажа для шапки конспекта и рабочего листа
@@ -32,7 +56,7 @@ class YandexArtService {
 
   /// Генерация контурного задания-раскраски для рабочего листа
   Future<String?> generateColoringActivity(String topic) async {
-    final prompt = 'детская контурная раскраска для урока "$topic", четкие черные контуры, белый фон, без заливки, контурный рисунок для раскрашивания карандашами, книжная графика для детей';
+    final prompt = 'детская контурная раскраска для урока на тему "$topic", четкие выразительные черные контуры (thick black line art), абсолютно белый фон, строгая черно-белая графика без серого, без штриховки, крупные замкнутые области для раскрашивания цветными карандашами, книжная графика для детей, без текста';
     return generateImage(prompt: prompt, widthRatio: 4, heightRatio: 3, type: 'coloring', label: topic);
   }
 
@@ -75,6 +99,17 @@ class YandexArtService {
     bool allowFallback = true,
   }) async {
     try {
+      final zvenoKey = _storageService.getZvenoApiKey();
+      if (zvenoKey != null && zvenoKey.isNotEmpty) {
+        final activeProvider = _storageService.getAiProvider();
+        if (activeProvider == 'zveno' || activeProvider == 'gemini') {
+          final zvenoImage = await _generateZvenoImage(prompt: prompt);
+          if (zvenoImage != null && zvenoImage.isNotEmpty) {
+            return zvenoImage;
+          }
+        }
+      }
+
       final proxyUrl = await _storageService.getProxyUrl();
       if (proxyUrl != null && proxyUrl.isNotEmpty) {
         final uri = Uri.parse(proxyUrl);
@@ -93,7 +128,7 @@ class YandexArtService {
               headers: {'Content-Type': 'application/json'},
               body: payload,
             )
-            .timeout(const Duration(seconds: 15));
+            .timeout(const Duration(seconds: 45));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -127,7 +162,7 @@ class YandexArtService {
 
   /// Опрос статуса операции YandexART
   Future<String?> _pollOperation(Uri uri, String operationId) async {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 20; i++) {
       await Future.delayed(const Duration(seconds: 2));
       try {
         final res = await _client
@@ -139,7 +174,7 @@ class YandexArtService {
                 'operationId': operationId,
               }),
             )
-            .timeout(const Duration(seconds: 8));
+            .timeout(const Duration(seconds: 12));
 
         if (res.statusCode == 200) {
           final data = jsonDecode(utf8.decode(res.bodyBytes));
@@ -593,7 +628,7 @@ class YandexArtService {
     canvas.drawLine(Offset(cx, cy + 12), Offset(cx, cy + 52), stemPaint);
 
     final petalPaint = Paint()..color = const Color(0xFFEC4899);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 20; i++) {
       final angle = i * (math.pi / 3);
       final px = cx + math.cos(angle) * 22;
       final py = cy + math.sin(angle) * 22;
@@ -819,7 +854,7 @@ class YandexArtService {
     canvas.drawPath(roof, strokePaint);
 
     canvas.drawCircle(Offset(cx - 70, cy - 30), 22, strokePaint);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 20; i++) {
       final a = i * math.pi / 3;
       canvas.drawLine(
         Offset(cx - 70 + math.cos(a) * 26, cy - 30 + math.sin(a) * 26),
@@ -1207,7 +1242,7 @@ class YandexArtService {
 
     void drawDaisy(double fx, double fy) {
       final petalPaint = Paint()..color = Colors.white;
-      for (int i = 0; i < 6; i++) {
+      for (int i = 0; i < 20; i++) {
         final a = i * math.pi / 3;
         canvas.drawCircle(Offset(fx + math.cos(a) * 5, fy + math.sin(a) * 5), 3, petalPaint);
       }
@@ -1431,4 +1466,52 @@ class YandexArtService {
     canvas.drawOval(Rect.fromCenter(center: Offset(beeX, beeY), width: 13, height: 9), Paint()..color = const Color(0xFFFBBF24));
     canvas.drawRect(Rect.fromCenter(center: Offset(beeX, beeY), width: 2.5, height: 9), Paint()..color = Colors.black);
   }
+
+  /// Генерация иллюстраций через Zveno AI (Gemini Flash Image / GPT-5 Image)
+  Future<String?> _generateZvenoImage({required String prompt}) async {
+    try {
+      final key = _storageService.getZvenoApiKey();
+      if (key == null || key.isEmpty) return null;
+      final baseUrl = _storageService.getZvenoBaseUrl();
+      final imageModel = _storageService.getZvenoImageModel();
+
+      final url = Uri.parse('$baseUrl/chat/completions');
+      final response = await _client.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Bearer $key',
+        },
+        body: jsonEncode({
+          'model': imageModel,
+          'messages': [
+            {'role': 'user', 'content': prompt}
+          ],
+        }),
+      ).timeout(const Duration(seconds: 45));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final choices = data['choices'] as List<dynamic>?;
+        if (choices != null && choices.isNotEmpty) {
+          final message = choices[0]['message'] as Map<String, dynamic>?;
+          final images = message?['images'] as List<dynamic>?;
+          if (images != null && images.isNotEmpty) {
+            final firstImg = images[0] as Map<String, dynamic>?;
+            final imgUrl = firstImg?['image_url']?['url']?.toString();
+            if (imgUrl != null && imgUrl.isNotEmpty) {
+              if (imgUrl.contains(';base64,')) {
+                return imgUrl.split(';base64,').last;
+              }
+              return imgUrl;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Zveno AI image generation info: $e');
+    }
+    return null;
+  }
+
 }

@@ -14,6 +14,8 @@ import 'settings_screen.dart';
 import 'new_conspect_screen.dart';
 import '../screens/worksheet_screen.dart';
 import '../screens/homework_screen.dart';
+import 'quarter_planning_screen.dart';
+import '../widgets/notification_bell_button.dart';
 import '../widgets/generation_type_sheet.dart';
 import '../widgets/app_news_modal.dart';
 import '../widgets/what_can_ai_do_widget.dart';
@@ -416,6 +418,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              const SizedBox(width: 4),
+              const NotificationBellButton(),
             ],
           ),
         ],
@@ -679,6 +683,67 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        // Пакетное планирование четверти
+        GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          borderRadius: AppRadii.lg,
+          onTap: () => Navigator.of(context).push(FadeSlidePageRoute(page: const QuarterPlanningScreen())),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.violetPink,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: AppShadows.glowSecondary,
+                ),
+                child: const Icon(Icons.date_range_rounded, size: 20, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'План на четверть',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'ПАКЕТ 8-16 УРОКОВ',
+                            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.purpleAccent),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Выбор тем, авто-генерация и перенос в календарь',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         // Telegram Bots Quick Banner

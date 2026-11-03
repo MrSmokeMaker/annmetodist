@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/conspect.dart';
 import '../models/prompt_version.dart';
 import '../models/scheduled_lesson.dart';
+import '../config/gemini_config.dart';
+import '../config/zveno_config.dart';
 
 class StorageService {
   static const String _conspectsStorageKey = 'local_conspects_v2';
@@ -22,10 +24,17 @@ class StorageService {
   static const String _openRouterModelStorageKey = 'openrouter_model';
   static const String _mistralApiKeyStorageKey = 'mistral_api_key';
   static const String _mistralModelStorageKey = 'mistral_model';
+  static const String _geminiApiKeyStorageKey = 'gemini_api_key';
+  static const String _geminiModelStorageKey = 'gemini_model';
+  static const String _geminiProxyUrlStorageKey = 'gemini_proxy_url';
+  static const String _zvenoApiKeyStorageKey = 'zveno_api_key';
+  static const String _zvenoBaseUrlStorageKey = 'zveno_base_url';
+  static const String _zvenoModelStorageKey = 'zveno_model';
+  static const String _zvenoImageModelStorageKey = 'zveno_image_model';
 
   String getAiProvider() {
-    if (!_isInitialized) return 'yandex';
-    return _sharedPreferences.getString(_aiProviderStorageKey) ?? 'yandex';
+    if (!_isInitialized) return 'zveno';
+    return _sharedPreferences.getString(_aiProviderStorageKey) ?? 'zveno';
   }
 
   Future<void> saveAiProvider(String provider) async {
@@ -71,6 +80,89 @@ class StorageService {
   Future<void> saveMistralModel(String model) async {
     if (!_isInitialized) return;
     await _sharedPreferences.setString(_mistralModelStorageKey, model);
+  }
+
+    String? getGeminiApiKey() {
+    if (!_isInitialized) return GeminiConfig.apiKey;
+    final saved = _sharedPreferences.getString(_geminiApiKeyStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return GeminiConfig.apiKey;
+  }
+
+  Future<void> saveGeminiApiKey(String apiKey) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_geminiApiKeyStorageKey, apiKey.trim());
+  }
+
+  String getGeminiModel() {
+    if (!_isInitialized) return GeminiConfig.defaultModel;
+    return _sharedPreferences.getString(_geminiModelStorageKey) ?? GeminiConfig.defaultModel;
+  }
+
+  Future<void> saveGeminiModel(String model) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_geminiModelStorageKey, model.trim());
+  }
+
+  String getGeminiProxyUrl() {
+    if (!_isInitialized) return GeminiConfig.defaultProxyUrl;
+    final saved = _sharedPreferences.getString(_geminiProxyUrlStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return GeminiConfig.defaultProxyUrl;
+  }
+
+  Future<void> saveGeminiProxyUrl(String proxyUrl) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_geminiProxyUrlStorageKey, proxyUrl.trim());
+  }
+
+
+  String? getZvenoApiKey() {
+    if (!_isInitialized) return ZvenoConfig.apiKey;
+    final saved = _sharedPreferences.getString(_zvenoApiKeyStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return ZvenoConfig.apiKey;
+  }
+
+  Future<void> saveZvenoApiKey(String apiKey) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_zvenoApiKeyStorageKey, apiKey.trim());
+  }
+
+  String getZvenoBaseUrl() {
+    if (!_isInitialized) return ZvenoConfig.baseUrl;
+    final saved = _sharedPreferences.getString(_zvenoBaseUrlStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return ZvenoConfig.baseUrl;
+  }
+
+  Future<void> saveZvenoBaseUrl(String url) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_zvenoBaseUrlStorageKey, url.trim());
+  }
+
+  String getZvenoModel() {
+    if (!_isInitialized) return ZvenoConfig.defaultModel;
+    final saved = _sharedPreferences.getString(_zvenoModelStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return ZvenoConfig.defaultModel;
+  }
+
+  Future<void> saveZvenoModel(String model) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_zvenoModelStorageKey, model.trim());
+  }
+
+  String getZvenoImageModel() {
+    if (!_isInitialized) return ZvenoConfig.defaultImageModel;
+    final saved = _sharedPreferences.getString(_zvenoImageModelStorageKey);
+    if (saved != null && saved.trim().isNotEmpty) return saved.trim();
+    return ZvenoConfig.defaultImageModel;
+  }
+
+  Future<void> saveZvenoImageModel(String model) async {
+    if (!_isInitialized) return;
+    await _sharedPreferences.setString(_zvenoImageModelStorageKey, model.trim());
   }
 
   String getUserTier() {

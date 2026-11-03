@@ -23,7 +23,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _proxyUrlController = TextEditingController();
   final TextEditingController _openRouterKeyController = TextEditingController();
   final TextEditingController _mistralKeyController = TextEditingController();
-  String _selectedProvider = 'yandex';
+  final TextEditingController _geminiKeyController = TextEditingController();
+  final TextEditingController _geminiProxyUrlController = TextEditingController();
+  String _selectedGeminiModel = 'gemini-3.5-flash';
+  final TextEditingController _zvenoKeyController = TextEditingController();
+  final TextEditingController _zvenoBaseUrlController = TextEditingController();
+  String _selectedZvenoModel = 'deepseek/deepseek-chat';
+  String _selectedZvenoImageModel = 'google/gemini-3.1-flash-image';
+  String _selectedProvider = 'zveno';
   String _selectedOpenRouterModel = 'deepseek/deepseek-chat:free';
   String _selectedMistralModel = 'mistral-large-latest';
   bool _isChecking = false;
@@ -44,6 +51,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _proxyUrlController.dispose();
     _openRouterKeyController.dispose();
     _mistralKeyController.dispose();
+    _geminiKeyController.dispose();
+    _geminiProxyUrlController.dispose();
+    _zvenoKeyController.dispose();
+    _zvenoBaseUrlController.dispose();
     super.dispose();
   }
 
@@ -60,6 +71,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _openRouterKeyController.text = provider.openRouterApiKey ?? '';
       _selectedMistralModel = provider.mistralModel;
       _mistralKeyController.text = provider.mistralApiKey ?? '';
+      _geminiKeyController.text = provider.geminiApiKey ?? '';
+      _geminiProxyUrlController.text = provider.geminiProxyUrl;
+      _selectedGeminiModel = provider.geminiModel;
+      _zvenoKeyController.text = provider.zvenoApiKey ?? '';
+      _zvenoBaseUrlController.text = provider.zvenoBaseUrl;
+      _selectedZvenoModel = provider.zvenoModel;
+      _selectedZvenoImageModel = provider.zvenoImageModel;
     });
   }
 
@@ -72,6 +90,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await provider.setOpenRouterModel(_selectedOpenRouterModel);
     await provider.setMistralApiKey(_mistralKeyController.text.trim());
     await provider.setMistralModel(_selectedMistralModel);
+    await provider.setGeminiApiKey(_geminiKeyController.text.trim());
+    await provider.setGeminiModel(_selectedGeminiModel);
+    await provider.setGeminiProxyUrl(_geminiProxyUrlController.text.trim());
+    await provider.setZvenoApiKey(_zvenoKeyController.text.trim());
+    await provider.setZvenoModel(_selectedZvenoModel);
+    await provider.setZvenoImageModel(_selectedZvenoImageModel);
+    await provider.setZvenoBaseUrl(_zvenoBaseUrlController.text.trim());
+    await provider.setZvenoApiKey(_zvenoKeyController.text.trim());
+    await provider.setZvenoModel(_selectedZvenoModel);
+    await provider.setZvenoImageModel(_selectedZvenoImageModel);
+    await provider.setZvenoBaseUrl(_zvenoBaseUrlController.text.trim());
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -95,6 +124,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await provider.setOpenRouterModel(_selectedOpenRouterModel);
     await provider.setMistralApiKey(_mistralKeyController.text.trim());
     await provider.setMistralModel(_selectedMistralModel);
+    await provider.setGeminiApiKey(_geminiKeyController.text.trim());
+    await provider.setGeminiModel(_selectedGeminiModel);
+    await provider.setGeminiProxyUrl(_geminiProxyUrlController.text.trim());
+    await provider.setZvenoApiKey(_zvenoKeyController.text.trim());
+    await provider.setZvenoModel(_selectedZvenoModel);
+    await provider.setZvenoImageModel(_selectedZvenoImageModel);
+    await provider.setZvenoBaseUrl(_zvenoBaseUrlController.text.trim());
+    await provider.setZvenoApiKey(_zvenoKeyController.text.trim());
+    await provider.setZvenoModel(_selectedZvenoModel);
+    await provider.setZvenoImageModel(_selectedZvenoImageModel);
+    await provider.setZvenoBaseUrl(_zvenoBaseUrlController.text.trim());
     final result = await provider.verifyCredentials();
     if (!mounted) return;
     setState(() {
@@ -434,11 +474,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ),
                                   ),
                                   Text(
-                                    _selectedProvider == 'mistral'
-                                        ? 'Mistral AI (Large 2 / NeMo)'
-                                        : (_selectedProvider == 'openrouter'
-                                            ? 'OpenRouter (Qwen / DeepSeek)'
-                                            : 'YandexGPT (Яндекс Облако)'),
+                                    _selectedProvider == 'zveno'
+                                        ? 'Zveno AI (DeepSeek / Gemini / Qwen / Арт)'
+                                        : (_selectedProvider == 'gemini'
+                                            ? 'Google Gemini (Edge-прокси / 1M токенов)'
+                                            : (_selectedProvider == 'mistral'
+                                                ? 'Mistral AI (Large 2 / NeMo)'
+                                                : (_selectedProvider == 'openrouter'
+                                                    ? 'OpenRouter (Qwen / DeepSeek)'
+                                                    : 'YandexGPT (Яндекс Облако)'))),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: isDark
@@ -453,113 +497,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: AppSpacing.md),
 
-                        // Provider switcher tabs (Yandex / Mistral / OpenRouter)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                            borderRadius: BorderRadius.circular(AppRadii.md),
-                            border: Border.all(
-                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedProvider = 'yandex';
-                                      _checkStatus = null;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 9),
-                                    decoration: BoxDecoration(
-                                      gradient: _selectedProvider == 'yandex' ? AppGradients.indigoViolet : null,
-                                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                                      boxShadow: _selectedProvider == 'yandex' ? AppShadows.glowPrimary : null,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '🤖 Yandex',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: _selectedProvider == 'yandex'
-                                              ? Colors.white
-                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedProvider = 'mistral';
-                                      _checkStatus = null;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 9),
-                                    decoration: BoxDecoration(
-                                      gradient: _selectedProvider == 'mistral' ? AppGradients.indigoViolet : null,
-                                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                                      boxShadow: _selectedProvider == 'mistral' ? AppShadows.glowPrimary : null,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '🌪️ Mistral',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: _selectedProvider == 'mistral'
-                                              ? Colors.white
-                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedProvider = 'openrouter';
-                                      _checkStatus = null;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 9),
-                                    decoration: BoxDecoration(
-                                      gradient: _selectedProvider == 'openrouter' ? AppGradients.indigoViolet : null,
-                                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                                      boxShadow: _selectedProvider == 'openrouter' ? AppShadows.glowPrimary : null,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '⚡ OpenRouter',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: _selectedProvider == 'openrouter'
-                                              ? Colors.white
-                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        // Provider switcher tabs (Yandex / Gemini / Zveno / Mistral / OpenRouter)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildProviderChip('yandex', '🤖 Yandex', isDark),
+                            _buildProviderChip('gemini', '✨ Gemini', isDark),
+                            _buildProviderChip('zveno', '⚡ Zveno AI', isDark),
+                            _buildProviderChip('mistral', '🌪️ Mistral', isDark),
+                            _buildProviderChip('openrouter', '🌐 OpenRouter', isDark),
+                          ],
                         ),
                         const SizedBox(height: AppSpacing.md),
 
@@ -578,6 +526,186 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             label: 'URL прокси‑функции',
                             hintText: 'https://<region>.cloud.yandex.net/...',
                             prefixIcon: Icons.link_outlined,
+                          ),
+                        ] else if (_selectedProvider == 'gemini') ...[
+                          Text(
+                            'Google Gemini — флагман с контекстным окном 1 000 000 токенов и высокой скоростью. Для работы из РФ используется встроенный Edge-прокси.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedGeminiModel,
+                                isExpanded: true,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                items: AiService.availableGeminiModels.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedGeminiModel = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _geminiKeyController,
+                            label: 'API-ключ Google Gemini',
+                            hintText: 'AIzaSy... или AQ....',
+                            prefixIcon: Icons.vpn_key_outlined,
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _geminiProxyUrlController,
+                            label: 'URL Edge-прокси (для обхода ошибки региона)',
+                            hintText: 'https://...supabase.co/functions/v1/gemini-proxy',
+                            prefixIcon: Icons.shield_outlined,
+                          ),
+                        ] else if (_selectedProvider == 'zveno') ...[
+                          Text(
+                            'Zveno AI — российский агрегатор с единым ключом для текста (DeepSeek, Qwen, Gemini) и генерации арт-иллюстраций и раскрасок (Gemini Flash Image). Полная замена YandexGPT и YandexART.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'Модель для текста уроков (дешевые и мощные):',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedZvenoModel,
+                                isExpanded: true,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                items: AiService.availableZvenoModels.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedZvenoModel = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'Модель для иллюстраций и раскрасок (замена YandexART):',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedZvenoImageModel,
+                                isExpanded: true,
+                                dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                items: AiService.availableZvenoImageModels.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedZvenoImageModel = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _zvenoKeyController,
+                            label: 'API-ключ Zveno AI',
+                            hintText: 'sk-...',
+                            prefixIcon: Icons.vpn_key_outlined,
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          GlassTextField(
+                            controller: _zvenoBaseUrlController,
+                            label: 'Базовый адрес API Zveno AI',
+                            hintText: 'https://api.zveno.ai/v1',
+                            prefixIcon: Icons.hub_outlined,
                           ),
                         ] else if (_selectedProvider == 'mistral') ...[
                           Text(
@@ -685,7 +813,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           GlassTextField(
                             controller: _openRouterKeyController,
                             label: 'API-ключ OpenRouter',
-                            hintText: 'sk-or-v1-... (получите на openrouter.ai/keys)',
+                            hintText: 'sk-or-v1-...',
                             prefixIcon: Icons.vpn_key_outlined,
                             obscureText: true,
                           ),

@@ -140,7 +140,7 @@ class YandexGptService {
             headers: {'Content-Type': 'application/json'},
             body: body,
           )
-          .timeout(const Duration(seconds: 120));
+          .timeout(const Duration(seconds: 150));
 
       // Diagnostic logging.
       print('generateConspect -> URL: $proxyUrl, status: ${response.statusCode}');

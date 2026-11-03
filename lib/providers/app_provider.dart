@@ -10,6 +10,7 @@ import '../models/prompt_version.dart';
 import '../models/scheduled_lesson.dart';
 import '../models/recent_pdf.dart';
 import '../models/method_prompt.dart';
+import '../models/methodology_definition.dart';
 import '../models/situation_template.dart';
 import '../models/topic.dart';
 import '../services/prompt_builder.dart';
@@ -20,6 +21,10 @@ import '../services/yandex_art_service.dart';
 import '../services/surgical_ai_service.dart';
 import '../services/lesson_cache_service.dart';
 import '../services/lesson_rubric_service.dart';
+import '../models/quarter_plan.dart';
+import '../models/app_notification.dart';
+import '../services/app_notification_service.dart';
+import '../services/quarter_planning_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
@@ -28,6 +33,9 @@ class AppProvider with ChangeNotifier {
   late final AiService _aiService;
   late final YandexArtService _artService;
   late final SurgicalAiService _surgicalAiService;
+  late final AppNotificationService _notificationService;
+  late final QuarterPlanningService _quarterPlanningService;
+  QuarterPlan? _activeQuarterPlan;
 
   bool _isLoading = false;
   bool _isGenerating = false;
@@ -62,6 +70,9 @@ class AppProvider with ChangeNotifier {
     );
     _artService = YandexArtService(storageService: _storageService);
     _surgicalAiService = SurgicalAiService(gptService: _yandexGptService);
+    _notificationService = AppNotificationService();
+    _notificationService.initialize();
+    _quarterPlanningService = QuarterPlanningService(aiService: _aiService);
   }
 
   // Getters
@@ -73,6 +84,17 @@ class AppProvider with ChangeNotifier {
   List<ScheduledLesson> get scheduledLessons => List.unmodifiable(_scheduledLessons);
   bool get isDarkMode => _isDarkMode;
   List<MethodPrompt> get methods => _methodRepository.methods;
+  List<MethodologyDefinition> get customMethodologies => _methodRepository.customMethodologies;
+
+  void registerCustomMethodology(MethodologyDefinition def) {
+    _methodRepository.registerCustomMethodology(def);
+    notifyListeners();
+  }
+
+  void removeCustomMethodology(String id) {
+    _methodRepository.removeCustomMethodology(id);
+    notifyListeners();
+  }
   List<Topic> get topics => _methodRepository.topics;
   List<SituationTemplate> get situationTemplates =>
       _methodRepository.situationTemplates;
@@ -83,12 +105,22 @@ class AppProvider with ChangeNotifier {
   YandexGptService get yandexGptService => _yandexGptService;
   YandexArtService get yandexArtService => _artService;
   SurgicalAiService get surgicalAiService => _surgicalAiService;
+  AppNotificationService get notificationService => _notificationService;
+  QuarterPlanningService get quarterPlanningService => _quarterPlanningService;
+  QuarterPlan? get activeQuarterPlan => _activeQuarterPlan;
   AiService get aiService => _aiService;
   String get activeAiProvider => _aiService.activeProvider;
   String get openRouterModel => _aiService.openRouterModel;
   String? get openRouterApiKey => _aiService.openRouterApiKey;
   String get mistralModel => _aiService.mistralModel;
   String? get mistralApiKey => _aiService.mistralApiKey;
+  String get geminiModel => _aiService.geminiModel;
+  String? get geminiApiKey => _aiService.geminiApiKey;
+  String get geminiProxyUrl => _aiService.geminiProxyUrl;
+  String get zvenoModel => _aiService.zvenoModel;
+  String get zvenoImageModel => _aiService.zvenoImageModel;
+  String? get zvenoApiKey => _aiService.zvenoApiKey;
+  String get zvenoBaseUrl => _aiService.zvenoBaseUrl;
 
   // Возрастная группа («Дошкольники», «1 класс», «2 класс»)
   String _selectedAgeGroup = 'preschool';
@@ -104,6 +136,252 @@ class AppProvider with ChangeNotifier {
 
   void setPreschoolPalette(bool isPreschool) {
     setSelectedAgeGroup(isPreschool ? 'preschool' : 'grade_1');
+  }
+
+  // --- Управление четвертным планированием и уведомлениями ---
+
+  void setActiveQuarterPlan(QuarterPlan? plan) {
+    _activeQuarterPlan = plan;
+    notifyListeners();
+  }
+
+  Future<QuarterPlan> startQuarterPlanning({
+    required MethodPrompt method,
+    required String ageGroup,
+    required int quarterNumber,
+    required int lessonsCount,
+    bool useAi = true,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final plan = await _quarterPlanningService.createQuarterPlan(
+        method: method,
+        ageGroup: ageGroup,
+        quarterNumber: quarterNumber,
+        lessonsCount: lessonsCount,
+        repositoryTopics: _methodRepository.topics,
+        useAi: useAi,
+      );
+      _activeQuarterPlan = plan;
+      await _notificationService.notify(
+        title: 'План на $quarterNumber четверть сформирован',
+        message: 'Подготовлено ${plan.topics.length} тем по предмету "${method.subject}". Вы можете подтвердить или заменить темы.',
+        type: AppNotificationType.info,
+      );
+      return plan;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> replaceQuarterTopic(int index, {String? hint}) async {
+    if (_activeQuarterPlan == null || index < 0 || index >= _activeQuarterPlan!.topics.length) return;
+    final currentPlan = _activeQuarterPlan!;
+    final newTitle = await _quarterPlanningService.getAlternativeTopic(
+      plan: currentPlan,
+      targetIndex: index,
+      repositoryTopics: _methodRepository.topics,
+      teacherHint: hint,
+    );
+
+    final updatedTopics = List<QuarterTopicItem>.from(currentPlan.topics);
+    updatedTopics[index] = updatedTopics[index].copyWith(
+      title: newTitle,
+      status: QuarterTopicStatus.pending,
+      errorMessage: null,
+    );
+
+    _activeQuarterPlan = currentPlan.copyWith(
+      topics: updatedTopics,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+  }
+
+  void updateQuarterTopicTitle(int index, String newTitle) {
+    if (_activeQuarterPlan == null || index < 0 || index >= _activeQuarterPlan!.topics.length) return;
+    final currentPlan = _activeQuarterPlan!;
+    final updatedTopics = List<QuarterTopicItem>.from(currentPlan.topics);
+    updatedTopics[index] = updatedTopics[index].copyWith(
+      title: newTitle.trim(),
+    );
+    _activeQuarterPlan = currentPlan.copyWith(
+      topics: updatedTopics,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+  }
+
+  Future<List<Conspect>> runQuarterBatchGeneration(
+    QuarterPlan plan, {
+    Function(int current, int total)? onProgress,
+  }) async {
+    _isGenerating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final List<Conspect> generatedConspects = [];
+    var currentPlan = plan;
+
+    await _notificationService.notify(
+      title: 'Началась генерация четверти',
+      message: 'Запущено создание ${plan.topics.length} уроков по предмету "${plan.subject}".',
+      type: AppNotificationType.quarterProgress,
+    );
+
+    try {
+      final method = _methodRepository.methods.firstWhere(
+        (m) => m.id == plan.methodId,
+        orElse: () => _methodRepository.methods.first,
+      );
+
+      for (int i = 0; i < currentPlan.topics.length; i++) {
+        final topicItem = currentPlan.topics[i];
+        if (topicItem.status == QuarterTopicStatus.completed && topicItem.conspectId != null) {
+          continue;
+        }
+
+        final updatedTopics = List<QuarterTopicItem>.from(currentPlan.topics);
+        updatedTopics[i] = updatedTopics[i].copyWith(status: QuarterTopicStatus.generating);
+        currentPlan = currentPlan.copyWith(topics: updatedTopics);
+        _activeQuarterPlan = currentPlan;
+        notifyListeners();
+        onProgress?.call(i + 1, currentPlan.topics.length);
+
+        Conspect? conspect;
+        int retries = 0;
+        const maxRetries = 2;
+
+        while (conspect == null && retries <= maxRetries) {
+          try {
+            final prevTopicNotice = i > 0
+                ? 'Предыдущий урок четверти был посвящен теме: "${currentPlan.topics[i - 1].title}". Обеспечь логическую преемственность.'
+                : 'Это вводный урок ${currentPlan.quarterNumber} четверти.';
+
+            conspect = await generateConspect(
+              method: method,
+              ageGroup: currentPlan.ageGroup,
+              topicTitle: topicItem.title,
+              duration: '45 мин',
+              review: prevTopicNotice,
+              variantIndex: 1,
+              totalVariants: 1,
+              batchGroupId: currentPlan.id,
+              isDeepLesson: true,
+            );
+
+            final validation = _quarterPlanningService.validateLessonCompleteness(conspect.content);
+            if (!validation.isValid && retries < maxRetries) {
+              retries++;
+              conspect = null;
+              continue;
+            }
+          } catch (e) {
+            retries++;
+            if (retries > maxRetries) {
+              updatedTopics[i] = updatedTopics[i].copyWith(
+                status: QuarterTopicStatus.failed,
+                errorMessage: e.toString(),
+              );
+              currentPlan = currentPlan.copyWith(topics: updatedTopics);
+              _activeQuarterPlan = currentPlan;
+              notifyListeners();
+
+              await _notificationService.notify(
+                title: 'Сбой при генерации урока ${i + 1}',
+                message: 'Ошибка в теме "${topicItem.title}". Вы сможете повторить генерацию этого урока.',
+                type: AppNotificationType.error,
+              );
+              break;
+            }
+          }
+        }
+
+        if (conspect != null) {
+          generatedConspects.add(conspect);
+          await saveConspect(conspect);
+
+          updatedTopics[i] = updatedTopics[i].copyWith(
+            status: QuarterTopicStatus.completed,
+            conspectId: conspect.id,
+            errorMessage: null,
+          );
+          currentPlan = currentPlan.copyWith(topics: updatedTopics);
+          _activeQuarterPlan = currentPlan;
+          notifyListeners();
+
+          await _notificationService.notify(
+            title: 'Урок ${i + 1} из ${currentPlan.topics.length} готов',
+            message: 'Сгенерирован урок "${topicItem.title}".',
+            type: AppNotificationType.quarterProgress,
+          );
+        }
+      }
+
+      final completedCount = currentPlan.topics.where((t) => t.status == QuarterTopicStatus.completed).length;
+      await _notificationService.notify(
+        title: 'Генерация четверти завершена!',
+        message: 'Успешно готово $completedCount из ${currentPlan.topics.length} уроков. Теперь можно раскидать их в календаре.',
+        type: AppNotificationType.quarterCompleted,
+      );
+
+      return generatedConspects;
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> distributeQuarterInCalendar(
+    QuarterPlan plan, {
+    required DateTime startDate,
+    required List<int> weekdays,
+    required String time,
+    required String studentClass,
+  }) async {
+    final dates = _quarterPlanningService.calculateScheduleDates(
+      startDate: startDate,
+      weekdays: weekdays,
+      totalLessons: plan.topics.length,
+    );
+
+    final updatedTopics = List<QuarterTopicItem>.from(plan.topics);
+
+    for (int i = 0; i < plan.topics.length && i < dates.length; i++) {
+      final item = plan.topics[i];
+      final date = dates[i];
+
+      final scheduledLesson = ScheduledLesson(
+        id: 'quarter_${plan.id}_lesson_${i + 1}_${date.millisecondsSinceEpoch}',
+        date: date,
+        time: time,
+        studentOrClass: studentClass,
+        topic: item.title,
+        conspectId: item.conspectId,
+        hasConspect: item.conspectId != null,
+        hasWorksheet: true,
+        hasHomework: true,
+        notes: 'Четверть ${plan.quarterNumber}, Урок ${i + 1}',
+      );
+
+      await addScheduledLesson(scheduledLesson);
+      updatedTopics[i] = item.copyWith(scheduledDate: date);
+    }
+
+    _activeQuarterPlan = plan.copyWith(
+      topics: updatedTopics,
+      isCalendarScheduled: true,
+      updatedAt: DateTime.now(),
+    );
+    notifyListeners();
+
+    await _notificationService.notify(
+      title: 'Уроки распределены в календаре',
+      message: 'Все ${plan.topics.length} уроков успешно назначены в расписание на дни занятий.',
+      type: AppNotificationType.calendarScheduled,
+    );
   }
 
   // Данные для мини-дашборда
@@ -235,6 +513,41 @@ class AppProvider with ChangeNotifier {
 
   Future<void> setMistralModel(String model) async {
     await _aiService.setMistralModel(model);
+    notifyListeners();
+  }
+
+  Future<void> setGeminiApiKey(String apiKey) async {
+    await _aiService.setGeminiApiKey(apiKey);
+    notifyListeners();
+  }
+
+  Future<void> setGeminiModel(String model) async {
+    await _aiService.setGeminiModel(model);
+    notifyListeners();
+  }
+
+  Future<void> setGeminiProxyUrl(String url) async {
+    await _aiService.setGeminiProxyUrl(url);
+    notifyListeners();
+  }
+
+  Future<void> setZvenoApiKey(String apiKey) async {
+    await _aiService.setZvenoApiKey(apiKey);
+    notifyListeners();
+  }
+
+  Future<void> setZvenoModel(String model) async {
+    await _aiService.setZvenoModel(model);
+    notifyListeners();
+  }
+
+  Future<void> setZvenoImageModel(String model) async {
+    await _aiService.setZvenoImageModel(model);
+    notifyListeners();
+  }
+
+  Future<void> setZvenoBaseUrl(String url) async {
+    await _aiService.setZvenoBaseUrl(url);
     notifyListeners();
   }
 
@@ -421,20 +734,29 @@ class AppProvider with ChangeNotifier {
       var effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
 
       // Проход 2: Строгая верификация и самоочистка (Self-Refine) для тарифа Pro
+      // Запускаем только если эвристика выявила утечку ответов или плейсхолдеров, экономя 25-35 секунд
       if (isProUser && effectiveMaterials.contains('worksheet')) {
-        try {
-          final sanitizePrompt = PromptBuilder.buildSanitizerVerificationPrompt(effectiveContent);
-          final cleaned = await _yandexGptService.generateConspect(
-            systemPrompt: sanitizePrompt['systemPrompt']!,
-            userPrompt: sanitizePrompt['userPrompt']!,
-            temperature: 0.2,
-            maxTokens: 3500,
-          );
-          if (cleaned.trim().isNotEmpty) {
-            effectiveContent = cleaned.trim();
+        final lower = effectiveContent.toLowerCase();
+        final needsRefinement = lower.contains('(ответ:') ||
+            lower.contains('(решение:') ||
+            lower.contains('[вставьте') ||
+            lower.contains('[укажите') ||
+            lower.contains('[слово 1]');
+        if (needsRefinement) {
+          try {
+            final sanitizePrompt = PromptBuilder.buildSanitizerVerificationPrompt(effectiveContent);
+            final cleaned = await _yandexGptService.generateConspect(
+              systemPrompt: sanitizePrompt['systemPrompt']!,
+              userPrompt: sanitizePrompt['userPrompt']!,
+              temperature: 0.2,
+              maxTokens: 8000,
+            );
+            if (cleaned.trim().isNotEmpty) {
+              effectiveContent = cleaned.trim();
+            }
+          } catch (e) {
+            print('Self-Refine pass bypassed: $e');
           }
-        } catch (e) {
-          print('Self-Refine pass bypassed: $e');
         }
       }
 
@@ -443,27 +765,31 @@ class AppProvider with ChangeNotifier {
       String? illustrationColoring;
       String? illustrationReward;
 
-      // В тарифе Metodist PRO иллюстрации генерируются автоматически по умолчанию
+      // В тарифе Metodist PRO иллюстрации генерируются автоматически и параллельно (ускорение в 3-4 раза)
       if (isProUser) {
         if (cards.isNotEmpty) {
-          final enriched = <PrintableCard>[];
-          for (final c in cards) {
+          final cardFutures = cards.map((c) async {
             try {
               final img = await _artService.generateCardIllustration(
                 c.imageHint ?? c.frontText,
                 word: c.frontText,
               );
-              enriched.add(c.copyWith(imageUrl: img));
+              return c.copyWith(imageUrl: img);
             } catch (_) {
-              enriched.add(c);
+              return c;
             }
-          }
-          effectiveCards = enriched;
+          });
+          effectiveCards = await Future.wait(cardFutures);
         }
         try {
-          illustrationMascot = await _artService.generateMascotBanner(topicTitle, ageGroup);
-          illustrationColoring = await _artService.generateColoringActivity(topicTitle);
-          illustrationReward = await _artService.generateRewardSticker(topicTitle);
+          final artResults = await Future.wait([
+            _artService.generateMascotBanner(topicTitle, ageGroup),
+            _artService.generateColoringActivity(topicTitle),
+            _artService.generateRewardSticker(topicTitle),
+          ]);
+          illustrationMascot = artResults[0];
+          illustrationColoring = artResults[1];
+          illustrationReward = artResults[2];
         } catch (_) {}
       }
 
@@ -616,12 +942,25 @@ class AppProvider with ChangeNotifier {
 
       final cards = PromptBuilder.extractPrintableCards(response);
       if (cards.isNotEmpty) {
+        final enriched = <PrintableCard>[];
+        for (final c in cards) {
+          try {
+            final img = await _artService.generateCardIllustration(
+              c.imageHint ?? c.frontText,
+              word: c.frontText,
+            );
+            enriched.add(c.copyWith(imageUrl: img));
+          } catch (_) {
+            enriched.add(c);
+          }
+        }
+        final finalCards = enriched.isNotEmpty ? enriched : cards;
         final updated = conspect.copyWith(
-          cards: cards,
+          cards: finalCards,
           updatedAt: DateTime.now(),
         );
         await saveConspect(updated);
-        return cards;
+        return finalCards;
       }
       return [];
     } catch (e) {

@@ -41,6 +41,20 @@ class LessonContextService {
     'meta-llama/llama-3.3-70b-instruct': 32000,
     'google/gemini-2.0-flash-001': 1000000, // 1M контекст
 
+    // Google Gemini нативные модели (через Edge-прокси)
+    'gemini-3.5-flash': 1000000,
+    'gemini-3.7-flash': 1000000,
+    'gemini-3.8-flash': 1000000,
+    'gemini-3.5-flash-lite': 1000000,
+    'gemini-flash-latest': 1000000,
+    'gemini-pro-latest': 2000000,
+
+    // Zveno AI модели
+    'google/gemini-3.5-flash': 1000000,
+    'google/gemini-2.5-flash': 1000000,
+    'qwen/qwen3.7-flash': 1000000,
+    'openai/gpt-4o-mini': 128000,
+
     // Mistral модели
     'mistral-large-latest': 128000,
     'open-mistral-nemo': 32000,

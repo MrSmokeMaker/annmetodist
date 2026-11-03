@@ -15,6 +15,8 @@ import '../widgets/gradient_button.dart';
 import '../services/lesson_context_service.dart';
 import 'conspect_view_screen.dart';
 import 'settings_screen.dart';
+import 'quarter_planning_screen.dart';
+import '../widgets/notification_bell_button.dart';
 
 class NewConspectScreen extends StatefulWidget {
   final Set<GenerationType> selectedMaterials;
@@ -362,6 +364,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
             elevation: 0,
             centerTitle: false,
             actions: [
+              const NotificationBellButton(),
               IconButton(
                 tooltip: 'Настройки',
                 icon: const Icon(Icons.tune_rounded, size: 20),
@@ -387,6 +390,48 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                         vertical: AppSpacing.sm,
                       ),
                       children: [
+                        // Quarter Planning Quick Banner
+                        InkWell(
+                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                          onTap: () => Navigator.of(context).push(FadeSlidePageRoute(page: const QuarterPlanningScreen())),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.primaryIndigo.withOpacity(0.15),
+                                  Colors.purple.withOpacity(0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
+                              border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.3)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.date_range_rounded, color: AppColors.primaryIndigo, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Нужен план на четверть? (Пакет 8-16 уроков)',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      ),
+                                      Text(
+                                        'Генерация КТП с возможностью замены тем и расписанием в календаре',
+                                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryIndigo),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+
                         // Card 1: Core Parameters
                         _buildCoreParametersCard(context, provider, availableTopics, isDark),
 

@@ -48,4 +48,5 @@ flutter:
   assets:
     - assets/data/
     - assets/images/pdf_icons/
+    - assets/fonts/
     - assets/news.json

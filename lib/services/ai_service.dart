@@ -1,3 +1,5 @@
+import '../config/gemini_config.dart';
+import '../config/zveno_config.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -22,7 +24,19 @@ class AiService {
 
   static const String openRouterEndpoint = 'https://openrouter.ai/api/v1/chat/completions';
   static const String mistralEndpoint = 'https://api.mistral.ai/v1/chat/completions';
+  static const Map<String, String> availableZvenoModels = ZvenoConfig.recommendedTextModels;
+  static const Map<String, String> availableZvenoImageModels = ZvenoConfig.recommendedImageModels;
+
   
+    static const Map<String, String> availableGeminiModels = {
+    'gemini-3.5-flash': 'Gemini 3.5 Flash (Google, флагман скорости и качества)',
+    'gemini-3.7-flash': 'Gemini 3.7 Flash (Google, новейшая мультимодальная модель)',
+    'gemini-3.8-flash': 'Gemini 3.8 Flash (Google, максимальная производительность)',
+    'gemini-3.5-flash-lite': 'Gemini 3.5 Flash-Lite (Google, сверхбыстрая и экономичная)',
+    'gemini-flash-latest': 'Gemini Flash Latest (Google, авто-обновляемая)',
+    'gemini-pro-latest': 'Gemini Pro Latest (Google, глубокая логика)',
+  };
+
   static const Map<String, String> availableOpenRouterModels = {
     'deepseek/deepseek-chat:free': 'DeepSeek V3 [Бесплатно 0\$] (Флагманская логика)',
     'qwen/qwen-2.5-72b-instruct:free': 'Qwen 2.5 72B [Бесплатно 0\$] (Эталон русского языка)',
@@ -52,6 +66,49 @@ class AiService {
     await _storageService.saveAiProvider(provider);
   }
 
+    String get geminiModel => _storageService.getGeminiModel();
+
+  Future<void> setGeminiModel(String model) async {
+    await _storageService.saveGeminiModel(model);
+  }
+
+  String? get geminiApiKey => _storageService.getGeminiApiKey();
+
+  Future<void> setGeminiApiKey(String apiKey) async {
+    await _storageService.saveGeminiApiKey(apiKey);
+  }
+
+  String get geminiProxyUrl => _storageService.getGeminiProxyUrl();
+
+  Future<void> setGeminiProxyUrl(String proxyUrl) async {
+    await _storageService.saveGeminiProxyUrl(proxyUrl);
+  }
+
+
+  String get zvenoModel => _storageService.getZvenoModel();
+
+  Future<void> setZvenoModel(String model) async {
+    await _storageService.saveZvenoModel(model);
+  }
+
+  String get zvenoImageModel => _storageService.getZvenoImageModel();
+
+  Future<void> setZvenoImageModel(String model) async {
+    await _storageService.saveZvenoImageModel(model);
+  }
+
+  String? get zvenoApiKey => _storageService.getZvenoApiKey();
+
+  Future<void> setZvenoApiKey(String apiKey) async {
+    await _storageService.saveZvenoApiKey(apiKey);
+  }
+
+  String get zvenoBaseUrl => _storageService.getZvenoBaseUrl();
+
+  Future<void> setZvenoBaseUrl(String url) async {
+    await _storageService.saveZvenoBaseUrl(url);
+  }
+
   String get openRouterModel => _storageService.getOpenRouterModel();
 
   Future<void> setOpenRouterModel(String model) async {
@@ -66,6 +123,17 @@ class AiService {
 
   String get mistralModel => _storageService.getMistralModel();
 
+  /// Проверяет, настроен ли хотя бы один внешний AI-провайдер
+  bool hasAnyKeyConfigured() {
+    final gemini = _storageService.getGeminiApiKey();
+    if (gemini != null && gemini.trim().isNotEmpty) return true;
+    final mistral = _storageService.getMistralApiKey();
+    if (mistral != null && mistral.trim().isNotEmpty) return true;
+    final or = _storageService.getOpenRouterApiKey();
+    if (or != null && or.trim().isNotEmpty) return true;
+    return false;
+  }
+
   Future<void> setMistralModel(String model) async {
     await _storageService.saveMistralModel(model);
   }
@@ -79,7 +147,11 @@ class AiService {
   /// Тестирование подключения в зависимости от активного провайдера
   Future<Map<String, dynamic>> testConnection() async {
     final provider = activeProvider;
-    if (provider == 'mistral') {
+    if (provider == 'gemini') {
+      return _testGeminiConnection();
+    } else if (provider == 'zveno') {
+      return _testZvenoConnection();
+    } else if (provider == 'mistral') {
       return _testMistralConnection();
     } else if (provider == 'openrouter') {
       return _testOpenRouterConnection();
@@ -253,9 +325,11 @@ class AiService {
     String? yandexModel,
   }) async {
     final provider = activeProvider;
-    final String activeModel = provider == 'openrouter'
-        ? openRouterModel
-        : (provider == 'mistral' ? mistralModel : (yandexModel ?? YandexGptService.defaultModel));
+    final String activeModel = provider == 'gemini'
+        ? geminiModel
+        : (provider == 'openrouter'
+            ? openRouterModel
+            : (provider == 'mistral' ? mistralModel : (yandexModel ?? YandexGptService.defaultModel)));
 
     final estimate = LessonContextService.evaluateLessonParams(
       modelName: activeModel,
@@ -315,7 +389,17 @@ class AiService {
   }) async {
     final provider = activeProvider;
 
-    if (provider == 'mistral') {
+    if (provider == 'gemini') {
+      return _generateGemini(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+      );
+    } else if (provider == 'zveno') {
+      return _generateZveno(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+      );
+    } else if (provider == 'mistral') {
       return _generateMistral(
         systemPrompt: systemPrompt,
         userPrompt: userPrompt,
@@ -355,7 +439,7 @@ class AiService {
           {'role': 'user', 'content': userPrompt},
         ],
         'temperature': 0.7,
-        'max_tokens': 4000,
+        'max_tokens': 8000,
       });
 
       final response = await client.post(
@@ -366,7 +450,7 @@ class AiService {
           'Accept': 'application/json',
         },
         body: body,
-      ).timeout(const Duration(seconds: 120));
+      ).timeout(const Duration(seconds: 150));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -419,7 +503,7 @@ class AiService {
           {'role': 'user', 'content': userPrompt},
         ],
         'temperature': 0.6,
-        'max_tokens': 6000,
+        'max_tokens': 8000,
       });
 
       final response = await client.post(
@@ -464,4 +548,276 @@ class AiService {
       client.close();
     }
   }
+
+  /// Генерация через Google Gemini (через Edge-прокси для обхода ошибки региона)
+  Future<String> _generateGemini({
+    required String systemPrompt,
+    required String userPrompt,
+    double temperature = 0.7,
+    int maxOutputTokens = 8000,
+  }) async {
+    final apiKey = _storageService.getGeminiApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      throw AiServiceException('API-ключ Google Gemini не указан. Задайте его в Настройках приложения.');
+    }
+
+    final model = _storageService.getGeminiModel();
+    final proxyUrl = _storageService.getGeminiProxyUrl().trim();
+    final String baseUrl = proxyUrl.isNotEmpty ? proxyUrl : 'https://generativelanguage.googleapis.com';
+    final Uri uri = Uri.parse('$baseUrl/v1beta/models/$model:generateContent?key=${apiKey.trim()}');
+
+    final client = http.Client();
+    try {
+      final body = jsonEncode({
+        'systemInstruction': {
+          'parts': [{'text': systemPrompt}]
+        },
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [{'text': userPrompt}]
+          }
+        ],
+        'generationConfig': {
+          'temperature': temperature,
+          'maxOutputTokens': maxOutputTokens,
+        }
+      });
+
+      final response = await client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim(),
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 150));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final candidates = data['candidates'] as List<dynamic>?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final parts = candidates.first['content']?['parts'] as List<dynamic>?;
+          if (parts != null && parts.isNotEmpty) {
+            final textBuffer = StringBuffer();
+            for (final p in parts) {
+              if (p is Map && p['text'] != null) {
+                textBuffer.write(p['text']);
+              }
+            }
+            final text = textBuffer.toString().trim();
+            if (text.isNotEmpty) {
+              return text;
+            }
+          }
+        }
+        throw AiServiceException('Модель Google Gemini вернула пустой ответ. Попробуйте еще раз.');
+      }
+
+      final responseBody = utf8.decode(response.bodyBytes);
+      if (responseBody.contains('User location is not supported')) {
+        throw AiServiceException(
+          'Ошибка региона Google Gemini: доступ из РФ заблокирован Google. Убедитесь, что в Настройках включён Edge-прокси.',
+          response.statusCode,
+        );
+      }
+
+      switch (response.statusCode) {
+        case 400:
+          throw AiServiceException('Некорректный запрос к Gemini: $responseBody', 400);
+        case 401:
+        case 403:
+          throw AiServiceException('Неверный API-ключ Google Gemini или доступ запрещён ($responseBody).', response.statusCode);
+        case 429:
+          throw AiServiceException('Превышен лимит запросов к Google Gemini (429). Попробуйте через минуту.', 429);
+        case 503:
+          throw AiServiceException('Сервер Google Gemini временно перегружен (503). Попробуйте снова через несколько секунд.', 503);
+        default:
+          throw AiServiceException('Ошибка Google Gemini (${response.statusCode}): $responseBody', response.statusCode);
+      }
+    } on TimeoutException {
+      throw AiServiceException('Превышено время ожидания ответа от Google Gemini (150 сек).');
+    } catch (e) {
+      if (e is AiServiceException) rethrow;
+      throw AiServiceException('Ошибка подключения к Google Gemini: $e');
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Тестирование подключения к Google Gemini
+  Future<Map<String, dynamic>> _testGeminiConnection() async {
+    final apiKey = _storageService.getGeminiApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      return {
+        'success': false,
+        'message': 'API-ключ Google Gemini не указан. Задайте его в Настройках.',
+      };
+    }
+
+    final model = _storageService.getGeminiModel();
+    final proxyUrl = _storageService.getGeminiProxyUrl().trim();
+    final String baseUrl = proxyUrl.isNotEmpty ? proxyUrl : 'https://generativelanguage.googleapis.com';
+    final Uri uri = Uri.parse('$baseUrl/v1beta/models/$model:generateContent?key=${apiKey.trim()}');
+
+    final client = http.Client();
+    try {
+      final body = jsonEncode({
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [{'text': 'Ответь одним словом: Связь установлена.'}]
+          }
+        ],
+        'generationConfig': {
+          'maxOutputTokens': 500,
+        }
+      });
+
+      final response = await client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim(),
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 40));
+
+      if (response.statusCode == 200) {
+        final modelLabel = availableGeminiModels[model] ?? model;
+        return {
+          'success': true,
+          'message': 'Успешное соединение с Google Gemini ($modelLabel) через Edge-прокси!',
+        };
+      }
+
+      final responseBody = utf8.decode(response.bodyBytes);
+      if (responseBody.contains('User location is not supported')) {
+        return {
+          'success': false,
+          'statusCode': 400,
+          'message': 'Ошибка региона: доступ заблокирован Google. Проверьте URL прокси в Настройках.',
+        };
+      }
+
+      return {
+        'success': false,
+        'statusCode': response.statusCode,
+        'message': 'Ошибка Gemini (${response.statusCode}): $responseBody',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Превышено время ожидания ответа от Google Gemini (40 секунд).',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Ошибка подключения к Google Gemini: $e',
+      };
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Тестирование Zveno AI (OpenAI-совместимый агрегатор)
+  Future<Map<String, dynamic>> _testZvenoConnection() async {
+    final apiKey = _storageService.getZvenoApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      return {
+        'success': false,
+        'message': 'API-ключ Zveno AI не настроен в .env или настройках.',
+      };
+    }
+
+    final baseUrl = _storageService.getZvenoBaseUrl();
+    final model = _storageService.getZvenoModel();
+
+    try {
+      final url = Uri.parse('$baseUrl/chat/completions');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': model,
+          'messages': [
+            {'role': 'system', 'content': 'Ответь кратко.'},
+            {'role': 'user', 'content': 'Проверка связи Zveno AI.'}
+          ],
+          'max_tokens': 30,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final modelLabel = availableZvenoModels[model] ?? model;
+        return {
+          'success': true,
+          'message': 'Подключение к Zveno AI успешно! Модель: $modelLabel',
+        };
+      } else {
+        final body = utf8.decode(response.bodyBytes);
+        return {
+          'success': false,
+          'message': 'Ошибка Zveno AI (${response.statusCode}): $body',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Не удалось подключиться к Zveno AI: $e',
+      };
+    }
+  }
+
+  /// Генерация текста через Zveno AI
+  Future<String> _generateZveno({
+    required String systemPrompt,
+    required String userPrompt,
+  }) async {
+    final apiKey = _storageService.getZvenoApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      throw Exception('API-ключ Zveno AI не задан.');
+    }
+
+    final baseUrl = _storageService.getZvenoBaseUrl();
+    final model = _storageService.getZvenoModel();
+
+    final url = Uri.parse('$baseUrl/chat/completions');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': 'Bearer $apiKey',
+      },
+      body: jsonEncode({
+        'model': model,
+        'messages': [
+          if (systemPrompt.isNotEmpty) {'role': 'system', 'content': systemPrompt},
+          {'role': 'user', 'content': userPrompt},
+        ],
+        'temperature': 0.6,
+        'max_tokens': 8000,
+      }),
+    ).timeout(const Duration(seconds: 150));
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
+      final choices = jsonResponse['choices'] as List<dynamic>?;
+      if (choices != null && choices.isNotEmpty) {
+        final message = choices[0]['message'] as Map<String, dynamic>?;
+        final content = message?['content'] as String?;
+        if (content != null && content.isNotEmpty) {
+          return content;
+        }
+      }
+      throw Exception('Zveno AI вернул пустой ответ.');
+    } else {
+      final errBody = utf8.decode(response.bodyBytes);
+      throw Exception('Ошибка Zveno AI (${response.statusCode}): $errBody');
+    }
+  }
+
 }

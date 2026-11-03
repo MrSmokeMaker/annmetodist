@@ -54,6 +54,34 @@ class PdfIconsHelper {
   /// Загружает маскота «Сова-Методист»
   static Future<pw.MemoryImage?> loadMascot() => loadIcon('mascot_owl');
 
+  /// Загружает маскота конкретного тематического мира
+  static Future<pw.MemoryImage?> loadWorldMascot(String worldId) async {
+    final mascot = await loadIcon('mascot_' + worldId);
+    return mascot ?? await loadMascot();
+  }
+
+  /// Загружает панорамную шапку конкретного тематического мира
+  static Future<pw.MemoryImage?> loadWorldBanner(String worldId) => loadIcon('banner_' + worldId);
+
+  /// Загружает наградную медаль из пака
+  static Future<pw.MemoryImage?> loadMedal([String type = 'star_success']) async {
+    final medal = await loadIcon('medal_' + type);
+    return medal ?? await loadIcon('medal_star_success') ?? await loadStarGold();
+  }
+
+  /// Загружает контурную раскраску для развития моторики
+  static Future<pw.MemoryImage?> loadColoring([String worldOrType = 'owl_study']) async {
+    var key = 'coloring_' + worldOrType;
+    if (worldOrType == 'space') key = 'coloring_fox_space';
+    if (worldOrType == 'forest') key = 'coloring_owl_study';
+    if (worldOrType == 'detective') key = 'coloring_raccoon_detective';
+    if (worldOrType == 'workshop') key = 'coloring_beaver_builder';
+    if (worldOrType == 'meadow') key = 'coloring_bear_meadow';
+
+    final coloring = await loadIcon(key);
+    return coloring ?? await loadIcon('coloring_owl_study');
+  }
+
   /// Загружает золотую звезду для рейтингов и самооценки
   static Future<pw.MemoryImage?> loadStarGold() => loadIcon('star_gold');
 
