@@ -22,7 +22,7 @@ class LessonSummaryCard {
   /// Назначенное домашнее задание (уровень 1, 2 или 3)
   final String homeworkAssigned;
 
-  /// Педагогическая AI-рефлексия и рекомендации (YandexGPT Pro)
+  /// Педагогическая AI-рефлексия и рекомендации (MetodistPRO)
   final String? aiReflection;
 
   /// Готовое сообщение для родительского чата

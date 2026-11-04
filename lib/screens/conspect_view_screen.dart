@@ -1583,7 +1583,7 @@ ${_currentConspect!.content}
                         _buildEnhanceWithMetodistProAiCard(context, isDark),
                         const SizedBox(height: AppSpacing.sm),
 
-                        // Методический аудит качества YandexGPT Pro (QA)
+                        // Методический аудит качества MetodistPRO (QA)
                         _buildQaRubricCard(context, isDark),
                         const SizedBox(height: AppSpacing.sm),
 
@@ -2023,7 +2023,7 @@ ${_currentConspect!.content}
                         const SizedBox(width: 8),
                         const Expanded(
                           child: Text(
-                            'Отладка листа заданий: оценки YandexGPT и промпты YandexART',
+                            'Отладка листа заданий: оценки MetodistPRO и промпты YandexART',
                             style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -4171,7 +4171,7 @@ ${_currentConspect!.content}
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Блок успешно обновлен через YandexGPT Pro!'),
+            content: Text('Блок успешно обновлен через MetodistPRO!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -4201,7 +4201,7 @@ ${_currentConspect!.content}
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Строки оценки YandexGPT успешно встроены под каждое задание!'),
+          content: Text('Строки оценки MetodistPRO успешно встроены под каждое задание!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -4298,7 +4298,7 @@ ${_currentConspect!.content}
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            'Сгенерировано YandexGPT Pro для проверки знаний',
+                            'Сгенерировано MetodistPRO для проверки знаний',
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -4461,7 +4461,7 @@ ${_currentConspect!.content}
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Аудит качества YandexGPT Pro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Аудит качества MetodistPRO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   Text(
                     'Итоговый балл: ${rubric.overallScore} / 10.0',
                     style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold),
@@ -4554,7 +4554,7 @@ ${_currentConspect!.content}
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Методический аудит YandexGPT Pro',
+                  'Методический аудит MetodistPRO',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

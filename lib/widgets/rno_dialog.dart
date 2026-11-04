@@ -177,7 +177,7 @@ class _RnoDialogState extends State<RnoDialog> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'YandexGPT определит корень дефицитов и составит лист с правилом-секретом и 3–4 точечными заданиями на 10 минут.',
+                      'MetodistPRO определит корень дефицитов и составит лист с правилом-секретом и 3–4 точечными заданиями на 10 минут.',
                       style: TextStyle(fontSize: 11.5, height: 1.3),
                     ),
                   ),

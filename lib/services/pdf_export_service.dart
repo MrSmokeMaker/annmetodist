@@ -6562,7 +6562,7 @@ class PdfExportService {
                 pw.SizedBox(height: 6),
               ],
 
-              // 5. YandexGPT Pro AI Reflection Box
+              // 5. MetodistPRO AI Reflection Box
               if (card.aiReflection != null && card.aiReflection!.isNotEmpty) ...[
                 pw.Container(
                   padding: const pw.EdgeInsets.all(8),
@@ -6575,7 +6575,7 @@ class PdfExportService {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'ПЕДАГОГИЧЕСКИЙ АНАЛИЗ AI-НАСТАВНИКА СОВЁНКА (YANDEXGPT PRO)',
+                        'ПЕДАГОГИЧЕСКИЙ АНАЛИЗ AI-НАСТАВНИКА СОВЁНКА (METODISTPRO)',
                         style: pw.TextStyle(
                           fontSize: 8,
                           fontWeight: pw.FontWeight.bold,
@@ -6646,7 +6646,7 @@ class PdfExportService {
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(
-                      'Методист Pro • Цифровая образовательная экосистема • YandexGPT Pro & YandexART',
+                      'Методист Pro • Цифровая образовательная экосистема • MetodistPRO & YandexART',
                       style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600),
                     ),
                     pw.Text(

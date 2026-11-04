@@ -482,7 +482,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                                 ? 'Mistral AI (Large 2 / NeMo)'
                                                 : (_selectedProvider == 'openrouter'
                                                     ? 'OpenRouter (Qwen / DeepSeek)'
-                                                    : 'YandexGPT (Яндекс Облако)'))),
+                                                    : 'MetodistPRO (Яндекс Облако)'))),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: isDark
@@ -591,7 +591,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ] else if (_selectedProvider == 'zveno') ...[
                           Text(
-                            'Zveno AI — российский агрегатор с единым ключом для текста (DeepSeek, Qwen, Gemini) и генерации арт-иллюстраций и раскрасок (Gemini Flash Image). Полная замена YandexGPT и YandexART.',
+                            'Zveno AI — российский агрегатор с единым ключом для текста (DeepSeek, Qwen, Gemini) и генерации арт-иллюстраций и раскрасок (Gemini Flash Image). Полная замена MetodistPRO и YandexART.',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
@@ -1121,7 +1121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Методист — персональный ассистент педагога для генерации авторских поурочных планов и конспектов по классическим отечественным методикам на базе нейросети YandexGPT (Яндекс Облако).',
+                          'Методист — персональный ассистент педагога для генерации авторских поурочных планов и конспектов по классическим отечественным методикам на базе нейросети MetodistPRO (Яндекс Облако).',
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.5,

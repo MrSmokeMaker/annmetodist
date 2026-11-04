@@ -450,7 +450,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'YandexGPT 5 Pro',
+                                        'MetodistPRO',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,

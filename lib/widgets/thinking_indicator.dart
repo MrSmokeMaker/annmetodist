@@ -96,7 +96,7 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
                     Icon(Icons.auto_awesome, color: Colors.white, size: 16),
                     SizedBox(width: 8),
                     Text(
-                      'YandexGPT генерирует поурочный план',
+                      'MetodistPRO генерирует поурочный план',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

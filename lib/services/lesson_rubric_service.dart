@@ -36,7 +36,7 @@ class LessonTestQuestion {
   });
 }
 
-/// Полный результат методического аудита урока (QA YandexGPT Pro)
+/// Полный результат методического аудита урока (QA MetodistPRO)
 class LessonRubricEvaluation {
   final double overallScore; // 1.0 - 10.0
   final int wordCount;

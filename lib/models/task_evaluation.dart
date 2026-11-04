@@ -44,7 +44,7 @@ class TaskEvaluation {
   /// Статус качества задания
   bool get isFlawless => logicScore >= 9 && orthographyScore >= 9 && visualScore >= 9 && (!requiresArt || isArtLogicallyAligned);
 
-  /// Строка оценки YandexGPT для отладки
+  /// Строка оценки MetodistPRO для отладки
   String get formattedEvaluationLine {
     final sampleBadge = hasSample ? ' | 📝 Образец есть' : '';
     final tableBadge = hasTable ? (hasWordBank ? ' | 📊 Таблица с банком слов' : ' | 📊 Таблица') : '';
@@ -55,7 +55,7 @@ class TaskEvaluation {
     } else {
       artBadge = ' | 🎨 YandexART: [Не требуется: вербально-аналитическое упражнение]';
     }
-    return '🔬 Оценка YandexGPT: Логика $logicScore/10 | Орфография $orthographyScore/10 | Визуал $visualScore/10$sampleBadge$tableBadge$artBadge';
+    return '🔬 Оценка MetodistPRO: Логика $logicScore/10 | Орфография $orthographyScore/10 | Визуал $visualScore/10$sampleBadge$tableBadge$artBadge';
   }
 
   Map<String, dynamic> toMap() => {

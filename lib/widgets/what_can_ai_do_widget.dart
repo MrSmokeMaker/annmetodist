@@ -229,7 +229,7 @@ class _WhatCanAiDoWidgetState extends State<WhatCanAiDoWidget> {
                                     Text('✨', style: TextStyle(fontSize: 11)),
                                     SizedBox(width: 4),
                                     Text(
-                                      'YandexGPT Pro',
+                                      'MetodistPRO',
                                       style: TextStyle(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w700,

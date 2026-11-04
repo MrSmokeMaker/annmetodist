@@ -35,7 +35,7 @@ class BlockActionToolbar extends StatelessWidget {
             ),
             SizedBox(width: 8),
             Text(
-              'YandexGPT переписывает блок...',
+              'MetodistPRO переписывает блок...',
               style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
             ),
           ],

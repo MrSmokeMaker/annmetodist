@@ -244,7 +244,7 @@ class AssistantAiService {
 ''';
   }
 
-  /// Отправка запроса в YandexGPT Pro с педагогическим фоллбеком
+  /// Отправка запроса в MetodistPRO с педагогическим фоллбеком
   Future<String> askAssistant({
     required String question,
     List<AssistantMessage> history = const [],
@@ -728,7 +728,7 @@ $currentContent
 ''';
   }
 
-  /// Генерация педагогической AI-рефлексии итога урока (YandexGPT Pro)
+  /// Генерация педагогической AI-рефлексии итога урока (MetodistPRO)
   Future<Map<String, String>> generateLessonSummaryReflection({
     required LessonSummaryCard card,
     ThematicWorld? world,

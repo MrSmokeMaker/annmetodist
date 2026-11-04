@@ -337,7 +337,7 @@ class AiService {
       variantsCount: 1,
     );
 
-    // Если модель поддерживает объем напрямую (YandexGPT Pro, Gemini Flash, Mistral Large)
+    // Если модель поддерживает объем напрямую (MetodistPRO, Gemini Flash, Mistral Large)
     if (!estimate.requiresChunking || estimate.modelContextLimit >= 16000) {
       return generate(
         systemPrompt: systemPrompt,

@@ -905,7 +905,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Выберите карточки техник — YandexGPT гармонично встроит их сценарий в ход урока',
+            'Выберите карточки техник — MetodistPRO гармонично встроит их сценарий в ход урока',
             style: TextStyle(
               fontSize: 12,
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -1558,7 +1558,7 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Токен-радар YandexGPT Pro',
+                    'Токен-радар MetodistPRO',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

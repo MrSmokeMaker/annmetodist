@@ -16,7 +16,7 @@ class YandexGptException implements Exception {
 class YandexGptService {
   final StorageService _storageService;
 
-  static const String defaultModel = 'yandexgpt'; // YandexGPT Pro for high-depth generation
+  static const String defaultModel = 'yandexgpt'; // MetodistPRO for high-depth generation
 
   YandexGptService({required StorageService storageService})
       : _storageService = storageService;
@@ -55,7 +55,7 @@ class YandexGptService {
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': 'Соединение с YandexGPT через прокси успешно установлено!',
+          'message': 'Соединение с MetodistPRO через прокси успешно установлено!',
         };
       }
       if (response.statusCode == 401) {
@@ -165,7 +165,7 @@ class YandexGptService {
             return text.trim();
           }
         }
-        throw YandexGptException('Модель YandexGPT вернула пустой ответ. Попробуйте снова.');
+        throw YandexGptException('Модель MetodistPRO вернула пустой ответ. Попробуйте снова.');
       }
 
       print('generateConspect ошибка -> URL: $proxyUrl, status: ${response.statusCode}, body: ${response.body}');

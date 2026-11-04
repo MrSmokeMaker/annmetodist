@@ -77,7 +77,7 @@ class _TaskAuditBadgeState extends State<TaskAuditBadge> {
               const Icon(Icons.biotech_rounded, size: 16, color: AppColors.primaryIndigo),
               const SizedBox(width: 6),
               const Text(
-                'Оценка YandexGPT Pro:',
+                'Оценка MetodistPRO:',
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
               ),
               const Spacer(),

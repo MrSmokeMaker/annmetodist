@@ -833,7 +833,7 @@ class _LessonSummaryModalState extends State<LessonSummaryModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI-наставник Совёнок (YandexGPT Pro)',
+                      'AI-наставник Совёнок (MetodistPRO)',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                     ),
                     Text(

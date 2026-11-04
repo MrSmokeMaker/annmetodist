@@ -27,7 +27,7 @@ class TokenEstimate {
 class LessonContextService {
   /// Лимиты контекста для поддерживаемых моделей (в токенах)
   static const Map<String, int> modelContextLimits = {
-    // YandexGPT Pro (Foundation Models): стандартное окно генерации 8 000 токенов
+    // MetodistPRO (Foundation Models): стандартное окно генерации 8 000 токенов
     'yandexgpt': 8000,
     'yandexgpt-pro': 8000,
     'yandexgpt-lite': 4000,

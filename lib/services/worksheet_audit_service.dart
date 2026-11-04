@@ -42,7 +42,7 @@ class WorksheetAuditService {
     return evaluations;
   }
 
-  /// Встраивает оценочную строчку YandexGPT под каждым заданием в текст Markdown
+  /// Встраивает оценочную строчку MetodistPRO под каждым заданием в текст Markdown
   static String injectAuditBadges({
     required String content,
     required String topic,
@@ -73,7 +73,7 @@ class WorksheetAuditService {
       final eval = evaluations[evalIndex];
 
       final taskFullText = match.group(0)!;
-      if (taskFullText.contains('🔬 Оценка YandexGPT:')) continue;
+      if (taskFullText.contains('🔬 Оценка MetodistPRO:')) continue;
 
       final badgeLine = '\n> ${eval.formattedEvaluationLine}\n';
       final replaced = taskFullText.trimRight() + '\n' + badgeLine + '\n';

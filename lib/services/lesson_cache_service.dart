@@ -3,7 +3,7 @@ import 'package:crypto/crypto.dart';
 import '../models/conspect.dart';
 
 /// Локальный сервис кеширования готовых методических уроков.
-/// Исключает повторные затраты токенов YandexGPT Pro при повторном открытии
+/// Исключает повторные затраты токенов MetodistPRO при повторном открытии
 /// или генерации урока с идентичными параметрами.
 class LessonCacheService {
   static final Map<String, Conspect> _memoryCache = {};

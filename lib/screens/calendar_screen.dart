@@ -1458,7 +1458,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     SizedBox(height: 10),
                     _SummaryFeatureRow(
                       icon: '🦉',
-                      title: 'AI-рефлексия урока (YandexGPT Pro)',
+                      title: 'AI-рефлексия урока (MetodistPRO)',
                       subtitle: 'Педагогический вывод, план на следующий урок и пост родителям',
                     ),
                     SizedBox(height: 10),
