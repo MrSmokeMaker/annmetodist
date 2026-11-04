@@ -33,20 +33,36 @@ class KeepTogether extends pw.Inseparable {
   final double maxSafeHeight;
 
   @override
-  bool get canSpan {
-    if (box != null && box!.height > maxSafeHeight) {
-      return super.canSpan || true;
+  void layout(
+    pw.Context context,
+    pw.BoxConstraints constraints, {
+    bool parentUsesSize = false,
+  }) {
+    if (child == null) {
+      box = PdfRect.fromPoints(PdfPoint.zero, constraints.smallest);
+      return;
     }
-    return false;
+
+    // Измеряем полную неделимую высоту содержимого без искусственной обрезки по текущему листу
+    final unconstrained = constraints.copyWith(maxHeight: double.infinity);
+    child!.layout(context, unconstrained, parentUsesSize: parentUsesSize);
+    final fullHeight = child!.box?.height ?? 0.0;
+
+    // Если блок целиком помещается в свободное место листа или превышает стандартный лист:
+    if (fullHeight <= constraints.maxHeight || fullHeight > maxSafeHeight) {
+      child!.layout(context, constraints, parentUsesSize: parentUsesSize);
+      box = child!.box;
+    } else {
+      // Блок не влезает целиком -> заявляем полную высоту, заставляя MultiPage перенести весь блок на новый лист
+      box = PdfRect(0, 0, constraints.maxWidth, fullHeight);
+    }
   }
 
   @override
-  bool get hasMoreWidgets {
-    if (box != null && box!.height > maxSafeHeight) {
-      return super.hasMoreWidgets;
-    }
-    return false;
-  }
+  bool get canSpan => false;
+
+  @override
+  bool get hasMoreWidgets => false;
 }
 
 class PdfExportService {
@@ -1484,14 +1500,14 @@ class PdfExportService {
           }
 
           // 2. Частые косые наклонные линии под углом 65 градусов ВПРАВО (методика Воскресенской / Илюхиной / Мазиной)
-          // В PDF координатах y=0 это низ, y=size.y это верх.
-          // Наклон вправо (/): нижняя точка левее верхней -> x снизу, x + dx сверху.
+          // В системе координат: y=0 — верхний край блока, y=size.y — нижний край.
+          // Каллиграфический наклон вправо (/): нижняя точка левее (x), верхняя правее (x + dx).
           canvas.setColor(const PdfColor.fromInt(0xFFE2E8F0));
           canvas.setLineWidth(0.4);
           final dx = size.y / 2.1445;
           const step = 14.0;
           for (double x = -dx; x < size.x + dx; x += step) {
-            canvas.drawLine(x, 0, x + dx, size.y);
+            canvas.drawLine(x + dx, 0, x, size.y);
           }
           canvas.strokePath();
         },
@@ -1582,62 +1598,12 @@ class PdfExportService {
           ],
           if (!hasTable) ...[
             pw.SizedBox(height: 6),
-            pw.Container(
-              padding: const pw.EdgeInsets.all(6),
-              decoration: pw.BoxDecoration(
-                color: const PdfColor.fromInt(0xFFF0FDFA),
-                borderRadius: pw.BorderRadius.circular(6),
-                border: pw.Border.all(color: const PdfColor.fromInt(0xFF99F6E4), width: 0.8),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Запиши слова в соответствующие колонки (в узкую косую линейку 65°):',
-                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF115E59))),
-                  pw.SizedBox(height: 4),
-                  pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Expanded(
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.all(4),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColors.white,
-                            borderRadius: pw.BorderRadius.circular(4),
-                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('Группа 1:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
-                              _buildNarrowObliqueRuling(rows: 3, rowHeight: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                      pw.SizedBox(width: 8),
-                      pw.Expanded(
-                        child: pw.Container(
-                          padding: const pw.EdgeInsets.all(4),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColors.white,
-                            borderRadius: pw.BorderRadius.circular(4),
-                            border: pw.Border.all(color: const PdfColor.fromInt(0xFFCCFBF1), width: 0.8),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('Группа 2:', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E))),
-                              _buildNarrowObliqueRuling(rows: 3, rowHeight: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            pw.Text(
+              'Запиши распределение слов аккуратно в косую строку (угол наклона 65°):',
+              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F766E)),
             ),
+            pw.SizedBox(height: 4),
+            _buildNarrowObliqueRuling(rows: 3, rowHeight: 22.0),
           ],
         ],
       ),
@@ -2414,7 +2380,7 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[прописи]')).toList()),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[прописи]') && !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
           pw.SizedBox(height: 6),
           pw.Text('Письмо элементов и слов в частую узкую косую линейку (угол наклона 65°):',
@@ -3014,11 +2980,13 @@ class PdfExportService {
             pw.SizedBox(height: 6),
             _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[окошки]') && !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
-          pw.SizedBox(height: 6),
-          pw.Text('Спиши проверенные слова каллиграфически аккуратно в косую строку:',
-              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF075985))),
-          pw.SizedBox(height: 4),
-          _buildNarrowObliqueRuling(rows: 3),
+          if (!lines.any((l) => RegExp(r'(\[\s*[^\]]+\s*\]\s*){2,}').hasMatch(l) || l.contains('[___]') || l.contains('[.]') || l.contains('[_]'))) ...[
+            pw.SizedBox(height: 6),
+            pw.Text('Запиши проверенные слова каллиграфически аккуратно в косую строку:',
+                style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF075985))),
+            pw.SizedBox(height: 4),
+            _buildNarrowObliqueRuling(rows: 3),
+          ],
         ],
       ),
     );
@@ -4640,12 +4608,11 @@ class PdfExportService {
     final headerRow = rows.first;
     final dataRows = rows.length > 1 ? rows.sublist(1) : <List<String>>[];
 
-    final displayDataRows = dataRows.isNotEmpty
-        ? dataRows
-        : [
-            List.filled(headerRow.length, ''),
-            List.filled(headerRow.length, ''),
-          ];
+    // Обеспечиваем достаточный запас строк (минимум 5 строк) для записи всех слов распределения
+    final displayDataRows = List<List<String>>.from(dataRows);
+    while (displayDataRows.length < 5) {
+      displayDataRows.add(List.filled(headerRow.length, ''));
+    }
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),

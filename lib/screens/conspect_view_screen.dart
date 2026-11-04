@@ -2048,26 +2048,23 @@ ${_currentConspect!.content}
                       borderRadius: BorderRadius.circular(AppRadii.md),
                       border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.25)),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.assignment_rounded, color: Color(0xFF2563EB), size: 22),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Лист заданий для печати',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                              Text(
-                                'Распечатайте рабочий лист для урока',
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton.icon(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 360;
+                        final titleColumn = const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Лист заданий для печати',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              'Распечатайте рабочий лист для урока',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        );
+                        final printButton = ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2563EB),
                             foregroundColor: Colors.white,
@@ -2077,8 +2074,34 @@ ${_currentConspect!.content}
                           icon: const Icon(Icons.print_rounded, size: 16),
                           label: const Text('Печать PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                           onPressed: () => _exportMaterial(PdfMaterialType.worksheet),
-                        ),
-                      ],
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.assignment_rounded, color: Color(0xFF2563EB), size: 22),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: titleColumn),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              printButton,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            const Icon(Icons.assignment_rounded, color: Color(0xFF2563EB), size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(child: titleColumn),
+                            printButton,
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ] else if (isHomework) ...[
@@ -2091,26 +2114,23 @@ ${_currentConspect!.content}
                       borderRadius: BorderRadius.circular(AppRadii.md),
                       border: Border.all(color: const Color(0xFF059669).withOpacity(0.25)),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.home_work_rounded, color: Color(0xFF059669), size: 22),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Домашняя работа',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                              Text(
-                                'Распечатайте домашнее задание и памятку',
-                                style: TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton.icon(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 360;
+                        final titleColumn = const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Домашняя работа',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              'Распечатайте домашнее задание и памятку',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        );
+                        final printButton = ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF059669),
                             foregroundColor: Colors.white,
@@ -2120,8 +2140,34 @@ ${_currentConspect!.content}
                           icon: const Icon(Icons.print_rounded, size: 16),
                           label: const Text('Печать PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                           onPressed: () => _exportMaterial(PdfMaterialType.homework),
-                        ),
-                      ],
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.home_work_rounded, color: Color(0xFF059669), size: 22),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: titleColumn),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              printButton,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            const Icon(Icons.home_work_rounded, color: Color(0xFF059669), size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(child: titleColumn),
+                            printButton,
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ] else if (isConspectKeySection) ...[

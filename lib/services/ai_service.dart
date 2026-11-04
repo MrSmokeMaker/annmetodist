@@ -732,8 +732,10 @@ class AiService {
       };
     }
 
-    final baseUrl = _storageService.getZvenoBaseUrl();
-    final model = _storageService.getZvenoModel();
+    final rawBaseUrl = _storageService.getZvenoBaseUrl();
+    final baseUrl = rawBaseUrl.trim().isNotEmpty ? rawBaseUrl.trim() : ZvenoConfig.baseUrl;
+    final rawModel = _storageService.getZvenoModel();
+    final model = rawModel.trim().isNotEmpty ? rawModel.trim() : ZvenoConfig.defaultModel;
 
     try {
       final url = Uri.parse('$baseUrl/chat/completions');
@@ -789,8 +791,10 @@ class AiService {
       throw Exception('API-ключ Zveno AI не задан.');
     }
 
-    final baseUrl = _storageService.getZvenoBaseUrl();
-    final model = _storageService.getZvenoModel();
+    final rawBaseUrl = _storageService.getZvenoBaseUrl();
+    final baseUrl = rawBaseUrl.trim().isNotEmpty ? rawBaseUrl.trim() : ZvenoConfig.baseUrl;
+    final rawModel = _storageService.getZvenoModel();
+    final model = rawModel.trim().isNotEmpty ? rawModel.trim() : ZvenoConfig.defaultModel;
 
     final url = Uri.parse('$baseUrl/chat/completions');
     final response = await http.post(
