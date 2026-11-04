@@ -1,7 +1,7 @@
 name: metodist
 description: "Мобильное приложение для генерации конспектов занятий с помощью YandexGPT API"
 publish_to: "none"
-version: 1.2.2+5
+version: 1.2.3+6
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -48,5 +48,6 @@ flutter:
   assets:
     - assets/data/
     - assets/images/pdf_icons/
-    - assets/fonts/
+    - assets/fonts/
+
     - assets/news.json

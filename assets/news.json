@@ -1,7 +1,16 @@
 {
-  "currentVersion": "v1.2.2",
-  "updatedAt": "2026-11-04",
+  "currentVersion": "v1.2.3",
+  "updatedAt": "2026-11-05",
   "releases": [
+    {
+      "version": "v1.2.3",
+      "date": "5 ноября 2026",
+      "title": "Обновление компонентов: 1_Konspekt_uroka_Pchelko_1klass.pdf, 2_Rabochiy_list_perehod_cherez_desyatok.pdf, 3_Domashnee_zadanie_perehod_cherez_desyatok.pdf",
+      "badge": "Обновление",
+      "highlights": [
+        "Улучшение генератора и верстки PDF-материалов"
+      ]
+    },
     {
       "version": "v1.2.2",
       "date": "4 ноября 2026",
