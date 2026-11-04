@@ -32,6 +32,7 @@ jobs:
         run: |
           node scripts/validate_activities.js
           node scripts/validate_topics.js
+          dart scripts/generate_news.dart
 
       - name: Enable Web support
         run: flutter config --enable-web
