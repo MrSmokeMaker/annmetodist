@@ -25,6 +25,8 @@ import '../models/quarter_plan.dart';
 import '../models/app_notification.dart';
 import '../services/app_notification_service.dart';
 import '../services/quarter_planning_service.dart';
+import '../services/pdf_export_service.dart';
+import '../services/pdf_layout_validator.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
@@ -733,6 +735,15 @@ class AppProvider with ChangeNotifier {
       final effectiveMaterials = _mapGenerationTypesToStrings(materials) ?? const ['conspect'];
       var effectiveContent = PromptBuilder.filterContentByMaterials(generatedText, effectiveMaterials);
 
+      // Строгая каноническая нормализация заданий и полей по эталону отечественных методик (Костин, Пчёлко, Мазина)
+      effectiveContent = PdfLayoutIntegrityValidator.auditAndRepair(
+        effectiveContent,
+        type: effectiveMaterials.contains('worksheet') ? PdfMaterialType.worksheet : PdfMaterialType.conspect,
+        subject: method.subject,
+        topic: topicTitle,
+        ageGroup: ageGroup,
+      ).repairedContent;
+
       // Проход 2: Строгая верификация и самоочистка (Self-Refine) для тарифа Pro
       // Запускаем только если эвристика выявила утечку ответов или плейсхолдеров, экономя 25-35 секунд
       if (isProUser && effectiveMaterials.contains('worksheet')) {
@@ -755,7 +766,7 @@ class AppProvider with ChangeNotifier {
               effectiveContent = cleaned.trim();
             }
           } catch (e) {
-            print('Self-Refine pass bypassed: $e');
+            debugPrint('Self-Refine pass bypassed: $e');
           }
         }
       }
@@ -765,33 +776,7 @@ class AppProvider with ChangeNotifier {
       String? illustrationColoring;
       String? illustrationReward;
 
-      // В тарифе Metodist PRO иллюстрации генерируются автоматически и параллельно (ускорение в 3-4 раза)
-      if (isProUser) {
-        if (cards.isNotEmpty) {
-          final cardFutures = cards.map((c) async {
-            try {
-              final img = await _artService.generateCardIllustration(
-                c.imageHint ?? c.frontText,
-                word: c.frontText,
-              );
-              return c.copyWith(imageUrl: img);
-            } catch (_) {
-              return c;
-            }
-          });
-          effectiveCards = await Future.wait(cardFutures);
-        }
-        try {
-          final artResults = await Future.wait([
-            _artService.generateMascotBanner(topicTitle, ageGroup),
-            _artService.generateColoringActivity(topicTitle),
-            _artService.generateRewardSticker(topicTitle),
-          ]);
-          illustrationMascot = artResults[0];
-          illustrationColoring = artResults[1];
-          illustrationReward = artResults[2];
-        } catch (_) {}
-      }
+      // Иллюстрации, раскраски и стикеры генерируются строго по запросу пользователя по отдельной кнопке в тарифах Pro и Директор
 
       final rubricEval = LessonRubricService.evaluateLesson(
         content: effectiveContent,

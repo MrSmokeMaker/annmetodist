@@ -83,6 +83,48 @@ void main() {
       expect(audit.orphanHeadersFound, greaterThanOrEqualTo(1));
       expect(audit.issues.any((iss) => iss.contains('сиротский заголовок')), true);
     });
+
+    test('enforces canonical methodology package for Neznayka trap and replaces cell grid in Russian', () {
+      const rawMarkdown = '''
+# Лист заданий для печати
+### Задание 1. Образец выполнения
+Образец: яркое солнце — признак и предмет.
+[клетка]
+
+### Задание 4 • Ловушка
+Путаница в окончаниях прилагательных в женском и среднем роде (-ая/-яя, -ое/-ее), определение рода без опоры на существительное.
+### Задание: Найди ошибку Незнайки и запиши правильное предложение без ошибок:
+Линии для ответа: _______________________
+
+### Задание 5. Сортировочная таблица
+| Прилагательное | Существительное |
+|---|---|
+''';
+
+      final audit = PdfLayoutIntegrityValidator.auditAndRepair(
+        rawMarkdown,
+        subject: 'Русский язык',
+        topic: 'Имя прилагательное: значение и вопросы',
+        ageGroup: '7-8 лет',
+      );
+
+      // 1. Math grid [клетка] must be converted to handwriting ruling [прописи] in Russian
+      expect(audit.repairedContent.contains('[клетка]'), false);
+      expect(audit.repairedContent.contains('[прописи]'), true);
+
+      // 2. Abstract trap description must be replaced with Neznayka's actual spoken mistake
+      expect(audit.repairedContent.contains('Незнайка утверждает:'), true);
+      expect(audit.repairedContent.contains('яркий солнце'), true);
+
+      // 3. Duplicate instruction header must be merged
+      expect(audit.repairedContent.contains('### Задание: Найди ошибку Незнайки'), false);
+
+      // 4. Word bank must be attached to the sorting table
+      expect(audit.repairedContent.contains('Слова для распределения'), true);
+
+      // 5. Scaffolding task must have practice items with blanks
+      expect(audit.repairedContent.contains('1)'), true);
+    });
   });
 
   group('PDF Export Layout Protection & KeepTogether Tests', () {

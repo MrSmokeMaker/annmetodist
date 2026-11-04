@@ -104,6 +104,7 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
   bool _showSavedBanner = false;
   int? _isRegeneratingBlockIndex;
   bool _isDebugAuditMode = false;
+  bool _isGeneratingArt = false;
 
   @override
   void initState() {
@@ -1560,6 +1561,10 @@ ${_currentConspect!.content}
 
                     // Тематический игровой мир и маскот YandexART
                         _buildThematicWorldSelectorCard(context, isDark),
+                        const SizedBox(height: AppSpacing.sm),
+
+                        // Кнопка генерации раскраски и арт-стикера к уроку
+                        _buildArtColoringGeneratorCard(context, isDark),
                         const SizedBox(height: AppSpacing.sm),
 
                         // Кнопка «Улучшить с MetodistPro AI»
@@ -5431,4 +5436,178 @@ ${_currentConspect!.content}
     );
   }
 
+
+  Widget _buildArtColoringGeneratorCard(BuildContext context, bool isDark) {
+    if (_currentConspect == null) return const SizedBox.shrink();
+    final isPro = context.watch<AppProvider>().isProUser;
+    final hasColoring = _currentConspect!.illustrationColoring != null && _currentConspect!.illustrationColoring!.isNotEmpty;
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+      borderRadius: AppRadii.lg,
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: AppGradients.amberOrange,
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🎨', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.orange.withOpacity(0.4), width: 0.8),
+                      ),
+                      child: Text(
+                        hasColoring ? 'РАСКРАСКА ГОТОВА' : 'AI АРТ',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Раскраска к уроку',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasColoring
+                      ? 'Включена в PDF листа заданий для печати'
+                      : 'Контурная раскраска и наклейка (Gemini / Zveno AI)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _isGeneratingArt
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              : ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: hasColoring ? const Color(0xFF059669) : Colors.amber.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  icon: Icon(
+                    hasColoring ? Icons.visibility_rounded : (isPro ? Icons.auto_awesome_rounded : Icons.lock_outline),
+                    size: 14,
+                  ),
+                  label: Text(
+                    hasColoring ? 'Смотреть' : (isPro ? 'Создать арт' : 'Создать арт 🔒'),
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () {
+                    if (!isPro) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Генерация раскрасок доступна в тарифах Методист Pro и Директор.')),
+                      );
+                    } else if (hasColoring) {
+                      _showColoringPreviewDialog(context, _currentConspect!.illustrationColoring!);
+                    } else {
+                      _handleGenerateArtPackage();
+                    }
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleGenerateArtPackage() async {
+    if (_currentConspect == null) return;
+    setState(() => _isGeneratingArt = true);
+    try {
+      final provider = context.read<AppProvider>();
+      await provider.generateArtPackageForConspect(_currentConspect!.id);
+      final updated = provider.conspects.firstWhere((c) => c.id == _currentConspect!.id);
+      setState(() {
+        _currentConspect = updated;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Раскраска и наградной стикер успешно сгенерированы!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка генерации арт-пакета: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingArt = false);
+      }
+    }
+  }
+
+  void _showColoringPreviewDialog(BuildContext context, String coloringBase64) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final cleanBase64 = coloringBase64.contains(',') ? coloringBase64.split(',').last : coloringBase64;
+        Uint8List? bytes;
+        try {
+          bytes = base64Decode(cleanBase64);
+        } catch (_) {}
+
+        return AlertDialog(
+          title: const Text('Раскраска по теме урока'),
+          content: bytes != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(bytes, fit: BoxFit.contain),
+                )
+              : const Text('Не удалось декодировать изображение'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _handleGenerateArtPackage();
+              },
+              child: const Text('Перегенерировать'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Закрыть'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

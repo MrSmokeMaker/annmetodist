@@ -1,5 +1,6 @@
 import '../models/conspect.dart';
 import 'pdf_export_service.dart';
+import 'topic_explanation_service.dart';
 
 /// Отчёт об аудите и автоматическом исправлении вёрстки PDF-материалов
 class PdfLayoutAuditReport {
@@ -91,6 +92,9 @@ class PdfLayoutIntegrityValidator {
   static PdfLayoutAuditReport auditAndRepair(
     String markdownContent, {
     PdfMaterialType? type,
+    String? subject,
+    String? topic,
+    String? ageGroup,
   }) {
     if (markdownContent.trim().isEmpty) {
       return const PdfLayoutAuditReport(
@@ -108,6 +112,10 @@ class PdfLayoutIntegrityValidator {
     int tasksWithFields = 0;
     int orphanHeaders = 0;
 
+    final PedagogicalPackage? pkg = (subject != null && topic != null && ageGroup != null)
+        ? TopicExplanationService.getPedagogicalPackage(subject, topic, ageGroup)
+        : null;
+
     final lines = markdownContent.split('\n');
     final processedLines = <String>[];
 
@@ -119,10 +127,69 @@ class PdfLayoutIntegrityValidator {
     void flushTaskBlock() {
       if (currentTaskHeader == null) return;
 
+      // Удаляем любые ошибочно попавшие в тело подзаголовки заданий
+      currentTaskBody.removeWhere((b) {
+        final bTrim = b.trim().toLowerCase();
+        return (bTrim.startsWith('### задание') || bTrim.startsWith('задание:') || bTrim.startsWith('**задание:')) &&
+            (bTrim.contains('найди ошибку') || bTrim.contains('исправь') || bTrim.contains('—'));
+      });
+
       final fullTaskText = (currentTaskHeader! + '\n' + currentTaskBody.join('\n')).trim();
       final lower = fullTaskText.toLowerCase();
 
       totalTasks++;
+
+      // 1. Каноническая нормализация заданий типа «Ловушка Незнайки»
+      if (lower.contains('ловушка') || lower.contains('незнайк')) {
+        if (pkg != null) {
+          for (int b = 0; b < currentTaskBody.length; b++) {
+            final bLow = currentTaskBody[b].toLowerCase();
+            if (bLow.contains('путаница') || bLow.contains('определение рода') || bLow.contains('типичная ошибка')) {
+              currentTaskBody[b] = 'Незнайка утверждает: "${pkg.neznaykaMistake}"';
+              issues.add('Заменено теоретическое описание на прямую речь Незнайки из методики');
+            }
+          }
+          if (!currentTaskBody.any((b) => b.contains('Незнайка') || b.contains('незнайк'))) {
+            currentTaskBody.insert(0, 'Незнайка утверждает: "${pkg.neznaykaMistake}"');
+          }
+          if (!currentTaskBody.any((b) => b.toLowerCase().contains('инструкция'))) {
+            currentTaskBody.insert(1, '**Инструкция**: Найди ошибку Незнайки и запиши правильный ответ.');
+          }
+        }
+      }
+
+      // 2. Каноническая нормализация сортировочных таблиц
+      if (lower.contains('таблиц') || lower.contains('распредели') || lower.contains('по группам')) {
+        if (pkg != null && !currentTaskBody.any((b) => b.toLowerCase().contains('слова для распределения') || b.toLowerCase().contains('банк'))) {
+          currentTaskBody.add('**Слова для распределения**: ${pkg.wordBank.join(', ')}');
+          issues.add('К таблице добавлен эталонный банк слов из методики');
+        }
+      }
+
+      // 3. Запрет математической клетки на предметах русского языка и чтения
+      final isRussianSubject = (subject != null && !subject.toLowerCase().contains('матем')) ||
+          lower.contains('слово') ||
+          lower.contains('букв') ||
+          lower.contains('предложен') ||
+          lower.contains('текст') ||
+          lower.contains('прилагательн') ||
+          lower.contains('существительн') ||
+          lower.contains('глагол') ||
+          lower.contains('звук') ||
+          lower.contains('слог') ||
+          lower.contains('падеж') ||
+          lower.contains('род ') ||
+          lower.contains('читай') ||
+          lower.contains('чистописан');
+
+      if (isRussianSubject) {
+        for (int b = 0; b < currentTaskBody.length; b++) {
+          if (currentTaskBody[b].contains('[клетка]') || currentTaskBody[b].contains('[математическая сетка]')) {
+            currentTaskBody[b] = '[прописи]';
+            issues.add('Математическая клетка заменена на косую линовку чистописания 65° для языкового предмета');
+          }
+        }
+      }
 
       // Проверяем наличие дидактического поля внутри блока задания
       bool hasDidacticField = false;
@@ -189,9 +256,15 @@ class PdfLayoutIntegrityValidator {
       // Если в задании с образцом остался только сам образец без пунктов для работы ученика
       if (lower.contains('образец') && !currentTaskBody.any((b) => b.contains('1)') || b.contains('1.') || b.contains('___'))) {
         currentTaskBody.add('**Инструкция**: Прочитай образец и выполни задание для остальных слов (сделай сам):');
-        currentTaskBody.add('1) _______________________ — _______________________');
-        currentTaskBody.add('2) _______________________ — _______________________');
-        currentTaskBody.add('3) _______________________ — _______________________');
+        if (pkg != null && pkg.wordBank.length >= 3) {
+          currentTaskBody.add('1) ${pkg.wordBank[1]} — _______________________');
+          currentTaskBody.add('2) ${pkg.wordBank[2]} — _______________________');
+          currentTaskBody.add('3) ${pkg.wordBank.length > 3 ? pkg.wordBank[3] : pkg.wordBank[0]} — _______________________');
+        } else {
+          currentTaskBody.add('1) _______________________ — _______________________');
+          currentTaskBody.add('2) _______________________ — _______________________');
+          currentTaskBody.add('3) _______________________ — _______________________');
+        }
         issues.add('К заданию с образцом добавлены интерактивные пункты для самостоятельной работы ученика');
       }
 

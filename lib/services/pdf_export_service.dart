@@ -231,10 +231,14 @@ class PdfExportService {
             starGold: starGold,
             starGray: starGray,
             isWorksheetOrHomework: false,
+            subject: conspect.subject,
+            topic: conspect.topic,
+            ageGroup: conspect.ageGroup,
           ),
-          if (isPro) ...[
-            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring, fallbackImage: coloringFallback)),
-            KeepTogether(child: _buildProRewardSection(conspect.illustrationReward, fallbackImage: medalFallback)),
+          if (isPro && conspect.illustrationColoring != null) ...[
+            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring)),
+            if (conspect.illustrationReward != null)
+              KeepTogether(child: _buildProRewardSection(conspect.illustrationReward)),
           ],
         ],
       ),
@@ -353,15 +357,18 @@ class PdfExportService {
             starGold: starGold,
             starGray: starGray,
             isWorksheetOrHomework: type != PdfMaterialType.conspect,
+            subject: conspect.subject,
+            topic: conspect.topic,
+            ageGroup: conspect.ageGroup,
           ),
 
-          // Pro: Творческая разминка / раскраска для рабочего листа
-          if (isPro && (type == PdfMaterialType.worksheet || conspect.illustrationColoring != null))
-            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring, fallbackImage: coloringFallback)),
+          // Pro: Творческая разминка / раскраска для рабочего листа (только если создана пользователем)
+          if (isPro && conspect.illustrationColoring != null)
+            KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring)),
 
-          // Pro: Наградной стикер / медаль для домашней работы
-          if (isPro && (type == PdfMaterialType.homework || conspect.illustrationReward != null))
-            KeepTogether(child: _buildProRewardSection(conspect.illustrationReward, fallbackImage: medalFallback)),
+          // Pro: Наградной стикер / медаль для домашней работы (только если создана пользователем)
+          if (isPro && conspect.illustrationReward != null)
+            KeepTogether(child: _buildProRewardSection(conspect.illustrationReward)),
         ],
       ),
     );
@@ -1708,11 +1715,17 @@ class PdfExportService {
     pw.MemoryImage? starGold,
     pw.MemoryImage? starGray,
     bool isWorksheetOrHomework = false,
+    String? subject,
+    String? topic,
+    String? ageGroup,
   }) {
-    // Аудит и нормализация вёрстки: гарантируем привязку дидактических полей и устранение сиротских заголовков
+    // Аудит и нормализация вёрстки: гарантируем привязку дидактических полей и эталонов методик
     final audit = PdfLayoutIntegrityValidator.auditAndRepair(
       content,
       type: isWorksheetOrHomework ? PdfMaterialType.worksheet : PdfMaterialType.conspect,
+      subject: subject,
+      topic: topic,
+      ageGroup: ageGroup,
     );
     final cleanedContent = _cleanHtmlTags(audit.repairedContent);
     final rawLines = cleanedContent.split('\n');
