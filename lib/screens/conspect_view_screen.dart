@@ -964,17 +964,38 @@ ${_currentConspect!.content}
     return Scaffold(
       floatingActionButton: (_isLoading || _currentConspect == null)
           ? null
-          : FloatingActionButton.extended(
-              backgroundColor: AppColors.primaryIndigo,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              icon: const Icon(Icons.school_rounded, size: 20),
-              label: const Text('Методист на связи', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              onPressed: () {
-                InteractiveMethodistDrawer.show(
-                  context,
-                  conspect: _currentConspect!,
-                  gptService: context.read<AppProvider>().yandexGptService,
+          : Builder(
+              builder: (ctx) {
+                final isMobile = MediaQuery.of(ctx).size.width < 500;
+                if (isMobile) {
+                  return FloatingActionButton(
+                    backgroundColor: AppColors.primaryIndigo,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    tooltip: 'Методист на связи',
+                    child: const Icon(Icons.school_rounded, size: 22),
+                    onPressed: () {
+                      InteractiveMethodistDrawer.show(
+                        context,
+                        conspect: _currentConspect!,
+                        gptService: context.read<AppProvider>().yandexGptService,
+                      );
+                    },
+                  );
+                }
+                return FloatingActionButton.extended(
+                  backgroundColor: AppColors.primaryIndigo,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  icon: const Icon(Icons.school_rounded, size: 20),
+                  label: const Text('Методист на связи', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  onPressed: () {
+                    InteractiveMethodistDrawer.show(
+                      context,
+                      conspect: _currentConspect!,
+                      gptService: context.read<AppProvider>().yandexGptService,
+                    );
+                  },
                 );
               },
             ),
@@ -992,14 +1013,20 @@ ${_currentConspect!.content}
           if (!_isLoading && _currentConspect != null) ...[
             // 1. Быстрый экспорт в PDF
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+              padding: const EdgeInsets.all(6),
               tooltip: 'Экспорт в PDF / Печать',
-              icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444)),
+              icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFEF4444), size: 20),
               onPressed: () => _showExportMaterialsModal(context),
             ),
             // 2. Персональный Совёнок AI
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+              padding: const EdgeInsets.all(6),
               tooltip: 'Спросить Совёнка-Методиста AI',
-              icon: const Text('🦉', style: TextStyle(fontSize: 20)),
+              icon: const Text('🦉', style: TextStyle(fontSize: 18)),
               onPressed: () {
                 MetodistAssistantDialog.show(
                   context,
@@ -1354,9 +1381,11 @@ ${_currentConspect!.content}
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 980),
                     child: ListView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.sm,
+                      padding: const EdgeInsets.only(
+                        left: AppSpacing.lg,
+                        right: AppSpacing.lg,
+                        top: AppSpacing.sm,
+                        bottom: 110.0,
                       ),
                       children: [
                         // Переключатель вариантов, если создано > 1 варианта
@@ -1575,11 +1604,15 @@ ${_currentConspect!.content}
                                 child: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: AppColors.accentCyan),
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Экспорт материалов в отдельные PDF:',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                              const Expanded(
+                                child: Text(
+                                  'Экспорт материалов в отдельные PDF:',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -2580,11 +2613,15 @@ ${_currentConspect!.content}
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Меловая доска & Eco-Print',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
+                    const Expanded(
+                      child: Text(
+                        'Меловая доска & Eco-Print',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -2690,11 +2727,15 @@ ${_currentConspect!.content}
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Интерактивный аудио-диктант',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
+                    const Expanded(
+                      child: Text(
+                        'Интерактивный аудио-диктант',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -4501,29 +4542,29 @@ ${_currentConspect!.content}
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.cyanBlue,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.verified_rounded, size: 16, color: Colors.white),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Методический аудит YandexGPT Pro',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.cyanBlue,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.verified_rounded, size: 16, color: Colors.white),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Методический аудит YandexGPT Pro',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -4682,7 +4723,7 @@ ${_currentConspect!.content}
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
                         color: Color(world.primaryColorHex).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -4691,28 +4732,32 @@ ${_currentConspect!.content}
                       child: Text(
                         world.missionBadge,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w800,
                           color: Color(world.primaryColorHex),
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      world.title,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : Colors.black87,
+                    Expanded(
+                      child: Text(
+                        world.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${world.mascotName} (${world.mascotRole}) • «${world.mascotEncouragement('worksheet')}»',
+                  '${world.mascotName} (${world.mascotRole})',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                   ),
                   maxLines: 1,
@@ -5113,12 +5158,16 @@ ${_currentConspect!.content}
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Улучшить с MetodistPro AI',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
+                        const Expanded(
+                          child: Text(
+                            'Улучшить с MetodistPro AI',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -5495,7 +5544,7 @@ ${_currentConspect!.content}
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -5504,19 +5553,23 @@ ${_currentConspect!.content}
                       child: Text(
                         hasColoring ? 'РАСКРАСКА ГОТОВА' : 'AI АРТ',
                         style: const TextStyle(
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w800,
                           color: Colors.orange,
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      'Раскраска к уроку',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : Colors.black87,
+                    Expanded(
+                      child: Text(
+                        'Раскраска к уроку',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
                   ],
@@ -5524,10 +5577,10 @@ ${_currentConspect!.content}
                 const SizedBox(height: 2),
                 Text(
                   hasColoring
-                      ? 'Включена в PDF листа заданий для печати'
-                      : 'Контурная раскраска и наклейка (Gemini / Zveno AI)',
+                      ? 'Включена в PDF для печати'
+                      : 'Контурная раскраска и наклейка',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                   ),
                   maxLines: 1,
