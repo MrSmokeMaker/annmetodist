@@ -17,6 +17,7 @@ import '../providers/app_provider.dart';
 import '../services/colleague_brief_service.dart';
 import '../services/ics_export_service.dart';
 import '../services/pdf_export_service.dart';
+import '../widgets/pdf_customizer_modal.dart';
 import '../services/prompt_builder.dart';
 import '../theme.dart';
 import '../widgets/ambient_background.dart';
@@ -332,28 +333,20 @@ ${_currentConspect!.content}
 
   Future<void> _exportMaterial(PdfMaterialType type) async {
     if (_currentConspect == null) return;
-    try {
-      final isPro = context.read<AppProvider>().isProUser;
-      await PdfExportService.exportMaterialPdf(_currentConspect!, type, isPro: isPro);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка экспорта в PDF: $e')),
-      );
-    }
+    PdfCustomizerModal.show(
+      context,
+      conspect: _currentConspect!,
+      initialMaterialType: type,
+    );
   }
 
   Future<void> _exportAllCombined() async {
     if (_currentConspect == null) return;
-    try {
-      final isPro = context.read<AppProvider>().isProUser;
-      await PdfExportService.exportAllMaterialsCombinedPdf(_currentConspect!, isPro: isPro);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка экспорта комплекта PDF: $e')),
-      );
-    }
+    PdfCustomizerModal.show(
+      context,
+      conspect: _currentConspect!,
+      exportAllCombined: true,
+    );
   }
 
   Future<void> _autoGenerateImagesForPro() async {
@@ -508,23 +501,13 @@ ${_currentConspect!.content}
   }
 
   
-  void _openVisualPdfEditor() {
+  void _openVisualPdfEditor({PdfMaterialType? initialType, bool exportAll = false}) {
     if (_currentConspect == null) return;
-    final isDirector = context.read<AppProvider>().isDirector;
-    if (!isDirector) {
-      _showDirectorPaywall(context, featureName: 'Визуальный PDF-Конструктор');
-      return;
-    }
-    WebFileHelper.saveLessonForEditor(
-      _currentConspect!.title,
-      _currentConspect!.content,
-    );
-    WebFileHelper.openUrl('pdf_editor.html');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Открываем интерактивный PDF-Конструктор [Тариф Директор]...'),
-        backgroundColor: Color(0xFF8B5CF6),
-      ),
+    PdfCustomizerModal.show(
+      context,
+      conspect: _currentConspect!,
+      initialMaterialType: initialType ?? PdfMaterialType.worksheet,
+      exportAllCombined: exportAll,
     );
   }
 
@@ -791,13 +774,13 @@ ${_currentConspect!.content}
                           children: [
                             Row(
                               children: [
-                                Text('Визуальный PDF-Конструктор', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                Text('Стили & Экспорт PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                                 SizedBox(width: 6),
                                 Text('👑', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
                               ],
                             ),
                             SizedBox(height: 2),
-                            Text('Интерактивная вёрстка, логотип школы, колонтитулы и печать', style: TextStyle(fontSize: 11)),
+                            Text('Шрифты, поля, эко-печать и брендирование школы перед печатью', style: TextStyle(fontSize: 11)),
                           ],
                         ),
                       ),
@@ -922,7 +905,7 @@ ${_currentConspect!.content}
                 Row(
                   children: [
                     const Text(
-                      'PDF-Конструктор',
+                      'Стили и параметры PDF',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
                     ),
                     const SizedBox(width: 6),
@@ -945,7 +928,7 @@ ${_currentConspect!.content}
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Интерактивная вёрстка, логотип школы, перемещение блоков и печать',
+                  'Шрифты, поля, эко-печать и брендирование школы перед печатью',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: isDark ? Colors.white70 : Colors.black87,
@@ -1143,7 +1126,7 @@ ${_currentConspect!.content}
                     children: [
                       Icon(Icons.draw_rounded, color: Color(0xFF8B5CF6), size: 20),
                       SizedBox(width: 12),
-                      Text('👑 PDF-Конструктор (Директор)'),
+                      Text('Стили & Экспорт PDF'),
                     ],
                   ),
                 ),

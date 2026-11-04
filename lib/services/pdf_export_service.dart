@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:metodist/models/conspect.dart';
+import 'package:metodist/models/pdf_style_config.dart';
 import 'package:metodist/models/thematic_world.dart';
 import 'package:metodist/services/yandex_art_service.dart';
 import 'package:metodist/models/printable_card.dart';
@@ -167,14 +168,27 @@ class PdfExportService {
 
 
 
+  static pw.EdgeInsets _getPageMargin(PdfStyleConfig config) {
+    switch (config.marginSize) {
+      case PdfMarginSize.compact:
+        return const pw.EdgeInsets.fromLTRB(28, 16, 16, 16);
+      case PdfMarginSize.wide:
+        return const pw.EdgeInsets.fromLTRB(56, 32, 32, 32);
+      case PdfMarginSize.standard:
+      default:
+        return const pw.EdgeInsets.fromLTRB(44, 24, 24, 24);
+    }
+  }
+
   /// Экспорт отдельного материала (конспект, лист заданий или домашняя работа)
-  static Future<void> exportMaterialPdf(Conspect conspect, PdfMaterialType type, {bool isPro = false}) async {
-    await _exportSinglePdf(conspect, type, isPro: isPro);
+  static Future<void> exportMaterialPdf(Conspect conspect, PdfMaterialType type, {bool isPro = false, PdfStyleConfig? styleConfig}) async {
+    await _exportSinglePdf(conspect, type, isPro: isPro, styleConfig: styleConfig);
   }
 
   /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
   /// Generates the raw PDF bytes for a complete combined kit
-  static Future<Uint8List> generateCombinedPdfBytes(Conspect conspect, {bool isPro = false}) async {
+  static Future<Uint8List> generateCombinedPdfBytes(Conspect conspect, {bool isPro = false, PdfStyleConfig? styleConfig}) async {
+    final config = styleConfig ?? const PdfStyleConfig();
     final pdf = pw.Document();
 
     final fontRegular = await _loadRobotoRegular();
@@ -182,8 +196,9 @@ class PdfExportService {
     final fontItalic = await _loadRobotoItalic();
 
     final world = conspect.thematicWorld;
-    final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
-    final bannerImage = await _loadWorldBanner(world);
+    final isEco = config.preset == PdfPreset.ecoPrint;
+    final mascotImage = isEco ? null : await _loadWorldMascot(world, conspect.illustrationMascot);
+    final bannerImage = isEco ? null : await _loadWorldBanner(world);
     final coloringFallback = await PdfIconsHelper.loadColoring(world.id);
     final medalFallback = await PdfIconsHelper.loadMedal();
     final starGold = await PdfIconsHelper.loadStarGold();
@@ -206,21 +221,31 @@ class PdfExportService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(44, 24, 24, 24),
+        margin: _getPageMargin(config),
         theme: pw.ThemeData.withFont(
           base: fontRegular,
           bold: fontBold,
           italic: fontItalic,
           fontFallback: [fontRegular, fontBold],
         ),
-        header: (context) => _buildPdfHeader(conspect, PdfMaterialType.conspect, isPro: isPro),
+        header: (context) => _buildPdfHeader(conspect, PdfMaterialType.conspect, isPro: isPro, styleConfig: config),
         footer: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(top: 12),
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              if (isPro)
+              if (isEco)
+                pw.Text(
+                  'Методист • Эко-печать (Zero-Toner)',
+                  style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 8),
+                )
+              else if (config.schoolName.isNotEmpty)
+                pw.Text(
+                  '${config.schoolName}${config.teacherName.isNotEmpty ? " • ${config.teacherName}" : ""}',
+                  style: pw.TextStyle(color: PdfColor.fromInt(config.brandColorHex), fontSize: 8, fontWeight: pw.FontWeight.bold),
+                )
+              else if (isPro)
                 pw.Text(
                   'Методист Pro • Комплект материалов',
                   style: const pw.TextStyle(color: PdfColors.indigo700, fontSize: 8),
@@ -235,9 +260,9 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          _buildPdfTitle(conspect, PdfMaterialType.conspect, null, isPro: isPro, mascotImage: mascotImage, bannerImage: bannerImage),
+          _buildPdfTitle(conspect, PdfMaterialType.conspect, null, isPro: isPro, mascotImage: mascotImage, bannerImage: bannerImage, styleConfig: config),
           pw.SizedBox(height: 10),
-          _buildMaterialInfo(conspect, PdfMaterialType.conspect),
+          _buildMaterialInfo(conspect, PdfMaterialType.conspect, styleConfig: config),
           pw.SizedBox(height: 12),
           ..._buildContentWidgets(
             conspect.content,
@@ -251,7 +276,7 @@ class PdfExportService {
             topic: conspect.topic,
             ageGroup: conspect.ageGroup,
           ),
-          if (isPro && conspect.illustrationColoring != null) ...[
+          if (isPro && conspect.illustrationColoring != null && !isEco) ...[
             KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring)),
             if (conspect.illustrationReward != null)
               KeepTogether(child: _buildProRewardSection(conspect.illustrationReward)),
@@ -264,8 +289,8 @@ class PdfExportService {
   }
 
   /// Экспорт полного комплекта материалов (где каждый материал гарантированно с нового листа)
-  static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false}) async {
-    final bytes = await generateCombinedPdfBytes(conspect, isPro: isPro);
+  static Future<void> exportAllMaterialsCombinedPdf(Conspect conspect, {bool isPro = false, PdfStyleConfig? styleConfig}) async {
+    final bytes = await generateCombinedPdfBytes(conspect, isPro: isPro, styleConfig: styleConfig);
     await _shareOrDownloadPdf(
       bytes: bytes,
       filename: 'Комплект_${conspect.title.replaceAll(' ', '_')}.pdf',
@@ -273,16 +298,16 @@ class PdfExportService {
   }
 
   /// Exports conspect to formatted PDF document and opens print/share dialog
-  static Future<void> exportAndSharePdf(Conspect conspect, {bool isPro = false}) async {
+  static Future<void> exportAndSharePdf(Conspect conspect, {bool isPro = false, PdfStyleConfig? styleConfig}) async {
     if (conspect.generatedMaterials.length <= 1) {
-      await _exportSinglePdf(conspect, PdfMaterialType.conspect, isPro: isPro);
+      await _exportSinglePdf(conspect, PdfMaterialType.conspect, isPro: isPro, styleConfig: styleConfig);
     } else {
-      await exportAllMaterialsCombinedPdf(conspect, isPro: isPro);
+      await exportAllMaterialsCombinedPdf(conspect, isPro: isPro, styleConfig: styleConfig);
     }
   }
 
   /// Экспорт отдельного PDF по типу материала
-  static Future<void> _exportSinglePdf(Conspect conspect, PdfMaterialType type, {bool isPro = false}) async {
+  static Future<void> _exportSinglePdf(Conspect conspect, PdfMaterialType type, {bool isPro = false, PdfStyleConfig? styleConfig}) async {
     final pdf = pw.Document();
 
     // Load Cyrillic-compatible Google Font (Roboto)
@@ -298,12 +323,14 @@ class PdfExportService {
     }
 
     // Загружаем иконку для типа материала, маскота и звезд
+    final config = styleConfig ?? const PdfStyleConfig();
+    final isEco = config.preset == PdfPreset.ecoPrint;
     final materialTypeName = type.toString().split('.').last;
     final materialIconName = PdfIconsHelper.getMaterialIconName(materialTypeName);
     final materialIcon = await PdfIconsHelper.loadIcon(materialIconName);
     final world = conspect.thematicWorld;
-    final mascotImage = await _loadWorldMascot(world, conspect.illustrationMascot);
-    final bannerImage = await _loadWorldBanner(world);
+    final mascotImage = isEco ? null : await _loadWorldMascot(world, conspect.illustrationMascot);
+    final bannerImage = isEco ? null : await _loadWorldBanner(world);
     final coloringFallback = await PdfIconsHelper.loadColoring(world.id);
     final medalFallback = await PdfIconsHelper.loadMedal();
     final starGold = await PdfIconsHelper.loadStarGold();
@@ -327,21 +354,31 @@ class PdfExportService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(44, 24, 24, 24),
+        margin: _getPageMargin(config),
         theme: pw.ThemeData.withFont(
           base: fontRegular,
           bold: fontBold,
           italic: fontItalic,
           fontFallback: [fontRegular, fontBold],
         ),
-        header: (context) => _buildPdfHeader(conspect, type, isPro: isPro),
+        header: (context) => _buildPdfHeader(conspect, type, isPro: isPro, styleConfig: config),
         footer: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(top: 12),
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              if (isPro)
+              if (isEco)
+                pw.Text(
+                  'Методист • Эко-печать (Zero-Toner)',
+                  style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 8),
+                )
+              else if (config.schoolName.isNotEmpty)
+                pw.Text(
+                  '${config.schoolName}${config.teacherName.isNotEmpty ? " • ${config.teacherName}" : ""}',
+                  style: pw.TextStyle(color: PdfColor.fromInt(config.brandColorHex), fontSize: 8, fontWeight: pw.FontWeight.bold),
+                )
+              else if (isPro)
                 pw.Text(
                   'Методист Pro • Премиум материалы',
                   style: const pw.TextStyle(color: PdfColors.indigo700, fontSize: 8),
@@ -356,15 +393,20 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          // Премиум шапка с маскотом
-          _buildPdfTitle(conspect, type, materialIcon, isPro: isPro, mascotImage: mascotImage, bannerImage: bannerImage),
+          _buildPdfTitle(
+            conspect,
+            type,
+            materialIcon,
+            isPro: isPro,
+            mascotImage: mascotImage,
+            bannerImage: bannerImage,
+            styleConfig: config,
+          ),
           pw.SizedBox(height: 10),
 
-          // Информация о материале и поля ученика
-          _buildMaterialInfo(conspect, type),
+          _buildMaterialInfo(conspect, type, styleConfig: config),
           pw.SizedBox(height: 12),
 
-          // Основной структурированный контент (неразрывные задания)
           ..._buildContentWidgets(
             filteredContent,
             fontRegular,
@@ -378,12 +420,10 @@ class PdfExportService {
             ageGroup: conspect.ageGroup,
           ),
 
-          // Pro: Творческая разминка / раскраска для рабочего листа (только если создана пользователем)
-          if (isPro && conspect.illustrationColoring != null)
+          if (isPro && conspect.illustrationColoring != null && !isEco)
             KeepTogether(child: _buildProColoringSection(conspect.illustrationColoring)),
 
-          // Pro: Наградной стикер / медаль для домашней работы (только если создана пользователем)
-          if (isPro && conspect.illustrationReward != null)
+          if (isPro && conspect.illustrationReward != null && !isEco)
             KeepTogether(child: _buildProRewardSection(conspect.illustrationReward)),
         ],
       ),
@@ -693,8 +733,18 @@ class PdfExportService {
     return sections;
   }
   /// Создает заголовок PDF файла
-  static pw.Widget _buildPdfHeader(Conspect conspect, PdfMaterialType type, {bool isPro = false}) {
+  static pw.Widget _buildPdfHeader(
+    Conspect conspect,
+    PdfMaterialType type, {
+    bool isPro = false,
+    PdfStyleConfig? styleConfig,
+  }) {
+    final config = styleConfig ?? const PdfStyleConfig();
     final headerText = _getMaterialHeaderText(type);
+    final isEco = config.preset == PdfPreset.ecoPrint;
+    final schoolLabel = config.schoolName.isNotEmpty ? ' • ${config.schoolName}' : '';
+    final teacherLabel = config.teacherName.isNotEmpty ? ' (${config.teacherName})' : '';
+
     return pw.Container(
       margin: const pw.EdgeInsets.only(bottom: 12),
       padding: const pw.EdgeInsets.only(bottom: 6),
@@ -706,7 +756,31 @@ class PdfExportService {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          if (isPro)
+          if (config.schoolName.isNotEmpty)
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromInt(config.brandColorHex),
+                borderRadius: pw.BorderRadius.circular(3),
+              ),
+              child: pw.Text(
+                config.schoolName.toUpperCase(),
+                style: const pw.TextStyle(color: PdfColors.white, fontSize: 7, fontWeight: pw.FontWeight.bold),
+              ),
+            )
+          else if (isEco)
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey200,
+                borderRadius: pw.BorderRadius.circular(3),
+              ),
+              child: pw.Text(
+                'ЭКО-ПЕЧАТЬ',
+                style: const pw.TextStyle(color: PdfColors.grey800, fontSize: 7, fontWeight: pw.FontWeight.bold),
+              ),
+            )
+          else if (isPro)
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
               decoration: pw.BoxDecoration(
@@ -722,7 +796,7 @@ class PdfExportService {
           else
             pw.SizedBox(),
           pw.Text(
-            '$headerText: ${conspect.methodName} — ${conspect.subject}',
+            '$headerText: ${conspect.methodName} — ${conspect.subject}$schoolLabel$teacherLabel',
             style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9),
           ),
         ],
@@ -759,11 +833,14 @@ class PdfExportService {
     pw.MemoryImage? mascotImage,
     ThematicWorld? world,
     pw.MemoryImage? bannerImage,
+    PdfStyleConfig? styleConfig,
   }) {
+    final config = styleConfig ?? const PdfStyleConfig();
+    final isEco = config.preset == PdfPreset.ecoPrint;
     final effectiveWorld = world ?? conspect.thematicWorld;
     final topic = _replaceEmojisWithSymbols(conspect.topic.isNotEmpty ? conspect.topic : conspect.title);
 
-    if (mascotImage == null && conspect.illustrationMascot != null && conspect.illustrationMascot!.isNotEmpty) {
+    if (!isEco && mascotImage == null && conspect.illustrationMascot != null && conspect.illustrationMascot!.isNotEmpty) {
       try {
         final clean = conspect.illustrationMascot!.contains(',')
             ? conspect.illustrationMascot!.split(',').last
@@ -772,11 +849,11 @@ class PdfExportService {
       } catch (_) {}
     }
 
-    final worldPrimary = effectiveWorld.pdfPrimary;
-    final worldSecondary = effectiveWorld.pdfSecondary;
-    final worldAccent = effectiveWorld.pdfAccent;
-    final bgLight = _withOpacity(worldSecondary, 0.08);
-    final borderCol = _withOpacity(worldPrimary, 0.35);
+    final worldPrimary = isEco ? PdfColors.grey800 : (config.schoolName.isNotEmpty ? PdfColor.fromInt(config.brandColorHex) : effectiveWorld.pdfPrimary);
+    final worldSecondary = isEco ? PdfColors.grey200 : effectiveWorld.pdfSecondary;
+    final worldAccent = isEco ? PdfColors.grey600 : effectiveWorld.pdfAccent;
+    final bgLight = isEco ? PdfColors.white : _withOpacity(worldSecondary, 0.08);
+    final borderCol = isEco ? PdfColors.grey400 : _withOpacity(worldPrimary, 0.35);
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -820,6 +897,21 @@ class PdfExportService {
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
+                          if (config.schoolName.isNotEmpty) ...[
+                            pw.Row(
+                              children: [
+                                pw.Text(
+                                  config.schoolName,
+                                  style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: worldPrimary),
+                                ),
+                                if (config.teacherName.isNotEmpty) ...[
+                                  pw.Text(' • Учитель: ', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+                                  pw.Text(config.teacherName, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: worldPrimary)),
+                                ],
+                              ],
+                            ),
+                            pw.SizedBox(height: 3),
+                          ],
                           pw.Row(
                             children: [
                               pw.Container(
@@ -915,21 +1007,28 @@ class PdfExportService {
   }
 
   /// Создает информационный блок материала с легким градиентом
-  static pw.Widget _buildMaterialInfo(Conspect conspect, PdfMaterialType type) {
+  static pw.Widget _buildMaterialInfo(Conspect conspect, PdfMaterialType type, {PdfStyleConfig? styleConfig}) {
+    final config = styleConfig ?? const PdfStyleConfig();
+    final bool isEco = config.preset == PdfPreset.ecoPrint;
     final bool isStudentSheet = type == PdfMaterialType.worksheet || type == PdfMaterialType.homework;
+    final bool showStudentHeader = config.showStudentHeader;
+
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: pw.BoxDecoration(
-        gradient: pw.LinearGradient(
-          begin: pw.Alignment.topLeft,
-          end: pw.Alignment.bottomRight,
-          colors: [
-            PdfColors.blue50,
-            PdfColors.indigo50,
-          ],
-        ),
+        color: isEco ? PdfColors.white : null,
+        gradient: isEco
+            ? null
+            : const pw.LinearGradient(
+                begin: pw.Alignment.topLeft,
+                end: pw.Alignment.bottomRight,
+                colors: [
+                  PdfColors.blue50,
+                  PdfColors.indigo50,
+                ],
+              ),
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: PdfColors.blue200, width: 1),
+        border: pw.Border.all(color: isEco ? PdfColors.grey400 : PdfColors.blue200, width: isEco ? 0.7 : 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -939,7 +1038,7 @@ class PdfExportService {
             children: [
               pw.Text(
                 'Предмет: ${_replaceEmojisWithSymbols(conspect.subject)} • ${_replaceEmojisWithSymbols(conspect.ageGroup)}',
-                style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: isEco ? PdfColors.grey800 : PdfColors.indigo900),
               ),
               pw.Text(
                 'Методика: ${_replaceEmojisWithSymbols(conspect.methodName)}',
@@ -947,14 +1046,14 @@ class PdfExportService {
               ),
             ],
           ),
-          if (isStudentSheet) ...[
+          if (isStudentSheet && showStudentHeader) ...[
             pw.SizedBox(height: 8),
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: pw.BoxDecoration(
                 color: PdfColors.white,
                 borderRadius: pw.BorderRadius.circular(6),
-                border: pw.Border.all(color: PdfColors.indigo200, width: 0.8),
+                border: pw.Border.all(color: isEco ? PdfColors.grey400 : PdfColors.indigo200, width: 0.8),
               ),
               child: pw.Row(
                 children: [
