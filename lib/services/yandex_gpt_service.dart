@@ -140,7 +140,7 @@ class YandexGptService {
             headers: {'Content-Type': 'application/json'},
             body: body,
           )
-          .timeout(const Duration(seconds: 150));
+          .timeout(const Duration(seconds: 240));
 
       // Diagnostic logging.
       print('generateConspect -> URL: $proxyUrl, status: ${response.statusCode}');
@@ -181,8 +181,8 @@ class YandexGptService {
           throw YandexGptException('Ошибка генерации (${response.statusCode}): ${response.body}', response.statusCode);
       }
     } on TimeoutException {
-      print('generateConspect -> Таймаут 60 секунд. URL: $proxyUrl');
-      throw YandexGptException('Превышено время ожидания ответа (60 секунд). Проверьте интернет-соединение и повторите.');
+      print('generateConspect -> Таймаут 240 секунд (4 минуты). URL: $proxyUrl');
+      throw YandexGptException('Превышено время ожидания ответа сервера (4 минуты). При высокой нагрузке или формировании полного комплекта серверу требуется больше времени. Попробуйте повторить запрос.');
     } catch (e) {
       if (e is YandexGptException) rethrow;
       print('generateConspect -> URL: $proxyUrl, ошибка: $e');

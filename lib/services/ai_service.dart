@@ -450,7 +450,7 @@ class AiService {
           'Accept': 'application/json',
         },
         body: body,
-      ).timeout(const Duration(seconds: 150));
+      ).timeout(const Duration(seconds: 240));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -515,7 +515,7 @@ class AiService {
           'Content-Type': 'application/json',
         },
         body: body,
-      ).timeout(const Duration(seconds: 150));
+      ).timeout(const Duration(seconds: 240));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -591,7 +591,7 @@ class AiService {
           'x-goog-api-key': apiKey.trim(),
         },
         body: body,
-      ).timeout(const Duration(seconds: 150));
+      ).timeout(const Duration(seconds: 240));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -812,7 +812,7 @@ class AiService {
         'temperature': 0.6,
         'max_tokens': 8000,
       }),
-    ).timeout(const Duration(seconds: 150));
+    ).timeout(const Duration(seconds: 240));
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));

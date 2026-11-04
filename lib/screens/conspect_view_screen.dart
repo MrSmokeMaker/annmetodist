@@ -1330,10 +1330,14 @@ ${_currentConspect!.content}
             children: [
               // 1. Loading State
               if (_isLoading)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.lg),
-                    child: ThinkingIndicator(),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: ThinkingIndicator(
+                      materials: widget.materials,
+                      isDeepLesson: widget.isDeepLesson,
+                      topic: widget.topicTitle,
+                    ),
                   ),
                 )
 
