@@ -793,7 +793,7 @@ ${_currentConspect!.content}
                               children: [
                                 Text('Визуальный PDF-Конструктор', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                                 SizedBox(width: 6),
-                                Text('👑 ДИРЕКТОР', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                                Text('👑', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
                               ],
                             ),
                             SizedBox(height: 2),
@@ -933,7 +933,7 @@ ${_currentConspect!.content}
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        '👑 ДИРЕКТОР',
+                        '👑',
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.bold,
@@ -4826,7 +4826,7 @@ ${_currentConspect!.content}
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      'ТАРИФ ДИРЕКТОР',
+                      '👑',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -5150,7 +5150,7 @@ ${_currentConspect!.content}
                             ),
                           ),
                           child: const Text(
-                            'ДИРЕКТОР',
+                            '👑',
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,

@@ -25,6 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double _weeklyLessons = 16.0;
   DepartmentTeam _team = DepartmentTeam.createDefault();
   final TextEditingController _inviteEmailCtrl = TextEditingController();
+  int _comparisonPlanIndex = 1; // 0: Free, 1: Practice (Hit), 2: Pro, 3: Director
+  bool _comparisonShowTable = false; // mobile view switcher: false = by plan cards, true = sticky matrix
 
   @override
   void dispose() {
@@ -421,93 +423,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Comparison Table
-                  GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    borderRadius: AppRadii.lg,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Подробное сравнение тарифов',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2),
-                        ),
-                        const SizedBox(height: 14),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            columnSpacing: 22,
-                            headingTextStyle: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                            ),
-                            columns: const [
-                              DataColumn(label: Text('Возможность')),
-                              DataColumn(label: Text('Старт (0 ₽)')),
-                              DataColumn(label: Text('Практик (Хит)')),
-                              DataColumn(label: Text('Pro (Максимум)')),
-                            ],
-                            rows: const [
-                              DataRow(cells: [
-                                DataCell(Text('Генераций конспектов')),
-                                DataCell(Text('5 / мес')),
-                                DataCell(Text('60 / мес (все уроки)')),
-                                DataCell(Text('Безлимитно ✨')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Рабочие листы (6 механик)')),
-                                DataCell(Text('—')),
-                                DataCell(Text('Включено 📝')),
-                                DataCell(Text('Включено 📝')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Домашние задания + памятки')),
-                                DataCell(Text('—')),
-                                DataCell(Text('Включено 👨‍👩‍👧')),
-                                DataCell(Text('Включено 👨‍👩‍👧')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Режим Eco-Print (экономия тонера)')),
-                                DataCell(Text('—')),
-                                DataCell(Text('Включено 🌿')),
-                                DataCell(Text('Включено 🌿')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Адаптация ОВЗ / ЗПР')),
-                                DataCell(Text('—')),
-                                DataCell(Text('—')),
-                                DataCell(Text('Включено 💡')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Экспорт документов')),
-                                DataCell(Text('Текст')),
-                                DataCell(Text('Премиум PDF')),
-                                DataCell(Text('PDF + Word (DOCX)')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Аудио-скрипт для родителей')),
-                                DataCell(Text('—')),
-                                DataCell(Text('—')),
-                                DataCell(Text('Включено 🎙️')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Совместный доступ')),
-                                DataCell(Text('1 педагог')),
-                                DataCell(Text('1 педагог')),
-                                DataCell(Text('До 3 педагогов 👥')),
-                              ]),
-                              DataRow(cells: [
-                                DataCell(Text('Облачное хранилище')),
-                                DataCell(Text('10 уроков')),
-                                DataCell(Text('200 уроков')),
-                                DataCell(Text('Безлимитно')),
-                              ]),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Comparison Table (Adaptive for portrait and landscape)
+                  _buildAdaptiveComparisonSection(isDark),
 
                   const SizedBox(height: 60),
                 ],
@@ -518,6 +435,646 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  /// Адаптивное сравнение тарифов (учитывает портретную и альбомную ориентацию смартфона)
+  Widget _buildAdaptiveComparisonSection(bool isDark) {
+    const features = [
+      (
+        title: 'Генераций конспектов',
+        category: 'Базовые',
+        free: '5 / мес',
+        practice: '60 / мес',
+        pro: 'Безлимитно ✨',
+        director: 'Безлимитно ✨',
+      ),
+      (
+        title: 'Рабочие листы (6 механик)',
+        category: 'Дидактика',
+        free: '—',
+        practice: 'Включено 📝',
+        pro: 'Включено 📝',
+        director: 'Включено 📝',
+      ),
+      (
+        title: 'Домашние задания + памятки',
+        category: 'Дидактика',
+        free: '—',
+        practice: 'Включено 👨‍👩‍👧',
+        pro: 'Включено 👨‍👩‍👧',
+        director: 'Включено 👨‍👩‍👧',
+      ),
+      (
+        title: 'Режим Eco-Print (экономия)',
+        category: 'Печать',
+        free: '—',
+        practice: 'Включено 🌿',
+        pro: 'Включено 🌿',
+        director: 'Включено 🌿',
+      ),
+      (
+        title: 'Адаптация ОВЗ / ЗПР',
+        category: 'Инклюзия',
+        free: '—',
+        practice: '—',
+        pro: 'Включено 💡',
+        director: 'Включено 💡',
+      ),
+      (
+        title: 'Экспорт документов',
+        category: 'Форматы',
+        free: 'Текст',
+        practice: 'Премиум PDF',
+        pro: 'PDF + Word (DOCX)',
+        director: 'PDF + DOCX + API',
+      ),
+      (
+        title: 'Арт-пакет & Раскраски',
+        category: 'Графика',
+        free: '—',
+        practice: 'Базовый',
+        pro: 'Студия раскрасок 🎨',
+        director: 'Свой маскот & стили 👑',
+      ),
+      (
+        title: 'Аудио-скрипт & Диктант',
+        category: 'Медиа',
+        free: '—',
+        practice: '—',
+        pro: 'Включено 🎙️',
+        director: 'Включено 🎙️',
+      ),
+      (
+        title: 'Улучшить с MetodistPro AI',
+        category: 'ИИ-эксперт',
+        free: '—',
+        practice: '—',
+        pro: '—',
+        director: 'Включено ✨',
+      ),
+      (
+        title: 'Пакет курса на четверть',
+        category: 'Пакеты',
+        free: '—',
+        practice: '—',
+        pro: '—',
+        director: '15–30 уроков в ZIP 📦',
+      ),
+      (
+        title: 'Совместный доступ',
+        category: 'Команда',
+        free: '1 педагог',
+        practice: '1 педагог',
+        pro: 'До 3 педагогов 👥',
+        director: 'Кафедра (до 5) 🏫',
+      ),
+      (
+        title: 'Облачное хранилище',
+        category: 'Память',
+        free: '10 уроков',
+        practice: '200 уроков',
+        pro: 'Безлимитно ☁️',
+        director: 'Безлимитно ☁️',
+      ),
+    ];
+
+    const plans = [
+      (
+        id: 'free',
+        name: 'Старт',
+        price: '0 ₽',
+        badge: 'Базовый',
+        color: Color(0xFF64748B),
+      ),
+      (
+        id: 'practice',
+        name: 'Практик',
+        price: '199 ₽/мес',
+        badge: 'ХИТ',
+        color: Color(0xFF2563EB),
+      ),
+      (
+        id: 'pro',
+        name: 'Методист Pro',
+        price: '449 ₽/мес',
+        badge: 'МАКСИМУМ',
+        color: Color(0xFF7C3AED),
+      ),
+      (
+        id: 'director',
+        name: 'Директор',
+        price: '1199 ₽/мес',
+        badge: '👑 ФЛАГМАН',
+        color: Color(0xFFD97706),
+      ),
+    ];
+
+    String getValueForPlan(int planIndex, dynamic feat) {
+      switch (planIndex) {
+        case 0:
+          return feat.free;
+        case 1:
+          return feat.practice;
+        case 2:
+          return feat.pro;
+        case 3:
+          return feat.director;
+        default:
+          return feat.practice;
+      }
+    }
+
+    Widget buildBadgeCell(String val, Color planColor) {
+      final isNone = val == '—';
+      final isIncluded = val.contains('Включено') || val.contains('✓');
+      final isUnlimited = val.contains('Безлимитно');
+      final isSpecial = val.contains('👑') || val.contains('📦') || val.contains('🎨');
+
+      if (isNone) {
+        return const Center(
+          child: Text(
+            '—',
+            style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+        );
+      }
+
+      Color bg = planColor.withOpacity(0.12);
+      Color textCol = planColor;
+      if (isIncluded) {
+        bg = const Color(0xFF10B981).withOpacity(0.15);
+        textCol = const Color(0xFF059669);
+      } else if (isUnlimited) {
+        bg = const Color(0xFF8B5CF6).withOpacity(0.18);
+        textCol = const Color(0xFF7C3AED);
+      } else if (isSpecial) {
+        bg = const Color(0xFFF59E0B).withOpacity(0.20);
+        textCol = const Color(0xFFD97706);
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          val,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : textCol,
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
+
+        return GlassCard(
+          padding: const EdgeInsets.all(16),
+          borderRadius: AppRadii.lg,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with Title & Mode Switcher (on mobile)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Подробное сравнение тарифов',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Все возможности и лимиты для учителя и школы',
+                          style: TextStyle(fontSize: 11.5, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isWide)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(3),
+                      child: Row(
+                        children: [
+                          InkWell(
+                            onTap: () => setState(() => _comparisonShowTable = false),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: !_comparisonShowTable
+                                    ? (isDark ? AppColors.primaryIndigo : Colors.white)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: !_comparisonShowTable
+                                    ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                    : null,
+                              ),
+                              child: Icon(
+                                Icons.view_carousel_rounded,
+                                size: 16,
+                                color: !_comparisonShowTable
+                                    ? (isDark ? Colors.white : AppColors.primaryIndigo)
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => setState(() => _comparisonShowTable = true),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _comparisonShowTable
+                                    ? (isDark ? AppColors.primaryIndigo : Colors.white)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: _comparisonShowTable
+                                    ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                    : null,
+                              ),
+                              child: Icon(
+                                Icons.table_chart_rounded,
+                                size: 16,
+                                color: _comparisonShowTable
+                                    ? (isDark ? Colors.white : AppColors.primaryIndigo)
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // VIEW 1: Wide Desktop / Landscape Full Matrix (No scroll needed)
+              if (isWide) ...[
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(2.6),
+                    1: FlexColumnWidth(1.4),
+                    2: FlexColumnWidth(1.7),
+                    3: FlexColumnWidth(1.7),
+                    4: FlexColumnWidth(1.8),
+                  },
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  children: [
+                    // Header Row
+                    TableRow(
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          child: Text(
+                            'Возможность',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        for (int p = 0; p < plans.length; p++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                            child: Column(
+                              children: [
+                                Text(
+                                  plans[p].name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12.5,
+                                    color: plans[p].color,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  plans[p].price,
+                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    // Data Rows
+                    for (int i = 0; i < features.length; i++)
+                      TableRow(
+                        decoration: BoxDecoration(
+                          color: (i % 2 == 1)
+                              ? (isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.015))
+                              : Colors.transparent,
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                            child: Text(
+                              features[i].title,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          for (int p = 0; p < plans.length; p++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                              child: buildBadgeCell(getValueForPlan(p, features[i]), plans[p].color),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ]
+              // VIEW 2: Mobile Portrait - Interactive Plan Carousel / Card Mode (Default)
+              else if (!_comparisonShowTable) ...[
+                // Plan Tabs Row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int p = 0; p < plans.length; p++)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  plans[p].name,
+                                  style: TextStyle(
+                                    fontWeight: _comparisonPlanIndex == p ? FontWeight.w800 : FontWeight.w600,
+                                    fontSize: 12,
+                                    color: _comparisonPlanIndex == p
+                                        ? Colors.white
+                                        : (isDark ? Colors.white70 : Colors.black87),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: _comparisonPlanIndex == p
+                                        ? Colors.white24
+                                        : plans[p].color.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    plans[p].badge,
+                                    style: TextStyle(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: _comparisonPlanIndex == p ? Colors.white : plans[p].color,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            selected: _comparisonPlanIndex == p,
+                            selectedColor: plans[p].color,
+                            backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                            onSelected: (val) {
+                              if (val) setState(() => _comparisonPlanIndex = p);
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Selected Plan Feature Checklist
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: plans[_comparisonPlanIndex].color.withOpacity(isDark ? 0.08 : 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: plans[_comparisonPlanIndex].color.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                plans[_comparisonPlanIndex].name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: plans[_comparisonPlanIndex].color,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: plans[_comparisonPlanIndex].color.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  plans[_comparisonPlanIndex].price,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: plans[_comparisonPlanIndex].color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Тариф ${_comparisonPlanIndex + 1} из ${plans.length}',
+                            style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Divider(color: plans[_comparisonPlanIndex].color.withOpacity(0.2), height: 1),
+                      const SizedBox(height: 6),
+
+                      for (int i = 0; i < features.length; i++) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  features[i].title,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: buildBadgeCell(
+                                    getValueForPlan(_comparisonPlanIndex, features[i]),
+                                    plans[_comparisonPlanIndex].color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (i < features.length - 1)
+                          Divider(
+                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                            height: 1,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ]
+              // VIEW 3: Mobile Portrait - Sticky Left Column Matrix with Horizontal Scroll
+              else ...[
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.swipe_rounded, size: 14, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        'Листайте вправо для просмотра всех 4 тарифов →',
+                        style: TextStyle(fontSize: 10.5, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Sticky Left Column (Feature Names)
+                    SizedBox(
+                      width: 124,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 40,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                            child: const Text(
+                              'Возможность',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                          ),
+                          for (int i = 0; i < features.length; i++)
+                            Container(
+                              height: 44,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              decoration: BoxDecoration(
+                                color: (i % 2 == 1)
+                                    ? (isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02))
+                                    : Colors.transparent,
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                                    width: 0.5,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                features[i].title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Horizontally Scrollable Tariffs Area
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (int p = 0; p < plans.length; p++)
+                              SizedBox(
+                                width: p == 3 ? 120 : (p == 0 ? 86 : 100),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      height: 40,
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      color: plans[p].color.withOpacity(isDark ? 0.15 : 0.08),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            plans[p].name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 11,
+                                              color: plans[p].color,
+                                            ),
+                                          ),
+                                          Text(
+                                            plans[p].price,
+                                            style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    for (int i = 0; i < features.length; i++)
+                                      Container(
+                                        height: 44,
+                                        alignment: Alignment.center,
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        decoration: BoxDecoration(
+                                          color: (i % 2 == 1)
+                                              ? (isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02))
+                                              : Colors.transparent,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                                              width: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: buildBadgeCell(getValueForPlan(p, features[i]), plans[p].color),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   /// Карточка одного тарифа
   Widget _buildPricingCard(PricingPlan plan, String currentTier) {
