@@ -80,22 +80,6 @@ void main() {
       expect(grade2Topics.first.id, 'pchelko_math_grade_2_1');
     });
 
-    test('3. PromptBuilder includes role shifts when roleShiftingMode is true', () {
-      final prompt = PromptBuilder.buildSystemPrompt(
-        methodBlock: 'Сингапурский метод (CPA & PISA)',
-        topic: 'Сложение чисел в пределах 10',
-        ageGroup: '1 класс',
-        duration: '40 минут',
-        roleShiftingMode: true,
-        ecoLowTechMode: false,
-      );
-
-      expect(prompt, contains('ДИНАМИЧЕСКИЕ СМЕНЫ РОЛЕЙ'));
-      expect(prompt, contains('Штурман'));
-      expect(prompt, contains('Летописец'));
-      expect(prompt, contains('Контролёр с зелёным карандашом'));
-      expect(prompt, contains('Спикер'));
-    });
 
     test('4. PromptBuilder includes Low-Tech Kitchen Lab and Chalkboard Canvas when ecoLowTechMode is true', () {
       final prompt = PromptBuilder.buildSystemPrompt(
@@ -103,7 +87,6 @@ void main() {
         topic: 'Сложение чисел в пределах 10',
         ageGroup: '1 класс',
         duration: '40 минут',
-        roleShiftingMode: false,
         ecoLowTechMode: true,
       );
 
@@ -186,7 +169,6 @@ void main() {
       expect(prompts.any((p) => p.title.contains('ЗПР / ОВЗ')), isTrue);
       expect(prompts.any((p) => p.title.contains('Пособие из подручных средств')), isTrue);
       expect(prompts.any((p) => p.title.contains('Сингапурский CPA-мостик')), isTrue);
-      expect(prompts.any((p) => p.title.contains('Смена ролей в парах')), isTrue);
       expect(prompts.any((p) => p.title.contains('PISA-кейс в селе')), isTrue);
     });
 

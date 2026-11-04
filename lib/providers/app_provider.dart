@@ -620,7 +620,6 @@ class AppProvider with ChangeNotifier {
     bool useEnhancedPrompts = true, // Новый параметр для использования улучшенных промптов
     bool isDeepLesson = false,
     bool inclusionMode = false,
-    bool roleShiftingMode = true,
     bool ecoLowTechMode = false,
   }) async {
     // Проверка кеша для одиночной генерации
@@ -662,7 +661,6 @@ class AppProvider with ChangeNotifier {
         materials: materials,
         inclusionMode: inclusionMode,
         miniModuleMode: false,
-        roleShiftingMode: roleShiftingMode,
         ecoLowTechMode: ecoLowTechMode || method.id == 'singapore_cpa',
       );
 
@@ -840,7 +838,6 @@ class AppProvider with ChangeNotifier {
     Set<GenerationType>? materials,
     bool isDeepLesson = false,
     bool inclusionMode = false,
-    bool roleShiftingMode = true,
     bool ecoLowTechMode = false,
   }) async {
     _isGenerating = true;

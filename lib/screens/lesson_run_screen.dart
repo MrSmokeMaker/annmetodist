@@ -40,88 +40,6 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
 
   double _fontSizeMultiplier = 1.0;
 
-  int _roleShiftIndex = 0;
-  static const List<Map<String, String>> _roleShifts = [
-    {
-      'title': 'Смена ролей: Штурман и Писец',
-      'desc': 'Штурман читает задание и вслух ведёт мысль, Писец записывает шаги в тетради!',
-      'badge': '🧭 ШТУРМАН ⇄ ✍️ ЛЕТОПИСЕЦ',
-    },
-    {
-      'title': 'Смена ролей: Контролёр с зелёным карандашом',
-      'desc': 'Контролёр сверяет решение с правилом и выделяет верный шаг зелёным карандашом!',
-      'badge': '🟢 КОНТРОЛЁР ⇄ 💡 ГЕНЕРАТОР',
-    },
-    {
-      'title': 'Смена ролей: Спикер и Аналитик',
-      'desc': 'Спикер формулирует ответ для класса, Аналитик проверяет, нет ли ошибок и ловушек!',
-      'badge': '📢 СПИКЕР ⇄ 🔍 АНАЛИТИК',
-    },
-    {
-      'title': 'Смена ролей: Таймкипер и Организатор',
-      'desc': 'Таймкипер следит за минутами этапа, Организатор помогает паре работать дружно вполголоса!',
-      'badge': '⏱️ ТАЙМКИПЕР ⇄ 🤫 ОРГАНИЗАТОР',
-    },
-  ];
-
-  void _triggerRoleShift() {
-    AudioSpeechService.instance.playClickGong();
-    final shift = _roleShifts[_roleShiftIndex % _roleShifts.length];
-    _roleShiftIndex++;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF43F5E).withOpacity(0.25),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.theater_comedy_rounded, color: Color(0xFFF43F5E), size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    shift['badge']!,
-                    style: const TextStyle(
-                      color: Color(0xFFFDA4AF),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    shift['desc']!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Colors.white,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0x44F43F5E), width: 1.2),
-        ),
-        duration: const Duration(seconds: 5),
-      ),
-    );
-  }
-
   void _ringSilenceBell() {
     AudioSpeechService.instance.playSchoolBell();
     final rhyme = _silenceRhymes[_rhymeIndex % _silenceRhymes.length];
@@ -383,7 +301,6 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
         const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevStage,
         const SingleActivator(LogicalKeyboardKey.keyR): _repeatStage,
         const SingleActivator(LogicalKeyboardKey.keyB): _ringSilenceBell,
-        const SingleActivator(LogicalKeyboardKey.keyS): _triggerRoleShift,
       },
       child: Focus(
         autofocus: true,
@@ -439,12 +356,6 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
-              // 🎭 Смена ролей учеников (Сингапур / Кооперация)
-              IconButton(
-                tooltip: 'Смена ролей учеников в парах (S)',
-                icon: const Icon(Icons.theater_comedy_rounded, color: Color(0xFFF43F5E), size: 22),
-                onPressed: _triggerRoleShift,
-              ),
               // 🔔 Звонок тишины (Web Audio API)
               IconButton(
                 tooltip: 'Звонок тишины (B) — привлечь внимание',
@@ -706,34 +617,6 @@ class _LessonRunScreenState extends State<LessonRunScreen> {
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      InkWell(
-                                        onTap: _triggerRoleShift,
-                                        borderRadius: BorderRadius.circular(AppRadii.pill),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF43F5E).withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(AppRadii.pill),
-                                            border: Border.all(color: const Color(0x33F43F5E)),
-                                          ),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.theater_comedy_rounded, size: 13, color: Color(0xFFF43F5E)),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                'Роли (S)',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFFF43F5E),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
                                         ),
                                       ),
                                     ],

@@ -12,7 +12,6 @@ import '../widgets/ambient_background.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/glass_text_field.dart';
 import '../widgets/gradient_button.dart';
-import '../services/lesson_context_service.dart';
 import 'conspect_view_screen.dart';
 import 'settings_screen.dart';
 import 'quarter_planning_screen.dart';
@@ -58,9 +57,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
 
   // Режим нейроадаптации и инклюзии (ОВЗ / СДВГ / Дислексия)
   bool _isInclusionMode = false;
-
-  // Кооперативное обучение и смены ролей в парах
-  bool _isRoleShiftingEnabled = true;
 
   // Лаборатория подручных материалов (CPA) и меловая доска (Zero-Paper)
   bool _isEcoLowTechEnabled = false;
@@ -263,7 +259,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           materials: _selectedMaterials,
           isDeepLesson: _isDeepLesson,
           inclusionMode: _isInclusionMode,
-          roleShiftingMode: _isRoleShiftingEnabled,
           ecoLowTechMode: _isEcoLowTechEnabled,
           isNewGeneration: true,
         ),
@@ -563,7 +558,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
                       _selectedTopic = null;
                       if (method.id == 'singapore_cpa') {
                         _isEcoLowTechEnabled = true;
-                        _isRoleShiftingEnabled = true;
                       }
                     });
                   }
@@ -1123,76 +1117,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
 
           const SizedBox(height: AppSpacing.md),
 
-          // Выбор материалов (чипы)
-          Text(
-            'Что генерировать:',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: GenerationType.values.map((type) {
-              final isSelected = _selectedMaterials.contains(type);
-              return InkWell(
-                onTap: () => setState(() {
-                  if (isSelected) {
-                    if (_selectedMaterials.length > 1) {
-                      _selectedMaterials.remove(type);
-                    }
-                  } else {
-                    _selectedMaterials.add(type);
-                  }
-                }),
-                borderRadius: BorderRadius.circular(AppRadii.sm),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (isDark ? AppColors.primaryIndigo : AppColors.primaryIndigo)
-                        : (isDark ? const Color(0x14FFFFFF) : Colors.black.withOpacity(0.04)),
-                    borderRadius: BorderRadius.circular(AppRadii.sm),
-                    border: Border.all(
-                      color: isSelected
-                          ? Colors.transparent
-                          : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        size: 14,
-                        color: isSelected ? Colors.white : (isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        type.label,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.md),
-
           // Переключатель «Глубокий развернутый урок (2000-3000+ слов)»
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1272,86 +1196,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
 
           const SizedBox(height: AppSpacing.sm),
 
-          // Переключатель: Смены ролей учеников (Кооперативное обучение)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0x12FFFFFF) : Colors.white,
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(
-                color: _isRoleShiftingEnabled
-                    ? const Color(0xFF8B5CF6).withOpacity(0.5)
-                    : (isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: _isRoleShiftingEnabled ? AppGradients.violetMagenta : null,
-                    color: _isRoleShiftingEnabled ? null : (isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.06)),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.people_outline_rounded,
-                    size: 18,
-                    color: _isRoleShiftingEnabled ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Смены ролей в парах',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Кооперация',
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF8B5CF6),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Штурман (мыслит) ➔ Летописец (пишет) ➔ Контролёр с зелёным карандашом (проверяет)',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch.adaptive(
-                  value: _isRoleShiftingEnabled,
-                  activeColor: const Color(0xFF8B5CF6),
-                  onChanged: (val) => setState(() => _isRoleShiftingEnabled = val),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.sm),
 
           // Переключатель: Лаборатория подручных материалов & Меловая доска
           Container(
@@ -1514,104 +1358,6 @@ class _NewConspectScreenState extends State<NewConspectScreen> {
           ),
 
           const SizedBox(height: AppSpacing.md),
-
-          // Радар безопасности контекста модели
-          _buildTokenRadarWidget(isDark),
-        ],
-      ),
-    );
-  }
-
-  /// Виджет мониторинга токенов и безопасности контекстного окна модели
-  Widget _buildTokenRadarWidget(bool isDark) {
-    final estimate = LessonContextService.evaluateLessonParams(
-      modelName: 'yandexgpt',
-      isDeepLesson: _isDeepLesson,
-      variantsCount: _variantsCount,
-    );
-
-    final isSafe = estimate.fitsInContext && estimate.contextUsagePercent <= 80;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0x10FFFFFF) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(
-          color: isSafe
-              ? const Color(0xFF10B981).withOpacity(0.35)
-              : const Color(0xFFF59E0B).withOpacity(0.4),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    isSafe ? Icons.shield_rounded : Icons.info_outline_rounded,
-                    size: 16,
-                    color: isSafe ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Токен-радар MetodistPRO',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '≈ ${estimate.estimatedWords} слов  /  ${estimate.estimatedTokens} токенов',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryIndigo,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (estimate.contextUsagePercent / 100).clamp(0.0, 1.0),
-              minHeight: 5,
-              backgroundColor: isDark ? const Color(0x20FFFFFF) : Colors.black.withOpacity(0.06),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isSafe ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  estimate.statusDescription,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                  ),
-                ),
-              ),
-              Text(
-                'Лимит: ${estimate.modelContextLimit} ток.',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

@@ -58,7 +58,6 @@ class ConspectViewScreen extends StatefulWidget {
   final Set<GenerationType>? materials;
   final bool isDeepLesson;
   final bool inclusionMode;
-  final bool roleShiftingMode;
   final bool ecoLowTechMode;
 
   const ConspectViewScreen({
@@ -77,7 +76,6 @@ class ConspectViewScreen extends StatefulWidget {
     this.materials,
     this.isDeepLesson = false,
     this.inclusionMode = false,
-    this.roleShiftingMode = true,
     this.ecoLowTechMode = false,
   });
 
@@ -200,7 +198,6 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
           inclusionMode: widget.inclusionMode,
-          roleShiftingMode: widget.roleShiftingMode,
           ecoLowTechMode: widget.ecoLowTechMode,
         );
 
@@ -225,7 +222,6 @@ class _ConspectViewScreenState extends State<ConspectViewScreen>
           materials: widget.materials,
           isDeepLesson: widget.isDeepLesson,
           inclusionMode: widget.inclusionMode,
-          roleShiftingMode: widget.roleShiftingMode,
           ecoLowTechMode: widget.ecoLowTechMode,
         );
 
