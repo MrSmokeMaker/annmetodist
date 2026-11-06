@@ -1606,7 +1606,7 @@ class PdfExportService {
           final dx = size.y / 2.1445;
           const step = 14.0;
           for (double x = -dx; x < size.x + dx; x += step) {
-            canvas.drawLine(x + dx, 0, x, size.y);
+            canvas.drawLine(x, 0, x + dx, size.y);
           }
           canvas.strokePath();
         },
@@ -1785,6 +1785,9 @@ class PdfExportService {
     String? ageGroup,
   }) {
     // Аудит и нормализация вёрстки: гарантируем привязку дидактических полей и эталонов методик
+    final bool isMathSubject = (subject != null && subject.toLowerCase().contains('\u043c\u0430\u0442\u0435\u043c')) ||
+        (topic != null && (topic.toLowerCase().contains('\u0441\u0447\u0435\u0442') || topic.toLowerCase().contains('\u0447\u0438\u0441\u043b\u0430') || topic.toLowerCase().contains('\u0441\u043b\u043e\u0436\u0435\u043d\u0438\u0435') || topic.toLowerCase().contains('\u0432\u044b\u0447\u0438\u0442\u0430\u043d\u0438\u0435')));
+
     final audit = PdfLayoutIntegrityValidator.auditAndRepair(
       content,
       type: isWorksheetOrHomework ? PdfMaterialType.worksheet : PdfMaterialType.conspect,
@@ -1801,24 +1804,32 @@ class PdfExportService {
     int currentLevel = 0;
     List<String> currentBlockLines = [];
     int taskNumber = 0;
+    pw.Widget? pendingSectionHeader;
     String? pendingLevelHeader;
 
     void addCardWidget(pw.Widget card) {
+      final children = <pw.Widget>[];
+      if (pendingSectionHeader != null) {
+        children.add(pendingSectionHeader!);
+        children.add(pw.SizedBox(height: 4));
+        pendingSectionHeader = null;
+      }
       if (pendingLevelHeader != null) {
-        final levelHeaderWidget = _buildLevelHeader(pendingLevelHeader!);
+        children.add(_buildLevelHeader(pendingLevelHeader!));
+        children.add(pw.SizedBox(height: 4));
         pendingLevelHeader = null;
+      }
+      children.add(card);
+
+      if (children.length == 1) {
+        widgets.add(KeepTogether(child: card));
+      } else {
         widgets.add(KeepTogether(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              levelHeaderWidget,
-              pw.SizedBox(height: 4),
-              card,
-            ],
+            children: children,
           ),
         ));
-      } else {
-        widgets.add(KeepTogether(child: card));
       }
     }
 
@@ -1856,9 +1867,20 @@ class PdfExportService {
 
         final iconName = PdfIconsHelper.getSectionIconName(header);
         final iconImage = sectionIcons[iconName];
-        widgets.add(_buildSectionHeader(header, iconImage));
+        final sectionWidget = _buildSectionHeader(header, iconImage);
         if (lines.isNotEmpty) {
-          widgets.add(_buildLinesContent(lines));
+          widgets.add(KeepTogether(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                sectionWidget,
+                pw.SizedBox(height: 4),
+                _buildLinesContent(lines, isMath: isMathSubject),
+              ],
+            ),
+          ));
+        } else {
+          pendingSectionHeader = sectionWidget;
         }
         return;
       }
@@ -1928,7 +1950,7 @@ class PdfExportService {
 
       // 8. Ловушка Незнайки / Ловушка для внимательных
       if (type == 'trap' || lowerHeader.contains('ловушка') || fullText.contains('ловушка незнайки') || fullText.contains('найди ошибки')) {
-        addCardWidget(_buildTrapCard(header, lines, currentTaskNum));
+        addCardWidget(_buildTrapCard(header, lines, currentTaskNum, isMath: isMathSubject));
         return;
       }
 
@@ -2041,7 +2063,7 @@ class PdfExportService {
       }
 
       // 11. Стандартная неделимая карточка задания
-      addCardWidget(_buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework));
+      addCardWidget(_buildStandardTaskCard(header, lines, currentTaskNum, isWorksheetOrHomework, isMath: isMathSubject));
     }
 
     for (final rawLine in rawLines) {
@@ -2172,6 +2194,10 @@ class PdfExportService {
       currentBlockLines.add(trimmed);
     }
     flushCurrentBlock();
+    if (pendingSectionHeader != null) {
+      widgets.add(KeepTogether(child: pendingSectionHeader!));
+      pendingSectionHeader = null;
+    }
     if (pendingLevelHeader != null) {
       widgets.add(_buildLevelHeader(pendingLevelHeader!));
       pendingLevelHeader = null;
@@ -2529,7 +2555,7 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[клетка]')).toList()),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('[клетка]') && !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList(), isMath: true),
           ],
           pw.SizedBox(height: 6),
           pw.Text('Запиши решение и ответ по клеткам 5х5 мм (1 цифра в 1 клетке):',
@@ -2665,7 +2691,7 @@ class PdfExportService {
   }
 
   /// Карточка «Ловушка Незнайки»
-  static pw.Widget _buildTrapCard(String header, List<String> lines, int num) {
+  static pw.Widget _buildTrapCard(String header, List<String> lines, int num, {bool isMath = false}) {
     final sanitized = sanitizeTaskHeader(header);
     var displayHeader = sanitized.title;
     if (displayHeader.toLowerCase().startsWith('ловушка незнайки:')) {
@@ -2676,6 +2702,14 @@ class PdfExportService {
     if (displayHeader.isEmpty) {
       displayHeader = 'Найди и исправь хитрые ошибки';
     }
+
+    final fullText = (header + ' ' + lines.join(' ')).toLowerCase();
+    final bool isMathTrap = isMath ||
+        (!fullText.contains('слово') &&
+            !fullText.contains('букв') &&
+            !fullText.contains('предложен') &&
+            !fullText.contains('звук') &&
+            (fullText.contains('вычисл') || fullText.contains('пример') || fullText.contains('чисел') || fullText.contains('число') || RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullText)));
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -2709,12 +2743,21 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
+            _buildLinesContent(
+              lines.where((l) => !l.toLowerCase().contains('линии для ответа') && !l.contains('____') && !l.toLowerCase().contains('[прописи]') && !l.toLowerCase().contains('[клетка]')).toList(),
+              isMath: isMathTrap,
+            ),
           ],
           pw.SizedBox(height: 6),
-          pw.Text('Исправленный вариант запиши каллиграфически правильно:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
-          pw.SizedBox(height: 3),
-          _buildNarrowObliqueRuling(rows: 3),
+          if (isMathTrap) ...[
+            pw.Text('Исправленное решение запиши аккуратно по клеткам:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
+            pw.SizedBox(height: 3),
+            _buildMathGridArea(height: 56),
+          ] else ...[
+            pw.Text('Исправленный вариант запиши каллиграфически правильно:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF92400E))),
+            pw.SizedBox(height: 3),
+            _buildNarrowObliqueRuling(rows: 3),
+          ],
         ],
       ),
     );
@@ -3131,7 +3174,7 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
           pw.SizedBox(height: 6),
           // Таблица-ключ дешифратора
@@ -3296,7 +3339,7 @@ class PdfExportService {
           ),
           if (lines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(lines),
+            _buildLinesContent(lines.where((l) => !l.toLowerCase().contains('линии для ответа') && !l.contains('____')).toList()),
           ],
           pw.SizedBox(height: 6),
           pw.Row(
@@ -4208,7 +4251,7 @@ class PdfExportService {
     );
   }
 
-  static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet) {
+  static pw.Widget _buildStandardTaskCard(String header, List<String> lines, int num, bool isWorksheet, {bool isMath = false}) {
     final sanitized = sanitizeTaskHeader(header);
     var displayHeader = sanitized.title.isNotEmpty ? sanitized.title : 'Выполни задание';
     final List<String> effectiveLines = List<String>.from(lines);
@@ -4242,13 +4285,13 @@ class PdfExportService {
         fullContent.contains('сказк') ||
         fullContent.contains('стихотворен');
 
-    final isMathTask = !isRussianOrLanguage &&
+    final isMathTask = isMath || (!isRussianOrLanguage &&
         (fullContent.contains('вычисли') ||
             fullContent.contains('реши пример') ||
             fullContent.contains('задач') ||
             fullContent.contains('счет') ||
             fullContent.contains('уравнени') ||
-            RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent));
+            RegExp(r'\d+\s*[\+\-\*\/]\s*\d+').hasMatch(fullContent)));
 
     final bool isPureSample = displayHeader.toLowerCase().contains('образец выполнения') && !effectiveLines.any((l) => l.contains('1)') || l.contains('____'));
     final bool alreadyHasAnswerArea = effectiveLines.any((l) {
@@ -4295,7 +4338,7 @@ class PdfExportService {
           ),
           if (effectiveLines.isNotEmpty) ...[
             pw.SizedBox(height: 6),
-            _buildLinesContent(effectiveLines),
+            _buildLinesContent(effectiveLines, isMath: isMathTask),
           ],
           if (isWorksheet && !alreadyHasAnswerArea && !isPureSample) ...[
             pw.SizedBox(height: 6),
@@ -4310,7 +4353,7 @@ class PdfExportService {
   }
 
   /// Отображение строк внутри карточки с поддержкой таблиц, списков и полей для ответов
-  static pw.Widget _buildLinesContent(List<String> lines) {
+  static pw.Widget _buildLinesContent(List<String> lines, {bool isMath = false}) {
     final List<pw.Widget> widgets = [];
     int i = 0;
     while (i < lines.length) {
@@ -4382,7 +4425,7 @@ class PdfExportService {
 
       // Поля для ответа / пропуски
       if (line.contains('____') || line.toLowerCase().contains('линии для ответа')) {
-        widgets.add(KeepTogether(child: _buildAnswerLine(line)));
+        widgets.add(KeepTogether(child: _buildAnswerLine(line, isMath: isMath)));
         i++;
         continue;
       }
@@ -4840,26 +4883,26 @@ class PdfExportService {
   }
 
   /// Линия для ответа ученика
-  static pw.Widget _buildAnswerLine(String line) {
+  static pw.Widget _buildAnswerLine(String line, {bool isMath = false}) {
     final cleanLine = _replaceEmojisWithSymbols(line);
     final prefix = cleanLine.replaceAll(RegExp(r'_{2,}'), '').trim();
     final lower = prefix.toLowerCase();
     
-    // Клетки 5х5 мм — ТОЛЬКО для чистой математики (вычисления, примеры, уравнения).
+    // Клетки 5х5 мм — для математики (предмет математика либо математические маркеры).
     // Для русского языка, чтения, прописей и общих ответов ВСЕГДА используется частая косая линейка 65°!
-    final bool isPureMath = (lower.contains('вычисли') ||
+    final bool isPureMath = isMath ||
+        ((lower.contains('вычисли') ||
             lower.contains('реши пример') ||
             lower.contains('найди значение') ||
             lower.contains('математическ') ||
             RegExp(r'^\s*решение\s*[\:\=]?\s*$').hasMatch(lower) ||
             RegExp(r'^\s*[\d\+\-\*\/\=\(\)\s]{4,}\s*$').hasMatch(prefix)) &&
-        !lower.contains('линии для ответа') &&
         !lower.contains('слово') &&
         !lower.contains('букв') &&
         !lower.contains('предложен') &&
         !lower.contains('текст') &&
         !lower.contains('род') &&
-        !lower.contains('падеж');
+        !lower.contains('падеж'));
 
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 3),
