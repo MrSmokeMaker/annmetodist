@@ -1,7 +1,28 @@
 {
-  "currentVersion": "v1.2.4",
-  "updatedAt": "2026-11-06",
+  "currentVersion": "v1.2.6",
+  "updatedAt": "2026-11-07",
   "releases": [
+    {
+      "version": "v1.2.6",
+      "date": "7 ноября 2026",
+      "title": "Обновление компонентов: Nunito-Bold.base64.txt, Nunito-Bold.ttf, Nunito-Regular.base64.txt",
+      "badge": "Обновление",
+      "highlights": [
+        "Актуализация методических данных и учебных тем",
+        "Оптимизация педагогических промптов и алгоритмов ИИ",
+        "Улучшение генератора и верстки PDF-материалов",
+        "Обновление интерфейса: glass_card.dart"
+      ]
+    },
+    {
+      "version": "v1.2.5",
+      "date": "7 ноября 2026",
+      "title": "Обновление компонентов: ic_launcher.png, ic_launcher.png, ic_launcher.png",
+      "badge": "Обновление",
+      "highlights": [
+        "Оптимизация педагогических промптов и алгоритмов ИИ"
+      ]
+    },
     {
       "version": "v1.2.4",
       "date": "6 ноября 2026",
