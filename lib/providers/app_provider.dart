@@ -27,6 +27,7 @@ import '../services/app_notification_service.dart';
 import '../services/quarter_planning_service.dart';
 import '../services/pdf_export_service.dart';
 import '../services/pdf_layout_validator.dart';
+import '../services/fact_verification_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storageService;
@@ -703,15 +704,67 @@ class AppProvider with ChangeNotifier {
         finalUserPrompt = enhancedPrompt['userPrompt']!;
       }
 
-      final generatedText = isDeepLesson
-          ? await _aiService.generateDeepLesson(
-              systemPrompt: finalSystemPrompt,
-              userPrompt: finalUserPrompt,
-            )
-          : await _aiService.generate(
-              systemPrompt: finalSystemPrompt,
-              userPrompt: finalUserPrompt,
-            );
+      // Пункт 1: Двухшаговая генерация (Plan-then-Write)
+      String generatedText;
+      if (useEnhancedPrompts) {
+        try {
+          // Такт 1: Проектирование архитектурного каркаса (Blueprint)
+          final planPrompt = PromptBuilder.buildArchitecturePlanPrompt(
+            methodBlock: method.promptBlock,
+            topic: topicTitle,
+            ageGroup: Topic.getAgeGroupLabel(ageGroup),
+            duration: duration,
+            subject: method.subject,
+            situationRules: situation?.extraPromptRules,
+          );
+
+          final architecturePlan = await _aiService.generate(
+            systemPrompt: planPrompt['systemPrompt']!,
+            userPrompt: planPrompt['userPrompt']!,
+          );
+
+          // Такт 2: Полноформатное развертывание конспекта по утвержденному плану
+          final planBasedPrompt = PromptBuilder.buildConspectFromPlanPrompt(
+            architecturePlan: architecturePlan,
+            baseEnhancedPrompt: {
+              'systemPrompt': finalSystemPrompt,
+              'userPrompt': finalUserPrompt,
+            },
+            duration: duration,
+          );
+
+          generatedText = isDeepLesson
+              ? await _aiService.generateDeepLesson(
+                  systemPrompt: planBasedPrompt['systemPrompt']!,
+                  userPrompt: planBasedPrompt['userPrompt']!,
+                )
+              : await _aiService.generate(
+                  systemPrompt: planBasedPrompt['systemPrompt']!,
+                  userPrompt: planBasedPrompt['userPrompt']!,
+                );
+        } catch (planError) {
+          debugPrint('Plan-then-Write fallback to single-pass: $planError');
+          generatedText = isDeepLesson
+              ? await _aiService.generateDeepLesson(
+                  systemPrompt: finalSystemPrompt,
+                  userPrompt: finalUserPrompt,
+                )
+              : await _aiService.generate(
+                  systemPrompt: finalSystemPrompt,
+                  userPrompt: finalUserPrompt,
+                );
+        }
+      } else {
+        generatedText = isDeepLesson
+            ? await _aiService.generateDeepLesson(
+                systemPrompt: finalSystemPrompt,
+                userPrompt: finalUserPrompt,
+              )
+            : await _aiService.generate(
+                systemPrompt: finalSystemPrompt,
+                userPrompt: finalUserPrompt,
+              );
+      }
 
       final titleSuffix = totalVariants > 1 ? ' (Вариант $variantIndex)' : '';
 
@@ -741,6 +794,18 @@ class AppProvider with ChangeNotifier {
         topic: topicTitle,
         ageGroup: ageGroup,
       ).repairedContent;
+
+      // Пункт 3: Автоматическая верификация и санитизация фактологии (FactVerificationService Guardrails)
+      final factCheckResult = FactVerificationService.verifyAndRepair(
+        effectiveContent,
+        subject: method.subject,
+        ageGroup: ageGroup,
+        duration: duration,
+      );
+      effectiveContent = factCheckResult.repairedContent;
+      if (factCheckResult.hasCorrections) {
+        debugPrint('FactVerificationService: ${factCheckResult.appliedCorrections.join("; ")}');
+      }
 
       // Проход 2: Строгая верификация и самоочистка (Self-Refine) для тарифа Pro
       // Запускаем только если эвристика выявила утечку ответов или плейсхолдеров, экономя 25-35 секунд

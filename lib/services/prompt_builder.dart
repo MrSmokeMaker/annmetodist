@@ -5,6 +5,8 @@ import '../models/conspect.dart';
 import 'child_interaction_service.dart';
 import 'topic_explanation_service.dart';
 import 'content_structure_service.dart';
+import 'pedagogical_golden_standards.dart';
+import 'lesson_duration_service.dart';
 
 class PromptBuilder {
   /// Базовый шаблон (каркас) промпта с улучшениями для PDF.
@@ -32,8 +34,8 @@ class PromptBuilder {
 {ВАРИАНТ_БЛОК}
 
 ВАЖНЕЙШИЕ ПЕДАГОГИЧЕСКИЕ ТРЕБОВАНИЯ:
-1. КАТЕГОРИЧЕСКИЙ ЗАПРЕТ НА КРАТКОСТЬ И ОБЩИЕ ФРАЗЫ (УВЕЛИЧЕННЫЙ В 2 РАЗА ФОРМАТ, ЖИВАЯ ДРАМАТУРГИЯ УРОКА):
-   - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ НА КРАТКОСТЬ, СЖАТЫЙ СТИЛЬ И ТЕЗИСЫ! Конспект занятия должен быть исчерпывающим, глубоким и подробным (целевой объем хода занятия: 4000-7000 знаков живого педагогического текста).
+1. РЕГЛАМЕНТ ОБЪЕМА И СТРОГАЯ КОРРЕЛЯЦИЯ С ДЛИТЕЛЬНОСТЬЮ ЗАНЯТИЯ:
+{РЕГЛАМЕНТ_ОБЪЕМА_УРОКА}
    - Пошаговая дословная прямая речь учителя («Учитель: "Ребята, посмотрите на..."») и естественные развернутые диалоги учеников («Дети хором: "..."», «Миша: "..."», «Аня: "..."»).
    - ОБЯЗАТЕЛЬНЫЙ ЭТАЛОН ЖИВОЙ ДРАМАТУРГИИ:
      Учитель: "Ребята, посмотрите на наш волшебный числовой домик. На крыше живёт число 6. В левом окошке зажёгся огонёк — там число 4. Сколько жильцов спряталось в правом окошке?"
@@ -345,11 +347,19 @@ if (inclusionMode) {
       variantBlock = '- Инструкция по варианту: это вариант $variantIndex из $totalVariants. Сделай его заметно отличным от остальных (предложи другую сюжетную линию, другие игровые упражнения и примеры).';
     }
 
+    final durationProfile = LessonDurationProfile.fromDurationString(duration);
+    final durationRegulation = '''
+   - Целевой объем хода занятия: СТРОГО ${durationProfile.targetCharactersRange} (ни в коем случае не превышай и не занижай этот объем под длительность ${durationProfile.totalMinutes} мин!).
+   - Темп и глубина подачи: ${durationProfile.pacingGuideline}
+   - ${durationProfile.stageStructureGuidelines}
+   - Объем листа заданий: ${durationProfile.worksheetScopeGuideline}''';
+
     return template
         .replaceAll('{БЛОК_МЕТОДИКИ}', methodBlock.trim())
         .replaceAll('{ТЕМА}', effectiveTopic)
         .replaceAll('{КЛАСС}', effectiveAge)
         .replaceAll('{ДЛИТЕЛЬНОСТЬ}', effectiveDuration)
+        .replaceAll('{РЕГЛАМЕНТ_ОБЪЕМА_УРОКА}', durationRegulation)
         .replaceAll('{ПОВТОРЕНИЕ}', effectiveReview)
         .replaceAll('{ЗАМЕЧАНИЯ}', effectiveNotes)
         .replaceAll('{СИТУАЦИЯ_БЛОК}', situationBlock)
@@ -399,8 +409,10 @@ if (inclusionMode) {
 '''
         : '';
     
+    final durationProfile = LessonDurationProfile.fromDurationString(duration);
+    
     return '''
-Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration) по методике: "$methodName".$materialsDirective$deepLessonDirective
+Составь глубокий, развернутый методический комплекс$variantPart по теме "$topic"$situationPart для "$ageGroup" (длительность: $duration, целевой объём хода урока: ${durationProfile.targetCharactersRange}) по методике: "$methodName".$materialsDirective$deepLessonDirective
 
 🎨 ДЛЯ УЛУЧШЕННОГО ВИЗУАЛЬНОГО ФОРМАТА ИСПОЛЬЗУЙ:
 
@@ -419,7 +431,7 @@ $recommendedEmojis
 - Разбор типичной ошибки: "Ловушка для внимательных: ..."
 - Главное правило урока: сформулируй простое запоминающееся правило
 
-## 📝 Практические задания (6-8 упражнений) — КАЖДОЕ С ПОЛНЫМ ГОТОВЫМ НАБОРОМ СЛОВ/ПРИМЕРОВ:
+## 📝 Практические задания (ровно ${durationProfile.worksheetTasksCount} упражнения под длительность ${durationProfile.totalMinutes} мин) — КАЖДОЕ С ПОЛНЫМ ГОТОВЫМ НАБОРОМ СЛОВ/ПРИМЕРОВ:
 ### Уровень 1 • Старт (2-3 задания)
 - Задание 1: ОБЯЗАТЕЛЬНО с образцом выполнения (первый пункт решён и объяснён).
 - Задание 2: Соедини стрелками (два параллельных столбца по 4-5 конкретных элементов).
@@ -650,6 +662,8 @@ ${conspectContent.length > 1200 ? conspectContent.substring(0, 1200) : conspectC
 
 ${ChildInteractionService.getExplanationGuidelines(ageGroup)}
 
+${PedagogicalGoldenStandards.getGoldenStandard(subject: subject, ageGroup: ageGroup)}
+
 📚 ЭТАЛОННЫЙ ПЕДАГОГИЧЕСКИЙ МАТЕРИАЛ ДЛЯ ТЕМЫ "$topic":
 - Глубокая суть темы: ${pkg.essence}
 - Осязаемые метафоры для детей: ${pkg.metaphors.join('; ')}
@@ -751,6 +765,96 @@ $materialIcon МАТЕРИАЛ БУДЕТ АВТОМАТИЧЕСКИ ПРЕОБ�
     }
     
     return '📋'; // Конспект по умолчанию
+  }
+
+  /// Шаг 1 двухтактного конвейера (Plan-then-Write):
+  /// Генерация архитектурной дорожной карты (Blueprint) урока
+  static Map<String, String> buildArchitecturePlanPrompt({
+    required String methodBlock,
+    required String topic,
+    required String ageGroup,
+    required String duration,
+    required String subject,
+    String? situationRules,
+  }) {
+    final goldenStandard = PedagogicalGoldenStandards.getGoldenStandard(
+      subject: subject,
+      ageGroup: ageGroup,
+    );
+    final durationProfile = LessonDurationProfile.fromDurationString(duration);
+
+    final systemPrompt = '''
+Ты — ведущий методист-практик начального образования и дошкольной педагогики высшей квалификационной категории.
+Твоя задача — составить строгий архитектурный план (Blueprint) урока перед его развёртыванием.
+Не пиши полный конспект! Составь лаконичный, но плотный каркас из 4 пунктов, строго адаптированный под длительность $duration:
+
+1. 🎭 СКВОЗНАЯ СЮЖЕТНАЯ КАНВА:
+   - Название легенды и персонаж-проводник.
+   - Сюжетный конфликт/задача урока, которая мотивирует детей.
+
+2. 💡 ДИДАКТИЧЕСКОЕ ЯДРО:
+   - Ключевое правило-открытие (в 1 ёмкое предложение или рифмовку).
+   - Главная детская ошибка / ловушка Незнайки (конкретная неверная мысль ученика).
+   - Способ сократовского вывода на истину (2 наводящих вопроса учителя).
+
+3. ⏱️ ПОМИНУТНЫЙ МЕТОДИЧЕСКИЙ МАРШРУТ (строго на $duration, целевой объём диалога: ${durationProfile.targetCharactersRange}):
+${durationProfile.stageStructureGuidelines}
+
+4. 📝 ДИДАКТИЧЕСКИЙ МАТЕРИАЛ (под длительность ${durationProfile.totalMinutes} мин):
+   - Объем: ${durationProfile.worksheetScopeGuideline}
+   - Список понятий/слов/чисел для заданий.
+   - Идея ТРИЗ-задачи или шифровки.
+
+$goldenStandard
+''';
+
+    final userPrompt = '''
+Тема: "$topic"
+Предмет: "$subject"
+Возраст: "$ageGroup"
+Длительность: "$duration"
+Методика: $methodBlock
+${situationRules != null ? "Особая ситуация: $situationRules" : ""}
+
+Составь точный архитектурный план (Blueprint) этого урока под длительность $duration.
+''';
+
+    return {
+      'systemPrompt': systemPrompt,
+      'userPrompt': userPrompt,
+    };
+  }
+
+  /// Шаг 2 двухтактного конвейера (Plan-then-Write):
+  /// Развертывание полного конспекта на основе утвержденного архитектурного плана
+  static Map<String, String> buildConspectFromPlanPrompt({
+    required String architecturePlan,
+    required Map<String, String> baseEnhancedPrompt,
+    String? duration,
+  }) {
+    final durationProfile = duration != null ? LessonDurationProfile.fromDurationString(duration) : null;
+    final durationDirective = durationProfile != null
+        ? '\n⚠️ СТРОЖАЙШИЙ КОНТРОЛЬ ОБЪЕМА: Целевой объем хода занятия — СТРОГО ${durationProfile.targetCharactersRange} (урок рассчитан ровно на ${durationProfile.totalMinutes} минут!). Ни в коем случае не раздувай текст и не сжимай его!'
+        : '';
+
+    final updatedSystem = '''
+${baseEnhancedPrompt['systemPrompt']!}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏛️ УТВЕРЖДЕННЫЙ АРХИТЕКТУРНЫЙ КАРКАС УРОКА (BLUEPRINT):
+$architecturePlan
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+СТРОГО СЛЕДУЙ ЭТОМУ КАРКАСУ:
+- Разверни каждый пункт утвержденного плана в живой пошаговый диалог учителя и детей (дословная прямая речь).
+- Сохрани в точности сюжетного персонажа, ловушку ошибки и формулировку правила из каркаса.
+- Включи запланированные разминки с речёвками и упражнениями.
+- Сформируй раздаточный рабочий лист и домашнее задание строго по этой фабуле.$durationDirective
+''';
+
+    return {
+      'systemPrompt': updatedSystem,
+      'userPrompt': baseEnhancedPrompt['userPrompt']!,
+    };
   }
 
   /// Создать промпт специально для объяснения темы ребенку

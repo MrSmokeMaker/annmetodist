@@ -1,7 +1,16 @@
 {
-  "currentVersion": "v1.2.4",
-  "updatedAt": "2026-11-06",
+  "currentVersion": "v1.2.5",
+  "updatedAt": "2026-11-07",
   "releases": [
+    {
+      "version": "v1.2.5",
+      "date": "7 ноября 2026",
+      "title": "Обновление компонентов: ic_launcher.png, ic_launcher.png, ic_launcher.png",
+      "badge": "Обновление",
+      "highlights": [
+        "Оптимизация педагогических промптов и алгоритмов ИИ"
+      ]
+    },
     {
       "version": "v1.2.4",
       "date": "6 ноября 2026",

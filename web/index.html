@@ -278,43 +278,100 @@
       <div class="owl-stage">
         <div class="owl-halo"></div>
         <svg class="owl-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="60" cy="110" rx="36" ry="6" fill="#000000" fill-opacity="0.3" filter="blur(3px)" />
+          <!-- Ambient shadow under perch -->
+          <ellipse cx="60" cy="112" rx="38" ry="5" fill="#000000" fill-opacity="0.35" filter="blur(2px)" />
+
+          <!-- Cute Book Perch -->
+          <path d="M 32 108 C 44 111 55 110 60 108 C 65 110 76 111 88 108 L 86 103 C 76 105 65 104 60 102 C 55 104 44 105 34 103 Z" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="0.8" />
+          <path d="M 59 102 L 59 110 L 60 109 L 61 110 L 61 102 Z" fill="#F59E0B" />
+
+          <!-- Ear Tufts -->
+          <path d="M 36 46 C 30 38 28 28 30 24 C 35 28 40 36 42 43 Z" fill="#047857" />
+          <path d="M 84 46 C 90 38 92 28 90 24 C 85 28 80 36 78 43 Z" fill="#047857" />
+
+          <!-- Main Owl Body -->
           <rect x="26" y="38" width="68" height="64" rx="30" fill="url(#owlBodyGrad)" />
-          <ellipse cx="60" cy="74" rx="22" ry="22" fill="#FEF3C7" fill-opacity="0.92" />
-          <path d="M54 68L56 71M64 68L66 71M60 76L62 79M53 82L55 85M65 82L67 85" stroke="#D97706" stroke-width="2" stroke-linecap="round" />
+          <ellipse cx="60" cy="46" rx="18" ry="8" fill="#34D399" fill-opacity="0.22" />
+
+          <!-- Belly & Feathers -->
+          <ellipse cx="60" cy="74" rx="22" ry="22" fill="url(#owlBellyGrad)" />
+          <path d="M54 67L56 70M64 67L66 70M60 75L62 78M53 81L55 84M65 81L67 84M59 87L61 90" stroke="#D97706" stroke-width="1.8" stroke-linecap="round" />
+
+          <!-- Cheek Blush -->
+          <ellipse cx="34" cy="58" rx="4.5" ry="2.5" fill="#F43F5E" fill-opacity="0.28" />
+          <ellipse cx="86" cy="58" rx="4.5" ry="2.5" fill="#F43F5E" fill-opacity="0.28" />
+
+          <!-- Wings -->
           <path d="M26 50C22 58 20 74 27 82C29 80 34 70 34 60Z" fill="#064E3B" />
           <g style="transform-origin: 94px 52px; animation: owlWing 1.6s ease-in-out infinite;">
             <path d="M94 50C98 58 100 74 93 82C91 80 86 70 86 60Z" fill="#047857" />
             <path d="M96 46L102 34C102 34 103 40 99 44L96 46Z" fill="#F59E0B" />
           </g>
+
+          <!-- Golden Paws -->
           <ellipse cx="48" cy="102" rx="6" ry="3" fill="#F59E0B" />
           <ellipse cx="72" cy="102" rx="6" ry="3" fill="#F59E0B" />
+
+          <!-- Big Cute Eyes with Dual Sparkles -->
           <g style="transform-origin: 60px 48px; animation: owlBlink 4s infinite;">
             <circle cx="45" cy="48" r="14" fill="#FFFFFF" />
             <circle cx="75" cy="48" r="14" fill="#FFFFFF" />
-            <circle cx="46" cy="48" r="8" fill="#065F46" />
-            <circle cx="74" cy="48" r="8" fill="#065F46" />
+            <!-- Irises -->
+            <circle cx="46" cy="48" r="8.5" fill="url(#owlIrisGrad)" />
+            <circle cx="74" cy="48" r="8.5" fill="url(#owlIrisGrad)" />
+            <!-- Pupils -->
             <circle cx="47" cy="48" r="5" fill="#0F172A" />
             <circle cx="73" cy="48" r="5" fill="#0F172A" />
+            <!-- Primary Catchlight -->
             <circle cx="49" cy="45" r="2.5" fill="#FFFFFF" />
             <circle cx="75" cy="45" r="2.5" fill="#FFFFFF" />
+            <!-- Secondary Sparkle -->
+            <circle cx="44" cy="50.5" r="1.2" fill="#FFFFFF" />
+            <circle cx="72" cy="50.5" r="1.2" fill="#FFFFFF" />
           </g>
-          <circle cx="45" cy="48" r="14" stroke="#F59E0B" stroke-width="2.5" fill="none" />
-          <circle cx="75" cy="48" r="14" stroke="#F59E0B" stroke-width="2.5" fill="none" />
-          <line x1="59" y1="48" x2="61" y2="48" stroke="#F59E0B" stroke-width="2.5" />
-          <path d="M60 54L55 64H65L60 54Z" fill="#F59E0B" style="transform-origin: 60px 54px; animation: owlBeak 1.6s ease-in-out infinite;" />
-          <path d="M60 16L92 27L60 38L28 27L60 16Z" fill="#1E1B4B" stroke="#4338CA" stroke-width="1.5" />
+
+          <!-- Golden Glasses with Glint -->
+          <circle cx="45" cy="48" r="14" stroke="url(#owlGoldGrad)" stroke-width="2.5" fill="none" />
+          <circle cx="75" cy="48" r="14" stroke="url(#owlGoldGrad)" stroke-width="2.5" fill="none" />
+          <line x1="59" y1="48" x2="61" y2="48" stroke="url(#owlGoldGrad)" stroke-width="2.5" stroke-linecap="round" />
+          <!-- Lens glint lines -->
+          <path d="M 38 42 L 44 36 M 68 42 L 74 36" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round" opacity="0.4" />
+
+          <!-- Beak -->
+          <path d="M60 54L55 64H65L60 54Z" fill="url(#owlGoldGrad)" style="transform-origin: 60px 54px; animation: owlBeak 1.6s ease-in-out infinite;" />
+
+          <!-- Academic Mortarboard Cap -->
+          <path d="M60 16L92 27L60 38L28 27L60 16Z" fill="#1E1B4B" stroke="#6366F1" stroke-width="1.5" />
+          <line x1="28" y1="27" x2="60" y2="16" stroke="#818CF8" stroke-width="1.2" stroke-linecap="round" />
+          <line x1="60" y1="16" x2="92" y2="27" stroke="#818CF8" stroke-width="1.2" stroke-linecap="round" />
           <rect x="48" y="28" width="24" height="8" rx="3" fill="#312E81" />
-          <circle cx="60" cy="27" r="3" fill="#F59E0B" />
+          <circle cx="60" cy="27" r="3" fill="#FBBF24" />
           <g style="transform-origin: 60px 27px; animation: tasselSwing 2.5s ease-in-out infinite;">
             <path d="M60 27Q72 32 74 44" stroke="#F59E0B" stroke-width="1.8" fill="none" />
             <path d="M72 44L76 44L75 52L73 52Z" fill="#F59E0B" />
           </g>
+
           <defs>
             <linearGradient id="owlBodyGrad" x1="60" y1="38" x2="60" y2="102" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#059669" />
-              <stop offset="60%" stop-color="#047857" />
+              <stop offset="0%" stop-color="#10B981" />
+              <stop offset="45%" stop-color="#059669" />
+              <stop offset="80%" stop-color="#047857" />
               <stop offset="100%" stop-color="#064E3B" />
+            </linearGradient>
+            <linearGradient id="owlBellyGrad" x1="60" y1="52" x2="60" y2="96" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FFFBEB" />
+              <stop offset="60%" stop-color="#FEF3C7" />
+              <stop offset="100%" stop-color="#FDE68A" />
+            </linearGradient>
+            <radialGradient id="owlIrisGrad" cx="50%" cy="40%" r="55%">
+              <stop offset="0%" stop-color="#34D399" />
+              <stop offset="60%" stop-color="#10B981" />
+              <stop offset="100%" stop-color="#047857" />
+            </radialGradient>
+            <linearGradient id="owlGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FDE68A" />
+              <stop offset="50%" stop-color="#FBBF24" />
+              <stop offset="100%" stop-color="#D97706" />
             </linearGradient>
           </defs>
         </svg>
