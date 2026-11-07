@@ -14,6 +14,12 @@ class MethodRepository {
   List<ActivityTechnique> _activityLibrary = [];
   bool _isLoaded = false;
 
+  // Fast $O(1)$ lookup maps
+  final Map<String, MethodPrompt> _methodsMap = {};
+  final Map<String, SituationTemplate> _situationsMap = {};
+  final Map<String, ActivityTechnique> _activitiesMap = {};
+  final Map<String, MethodologyDefinition> _customMethodologiesMap = {};
+
   bool get isLoaded => _isLoaded;
   List<MethodPrompt> get methods => List.unmodifiable(_methods);
   List<MethodologyDefinition> get customMethodologies => List.unmodifiable(_customMethodologies);
@@ -27,37 +33,45 @@ class MethodRepository {
     if (_isLoaded) return;
 
     try {
-      final methodsJsonString =
-          await rootBundle.loadString('assets/data/methods.json');
-      final List<dynamic> methodsRaw =
-          jsonDecode(methodsJsonString) as List<dynamic>;
+      // Load all data files concurrently for minimal cold start overhead
+      final results = await Future.wait([
+        rootBundle.loadString('assets/data/methods.json'),
+        rootBundle.loadString('assets/data/topics.json'),
+        rootBundle.loadString('assets/data/situations.json'),
+        rootBundle.loadString('assets/data/activities.json'),
+      ]);
+
+      final List<dynamic> methodsRaw = jsonDecode(results[0]) as List<dynamic>;
       _methods = methodsRaw
           .map((item) => MethodPrompt.fromJson(item as Map<String, dynamic>))
           .toList();
+      _methodsMap.clear();
+      for (final m in _methods) {
+        _methodsMap[m.id] = m;
+      }
 
-      final topicsJsonString =
-          await rootBundle.loadString('assets/data/topics.json');
-      final List<dynamic> topicsRaw =
-          jsonDecode(topicsJsonString) as List<dynamic>;
+      final List<dynamic> topicsRaw = jsonDecode(results[1]) as List<dynamic>;
       _topics = topicsRaw
           .map((item) => Topic.fromJson(item as Map<String, dynamic>))
           .toList();
 
-      final situationsJsonString =
-          await rootBundle.loadString('assets/data/situations.json');
-      final List<dynamic> situationsRaw =
-          jsonDecode(situationsJsonString) as List<dynamic>;
+      final List<dynamic> situationsRaw = jsonDecode(results[2]) as List<dynamic>;
       _situationTemplates = situationsRaw
           .map((item) => SituationTemplate.fromJson(item as Map<String, dynamic>))
           .toList();
+      _situationsMap.clear();
+      for (final s in _situationTemplates) {
+        _situationsMap[s.id] = s;
+      }
 
-      final activitiesJsonString =
-          await rootBundle.loadString('assets/data/activities.json');
-      final List<dynamic> activitiesRaw =
-          jsonDecode(activitiesJsonString) as List<dynamic>;
+      final List<dynamic> activitiesRaw = jsonDecode(results[3]) as List<dynamic>;
       _activityLibrary = activitiesRaw
           .map((item) => ActivityTechnique.fromJson(item as Map<String, dynamic>))
           .toList();
+      _activitiesMap.clear();
+      for (final a in _activityLibrary) {
+        _activitiesMap[a.id] = a;
+      }
 
       _isLoaded = true;
     } catch (e) {
@@ -65,33 +79,18 @@ class MethodRepository {
       _topics = [];
       _situationTemplates = [];
       _activityLibrary = [];
+      _methodsMap.clear();
+      _situationsMap.clear();
+      _activitiesMap.clear();
       rethrow;
     }
   }
 
-  MethodPrompt? getMethodById(String id) {
-    try {
-      return _methods.firstWhere((m) => m.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
+  MethodPrompt? getMethodById(String id) => _methodsMap[id];
 
-  SituationTemplate? getSituationById(String id) {
-    try {
-      return _situationTemplates.firstWhere((s) => s.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
+  SituationTemplate? getSituationById(String id) => _situationsMap[id];
 
-  ActivityTechnique? getActivityById(String id) {
-    try {
-      return _activityLibrary.firstWhere((a) => a.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
+  ActivityTechnique? getActivityById(String id) => _activitiesMap[id];
 
   List<Topic> getTopicsByFilter({
     required String methodId,
@@ -103,28 +102,27 @@ class MethodRepository {
       return matchMethod && matchAge;
     }).toList();
   }
+
   /// Регистрация новой авторской методики в системе
   void registerCustomMethodology(MethodologyDefinition definition) {
     _customMethodologies.removeWhere((m) => m.id == definition.id);
     _customMethodologies.add(definition);
+    _customMethodologiesMap[definition.id] = definition;
 
     final methodPrompt = definition.toMethodPrompt();
     _methods.removeWhere((m) => m.id == definition.id);
     _methods.add(methodPrompt);
+    _methodsMap[methodPrompt.id] = methodPrompt;
   }
 
   /// Удаление пользовательской методики
   void removeCustomMethodology(String id) {
     _customMethodologies.removeWhere((m) => m.id == id);
+    _customMethodologiesMap.remove(id);
     _methods.removeWhere((m) => m.id == id);
+    _methodsMap.remove(id);
   }
 
   /// Получение расширенного описания методики по ID
-  MethodologyDefinition? getCustomMethodologyById(String id) {
-    try {
-      return _customMethodologies.firstWhere((m) => m.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
+  MethodologyDefinition? getCustomMethodologyById(String id) => _customMethodologiesMap[id];
 }

@@ -35,43 +35,63 @@ class GlassCard extends StatefulWidget {
 }
 
 class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMixin {
-  late final AnimationController _scaleController;
-  late final Animation<double> _scaleAnimation;
+  AnimationController? _scaleController;
+  Animation<double>? _scaleAnimation;
   bool _isHovered = false;
+
+  bool get _hasTapGesture => widget.onTap != null && widget.isInteractive;
 
   @override
   void initState() {
     super.initState();
+    if (_hasTapGesture) {
+      _initAnimation();
+    }
+  }
+
+  void _initAnimation() {
     _scaleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.985).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _scaleController!, curve: Curves.easeOutCubic),
     );
   }
 
   @override
+  void didUpdateWidget(covariant GlassCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_hasTapGesture && _scaleController == null) {
+      _initAnimation();
+    } else if (!_hasTapGesture && _scaleController != null) {
+      _scaleController?.dispose();
+      _scaleController = null;
+      _scaleAnimation = null;
+    }
+  }
+
+  @override
   void dispose() {
-    _scaleController.dispose();
+    _scaleController?.dispose();
     super.dispose();
   }
 
   void _onTapDown(TapDownDetails _) {
-    if (widget.onTap != null && widget.isInteractive) {
-      _scaleController.forward();
+    if (_hasTapGesture) {
+      _scaleController?.forward();
     }
   }
 
   void _onTapUp(TapUpDetails _) {
-    if (widget.onTap != null && widget.isInteractive) {
-      _scaleController.reverse();
+    if (_hasTapGesture) {
+      _scaleController?.reverse();
     }
   }
 
   void _onTapCancel() {
-    if (widget.onTap != null && widget.isInteractive) {
-      _scaleController.reverse();
+    if (_hasTapGesture) {
+      _scaleController?.reverse();
     }
   }
 
@@ -85,8 +105,8 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
             ? const Color(0x18FFFFFF) // ~9.5% on hover
             : const Color(0x12FFFFFF)) // ~7% normal
         : (_isHovered
-            ? Colors.white.withOpacity(0.95)
-            : Colors.white.withOpacity(0.88));
+            ? Colors.white.withValues(alpha: 0.95)
+            : Colors.white.withValues(alpha: 0.88));
 
     // Specular border gradient for Apple/Linear high-end frosted look
     final defaultBorderGradient = isDark
@@ -102,7 +122,7 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
     final effectiveBg = widget.backgroundColor ?? defaultBg;
     final effectiveGradient = widget.borderGradient ?? (widget.borderColor == null ? defaultBorderGradient : null);
 
-    Widget cardBody = Container(
+    final Widget cardBody = Container(
       padding: widget.padding ?? const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: effectiveBg,
@@ -110,6 +130,19 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
       ),
       child: widget.child,
     );
+
+    final Widget cardContent = widget.blurSigma > 0
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(widget.borderRadius - 1),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
+              child: cardBody,
+            ),
+          )
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(widget.borderRadius - 1),
+            child: cardBody,
+          );
 
     // Render specular border
     Widget borderedCard;
@@ -121,13 +154,7 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
           boxShadow: widget.boxShadow ?? (_isHovered ? AppShadows.cardMd : AppShadows.cardSm),
         ),
         padding: const EdgeInsets.all(1.0), // 1px micro specular border
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(widget.borderRadius - 1),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
-            child: cardBody,
-          ),
-        ),
+        child: cardContent,
       );
     } else {
       borderedCard = Container(
@@ -139,13 +166,7 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
           ),
           boxShadow: widget.boxShadow ?? (_isHovered ? AppShadows.cardMd : AppShadows.cardSm),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(widget.borderRadius - 1),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
-            child: cardBody,
-          ),
-        ),
+        child: cardContent,
       );
     }
 
@@ -161,10 +182,12 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
           onTapCancel: _onTapCancel,
           onTap: widget.onTap,
           behavior: HitTestBehavior.opaque,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: borderedCard,
-          ),
+          child: _scaleAnimation != null
+              ? ScaleTransition(
+                  scale: _scaleAnimation!,
+                  child: borderedCard,
+                )
+              : borderedCard,
         ),
       );
     }

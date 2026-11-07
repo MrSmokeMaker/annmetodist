@@ -765,7 +765,7 @@ class PdfExportService {
               ),
               child: pw.Text(
                 config.schoolName.toUpperCase(),
-                style: const pw.TextStyle(color: PdfColors.white, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(color: PdfColors.white, fontSize: 7, fontWeight: pw.FontWeight.bold),
               ),
             )
           else if (isEco)
@@ -777,7 +777,7 @@ class PdfExportService {
               ),
               child: pw.Text(
                 'ЭКО-ПЕЧАТЬ',
-                style: const pw.TextStyle(color: PdfColors.grey800, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(color: PdfColors.grey800, fontSize: 7, fontWeight: pw.FontWeight.bold),
               ),
             )
           else if (isPro)
@@ -3534,7 +3534,7 @@ class PdfExportService {
               pw.Expanded(
                 child: _buildFormattedText(
                   displayHeader,
-                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
               ),
             ],
@@ -3554,7 +3554,7 @@ class PdfExportService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('Графическая модель предложения:', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Графическая модель предложения:', style: pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 6),
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -3650,7 +3650,7 @@ class PdfExportService {
               pw.Expanded(
                 child: _buildFormattedText(
                   displayHeader,
-                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
               ),
             ],
@@ -3677,7 +3677,7 @@ class PdfExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Цепочка вычислений:', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                      pw.Text('Цепочка вычислений:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
                       pw.SizedBox(height: 8),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.center,
@@ -3696,7 +3696,7 @@ class PdfExportService {
                           pw.SizedBox(width: 3),
                           pw.Column(
                             children: [
-                              pw.Text('+ 4', style: const pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                              pw.Text('+ 4', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                               pw.Text('-->', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                             ],
                           ),
@@ -3713,7 +3713,7 @@ class PdfExportService {
                           pw.SizedBox(width: 3),
                           pw.Column(
                             children: [
-                              pw.Text('- 3', style: const pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                              pw.Text('- 3', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                               pw.Text('-->', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                             ],
                           ),
@@ -3749,7 +3749,7 @@ class PdfExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Text('Числовая пирамида:', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
+                      pw.Text('Числовая пирамида:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF4C1D95))),
                       pw.SizedBox(height: 4),
                       pw.Container(
                         width: 26,
@@ -3869,7 +3869,7 @@ class PdfExportService {
               pw.Expanded(
                 child: _buildFormattedText(
                   displayHeader,
-                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
               ),
             ],
@@ -3894,7 +3894,7 @@ class PdfExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Алгоритм шагов (от точки СТАРТ):', style: const pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
+                      pw.Text('Алгоритм шагов (от точки СТАРТ):', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
                       pw.SizedBox(height: 6),
                       pw.Wrap(
                         spacing: 6,
@@ -4002,7 +4002,7 @@ class PdfExportService {
               pw.Expanded(
                 child: _buildFormattedText(
                   displayHeader,
-                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
               ),
             ],
@@ -4102,7 +4102,7 @@ class PdfExportService {
               children: [
                 pw.Text('Банк слов для распределения: ', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                 pw.Expanded(
-                  child: pw.Text('выбери из предложенных вариантов и впиши в нужную область диаграммы', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700, fontStyle: pw.FontStyle.italic)),
+                  child: pw.Text('выбери из предложенных вариантов и впиши в нужную область диаграммы', style: pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700, fontStyle: pw.FontStyle.italic)),
                 ),
               ],
             ),
@@ -4142,7 +4142,7 @@ class PdfExportService {
               pw.Expanded(
                 child: _buildFormattedText(
                   displayHeader,
-                  defaultStyle: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                  defaultStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                 ),
               ),
             ],
@@ -4457,7 +4457,7 @@ class PdfExportService {
                   pw.Expanded(
                     child: _buildFormattedText(
                       restOfLine,
-                      defaultStyle: const pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
+                      defaultStyle: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900),
                     ),
                   ),
                 ],
@@ -4498,7 +4498,7 @@ class PdfExportService {
                 pw.Expanded(
                   child: _buildFormattedText(
                     speechText,
-                    defaultStyle: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900, fontStyle: pw.FontStyle.italic),
+                    defaultStyle: pw.TextStyle(fontSize: 9.5, color: PdfColors.grey900, fontStyle: pw.FontStyle.italic),
                   ),
                 ),
               ],

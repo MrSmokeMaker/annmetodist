@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Конфигурация Zveno AI API (российский агрегатор OpenAI-совместимых моделей)
 class ZvenoConfig {
   /// Ключ API Zveno AI по умолчанию

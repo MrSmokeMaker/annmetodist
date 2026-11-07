@@ -544,22 +544,6 @@
     };
   </script>
 
-  <script>
-    // Force immediate unregister of old service workers and clear CacheStorage
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
-      });
-    }
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
-      });
-    }
-    var s = document.createElement('script');
-    s.src = 'flutter_bootstrap.js?v=' + Date.now();
-    s.async = true;
-    document.body.appendChild(s);
-  </script>
+  <script src='flutter_bootstrap.js' async></script>
 </body>
 </html>

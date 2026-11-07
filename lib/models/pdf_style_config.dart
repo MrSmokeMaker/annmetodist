@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 /// Готовые стили оформления PDF перед печатью
 enum PdfPreset {

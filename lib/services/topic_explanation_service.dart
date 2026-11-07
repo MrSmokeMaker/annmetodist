@@ -93,67 +93,64 @@ ${pkg.dialogueScript}
     return ['Звуки и буквы', 'Счет предметов', 'Слоги и слова'];
   }
 
+    static final List<MapEntry<RegExp, String>> _categoryPatterns = [
+    MapEntry(RegExp(r'звук.*букв|гласн.*согласн|звуки вокруг|органы речи|перв.*звук|звуков.*анализ|сила голос|интонаци'), 'ru_sounds_letters'),
+    MapEntry(RegExp(r'слог|ударен|перенос'), 'ru_syllables_stress'),
+    MapEntry(RegExp(r'тв[её]рд.*мягк|е, ё, и, ю, я|второго ряда'), 'ru_hard_soft'),
+    MapEntry(RegExp(r'мягк.*знак|разделительн.*знак|букв.*й'), 'ru_soft_sign'),
+    MapEntry(RegExp(r'больш.*букв|заглавн'), 'ru_capital_letter'),
+    MapEntry(RegExp(r'жи-ши|ча-ща|чу-щу|чк|чн|щн|шипящ'), 'ru_spelling_rules'),
+    MapEntry(RegExp(r'корен|однокорен|родствен|ласков.*значени|словообразован'), 'ru_word_root'),
+    MapEntry(RegExp(r'безударн'), 'ru_unstressed_vowels'),
+    MapEntry(RegExp(r'парн.*согласн|оглушен'), 'ru_paired_consonants'),
+    MapEntry(RegExp(r'непроизносим'), 'ru_unpronounceable_consonants'),
+    MapEntry(RegExp(r'предлог'), 'ru_prepositions'),
+    MapEntry(RegExp(r'существительн|названия предмет|одушевлен|предметност'), 'ru_noun'),
+    MapEntry(RegExp(r'глагол|действи'), 'ru_verb'),
+    MapEntry(RegExp(r'прилагательн|признак'), 'ru_adjective'),
+    MapEntry(RegExp(r'согласование слов|в роде|в числе'), 'ru_grammar_agreement'),
+    MapEntry(RegExp(r'главные члены|подлежащ.*сказуем|предложени|текст|изложени|речь|описательного рассказа|связной'), 'ru_sentence_text'),
+    MapEntry(RegExp(r'размер|большой.*маленький|длинный.*короткий|длиннее|высоте|пространств|выше.*ниже|справа|слева|впереди|сзади|мозаик|геометр'), 'math_spatial_size'),
+    MapEntry(RegExp(r'поровну|столько же|количествен|парами'), 'math_quantitative'),
+    MapEntry(RegExp(r'числа.*1.*5|числа.*6.*10|состав чисел|счет.*предел.*5|счет.*предел.*10|перв.*десят|палочек'), 'math_numbers_composition'),
+    MapEntry(RegExp(r'число 0|действия с нулем|нол'), 'math_zero'),
+    MapEntry(RegExp(r'сложение и вычитание.*10|на основе.*состава чисел|переместительное свойство'), 'math_addition_subtraction_10'),
+    MapEntry(RegExp(r'понятие об арифметической задаче|условие, вопрос'), 'math_problem_concept'),
+    MapEntry(RegExp(r'на сколько больше|увеличени.*уменьшени.*числа|разностн.*сравнен'), 'math_comparison_problems'),
+    MapEntry(RegExp(r'второй десяток|нумерация.*11.*20|числа от 11 до 20|сложение и вычитание без перехода'), 'math_second_decade'),
+    MapEntry(RegExp(r'дециметр|сантиметр|измерение отрезков|длин|площадь'), 'math_length_units'),
+    MapEntry(RegExp(r'переход.*десят|9 \+ 2|11 - 2|табличное вычитание|столбик|письменные приемы'), 'math_transition_decade'),
+    MapEntry(RegExp(r'нумерация.*100|числа от 20 до 100|разряды десятков|круглые десятки|двузначн'), 'math_numbers_100'),
+    MapEntry(RegExp(r'составные задачи|в два действия|в 3 действия|в три действия'), 'math_two_step_problems'),
+    MapEntry(RegExp(r'смысл.*умножени|таблица умножени|умножение|умножения'), 'math_multiplication'),
+    MapEntry(RegExp(r'делени|деление'), 'math_division'),
+    MapEntry(RegExp(r'порядок.*действи|скобк'), 'math_order_operations'),
+    MapEntry(RegExp(r'живое звучащее|артикуляц.*гласн|выделение.*гласн|звуковой анализ слияния|выделение первого|слуховое внимание'), 'read_sound_analysis'),
+    MapEntry(RegExp(r'механизм слияния|буква м|звук.*буква'), 'read_blending'),
+    MapEntry(RegExp(r'открытых и закрытых слогов|трех букв|двухсложных|шар, сыр|ма-ма|закрытых слогов'), 'read_syllables_words'),
+    MapEntry(RegExp(r'йотирован|е, ё, ю, я|два звука|мягких согласных перед буквами'), 'read_iotated'),
+    MapEntry(RegExp(r'стечением.*согласных|стол, волк|стечение'), 'read_clusters'),
+    MapEntry(RegExp(r'беглое|логическое ударение|ролевое чтение|смысловой анализ|выразительн|антиципаци|диалогическое чтение|басен'), 'read_fluent'),
+    MapEntry(RegExp(r'кубик.*вращени|кубик.*слог|превращение слога|пар слов'), 'chaplygin_rotation'),
+    MapEntry(RegExp(r'кубик.*первых слов|разных слогов|закрытый слог|словарные эстафеты|превращение слов|трех.*четырехсложных|тахистоскоп|сюжетных предложений'), 'chaplygin_words'),
+    MapEntry(RegExp(r'артикуляционная гимнастика|заборчик|трубочка|лопатка|речевое дыхание|ветерок|весёлом язычке'), 'kosinova_articulation'),
+    MapEntry(RegExp(r'поймай звук|место звука|звуковой поезд'), 'kosinova_phonemic'),
+    MapEntry(RegExp(r'дифференциация|б-п|д-т|г-к|в-ф|з-с|ж-ш|свистящ|шипящ|\[р\].*\[л\]|сонорных|звонких и глухих'), 'kosinova_differentiation'),
+    MapEntry(RegExp(r'посадка|захват карандаша|гигиеническ|подготовка руки|нажим пера|штриховка'), 'pen_hygiene_grip'),
+    MapEntry(RegExp(r'наклонн.*линии.*65|закруглением внизу|частая косая|ориентиры|ритм связного безотрывного|верхнее и нижнее соединение'), 'pen_slant_grid'),
+    MapEntry(RegExp(r'генетическая группа|букв.*и, ш, г|букв.*л, м|букв.*о, с|петлями|перекладинами|соединений|сложной конфигурации|домик для звука|соединени.*букв|дисграфи|различение букв|сложных букв|зеркального письма'), 'pen_letter_groups'),
+    MapEntry(RegExp(r'заглавные буквы.*групп|заглавных букв|пропорции|ритмическое.*письмо|исправление.*ошибок'), 'pen_capitals'),
+    MapEntry(RegExp(r'нейроразминк|гипертонус|бордюров в крупной клетке|узоры в воздухе|снятие напряжения|нейрогимнастик|спазм|сброс капелек|двуручное'), 'pen_mazina_neuro'),
+    MapEntry(RegExp(r'качалочк|секретик|крючок до середины|шалашик|алгоритм.*наклонная|соединение элементов'), 'pen_mazina_elements'),
+    MapEntry(RegExp(r'овал и полукруг|межбуквенных|широкой косой|микрографи|скоропись|скорость письма|самопроверка почерка|широкую строку'), 'pen_mazina_advanced'),
+  ];
+
   static String _matchCategory(String topic, String subject) {
     final t = topic.toLowerCase();
+    for (final entry in _categoryPatterns) {
+      if (entry.key.hasMatch(t)) return entry.value;
+    }
     final s = subject.toLowerCase();
-
-    // 1. Русский язык
-    if (RegExp(r'звук.*букв|гласн.*согласн|звуки вокруг|органы речи|перв.*звук|звуков.*анализ|сила голос|интонаци').hasMatch(t)) return 'ru_sounds_letters';
-    if (RegExp(r'слог|ударен|перенос').hasMatch(t)) return 'ru_syllables_stress';
-    if (RegExp(r'тв[её]рд.*мягк|е, ё, и, ю, я|второго ряда').hasMatch(t)) return 'ru_hard_soft';
-    if (RegExp(r'мягк.*знак|разделительн.*знак|букв.*й').hasMatch(t)) return 'ru_soft_sign';
-    if (RegExp(r'больш.*букв|заглавн').hasMatch(t)) return 'ru_capital_letter';
-    if (RegExp(r'жи-ши|ча-ща|чу-щу|чк|чн|щн|шипящ').hasMatch(t)) return 'ru_spelling_rules';
-    if (RegExp(r'корен|однокорен|родствен|ласков.*значени|словообразован').hasMatch(t)) return 'ru_word_root';
-    if (RegExp(r'безударн').hasMatch(t)) return 'ru_unstressed_vowels';
-    if (RegExp(r'парн.*согласн|оглушен').hasMatch(t)) return 'ru_paired_consonants';
-    if (RegExp(r'непроизносим').hasMatch(t)) return 'ru_unpronounceable_consonants';
-    if (RegExp(r'предлог').hasMatch(t)) return 'ru_prepositions';
-    if (RegExp(r'существительн|названия предмет|одушевлен|предметност').hasMatch(t)) return 'ru_noun';
-    if (RegExp(r'глагол|действи').hasMatch(t)) return 'ru_verb';
-    if (RegExp(r'прилагательн|признак').hasMatch(t)) return 'ru_adjective';
-    if (RegExp(r'согласование слов|в роде|в числе').hasMatch(t)) return 'ru_grammar_agreement';
-    if (RegExp(r'главные члены|подлежащ.*сказуем|предложени|текст|изложени|речь|описательного рассказа|связной').hasMatch(t)) return 'ru_sentence_text';
-
-    // 2. Математика
-    if (RegExp(r'размер|большой.*маленький|длинный.*короткий|длиннее|высоте|пространств|выше.*ниже|справа|слева|впереди|сзади|мозаик|геометр').hasMatch(t)) return 'math_spatial_size';
-    if (RegExp(r'поровну|столько же|количествен|парами').hasMatch(t)) return 'math_quantitative';
-    if (RegExp(r'числа.*1.*5|числа.*6.*10|состав чисел|счет.*предел.*5|счет.*предел.*10|перв.*десят|палочек').hasMatch(t)) return 'math_numbers_composition';
-    if (RegExp(r'число 0|действия с нулем|нол').hasMatch(t)) return 'math_zero';
-    if (RegExp(r'сложение и вычитание.*10|на основе.*состава чисел|переместительное свойство').hasMatch(t)) return 'math_addition_subtraction_10';
-    if (RegExp(r'понятие об арифметической задаче|условие, вопрос').hasMatch(t)) return 'math_problem_concept';
-    if (RegExp(r'на сколько больше|увеличени.*уменьшени.*числа|разностн.*сравнен').hasMatch(t)) return 'math_comparison_problems';
-    if (RegExp(r'второй десяток|нумерация.*11.*20|числа от 11 до 20|сложение и вычитание без перехода').hasMatch(t)) return 'math_second_decade';
-    if (RegExp(r'дециметр|сантиметр|измерение отрезков|длин|площадь').hasMatch(t)) return 'math_length_units';
-    if (RegExp(r'переход.*десят|9 \+ 2|11 - 2|табличное вычитание|столбик|письменные приемы').hasMatch(t)) return 'math_transition_decade';
-    if (RegExp(r'нумерация.*100|числа от 20 до 100|разряды десятков|круглые десятки|двузначн').hasMatch(t)) return 'math_numbers_100';
-    if (RegExp(r'составные задачи|в два действия|в 3 действия|в три действия').hasMatch(t)) return 'math_two_step_problems';
-    if (RegExp(r'смысл.*умножени|таблица умножени|умножение|умножения').hasMatch(t)) return 'math_multiplication';
-    if (RegExp(r'делени|деление').hasMatch(t)) return 'math_division';
-    if (RegExp(r'порядок.*действи|скобк').hasMatch(t)) return 'math_order_operations';
-
-    // 3. Обучение чтению и логопедия
-    if (RegExp(r'живое звучащее|артикуляц.*гласн|выделение.*гласн|звуковой анализ слияния|выделение первого|слуховое внимание').hasMatch(t)) return 'read_sound_analysis';
-    if (RegExp(r'механизм слияния|буква м|звук.*буква').hasMatch(t)) return 'read_blending';
-    if (RegExp(r'открытых и закрытых слогов|трех букв|двухсложных|шар, сыр|ма-ма|закрытых слогов').hasMatch(t)) return 'read_syllables_words';
-    if (RegExp(r'йотирован|е, ё, ю, я|два звука|мягких согласных перед буквами').hasMatch(t)) return 'read_iotated';
-    if (RegExp(r'стечением.*согласных|стол, волк|стечение').hasMatch(t)) return 'read_clusters';
-    if (RegExp(r'беглое|логическое ударение|ролевое чтение|смысловой анализ|выразительн|антиципаци|диалогическое чтение|басен').hasMatch(t)) return 'read_fluent';
-    if (RegExp(r'кубик.*вращени|кубик.*слог|превращение слога|пар слов').hasMatch(t)) return 'chaplygin_rotation';
-    if (RegExp(r'кубик.*первых слов|разных слогов|закрытый слог|словарные эстафеты|превращение слов|трех.*четырехсложных|тахистоскоп|сюжетных предложений').hasMatch(t)) return 'chaplygin_words';
-    if (RegExp(r'артикуляционная гимнастика|заборчик|трубочка|лопатка|речевое дыхание|ветерок|весёлом язычке').hasMatch(t)) return 'kosinova_articulation';
-    if (RegExp(r'поймай звук|место звука|звуковой поезд').hasMatch(t)) return 'kosinova_phonemic';
-    if (RegExp(r'дифференциация|б-п|д-т|г-к|в-ф|з-с|ж-ш|свистящ|шипящ|\[р\].*\[л\]|сонорных|звонких и глухих').hasMatch(t)) return 'kosinova_differentiation';
-
-    // 4. Чистописание и каллиграфия
-    if (RegExp(r'посадка|захват карандаша|гигиеническ|подготовка руки|нажим пера|штриховка').hasMatch(t)) return 'pen_hygiene_grip';
-    if (RegExp(r'наклонн.*линии.*65|закруглением внизу|частая косая|ориентиры|ритм связного безотрывного|верхнее и нижнее соединение').hasMatch(t)) return 'pen_slant_grid';
-    if (RegExp(r'генетическая группа|букв.*и, ш, г|букв.*л, м|букв.*о, с|петлями|перекладинами|соединений|сложной конфигурации|домик для звука|соединени.*букв|дисграфи|различение букв|сложных букв|зеркального письма').hasMatch(t)) return 'pen_letter_groups';
-    if (RegExp(r'заглавные буквы.*групп|заглавных букв|пропорции|ритмическое.*письмо|исправление.*ошибок').hasMatch(t)) return 'pen_capitals';
-    if (RegExp(r'нейроразминк|гипертонус|бордюров в крупной клетке|узоры в воздухе|снятие напряжения|нейрогимнастик|спазм|сброс капелек|двуручное').hasMatch(t)) return 'pen_mazina_neuro';
-    if (RegExp(r'качалочк|секретик|крючок до середины|шалашик|алгоритм.*наклонная|соединение элементов').hasMatch(t)) return 'pen_mazina_elements';
-    if (RegExp(r'овал и полукруг|межбуквенных|широкой косой|микрографи|скоропись|скорость письма|самопроверка почерка|широкую строку').hasMatch(t)) return 'pen_mazina_advanced';
-
     if (s.contains('матем')) return 'math_addition_subtraction_10';
     if (s.contains('чтен')) return 'read_sound_analysis';
     if (s.contains('чистопис') || s.contains('письм')) return 'pen_slant_grid';

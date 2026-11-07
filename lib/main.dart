@@ -2,15 +2,11 @@ import 'screens/main_navigation_shell.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 
-
-// import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'data/method_repository.dart';
 import 'providers/app_provider.dart';
-import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
 import 'theme.dart';
 import 'widgets/ambient_background.dart';
@@ -18,8 +14,6 @@ import 'widgets/glass_card.dart';
 import 'services/telegram/telegram_web_app_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +26,7 @@ void main() async {
       );
     }
   } catch (e) {
-    debugPrint('Supabase init warning: ');
+    debugPrint('Supabase init warning: $e');
   }
 
   try {
@@ -57,24 +51,6 @@ void main() async {
       child: const MetodistApp(),
     ),
   );
-
-  // JS Bridge for PDF generation callback (window.onPdfGenerated) - only for web
-  // if (kIsWeb) {
-  //   try {
-  //     // Use js_util to set a global property on the window object.
-  //     // ignore: avoid_dynamic_calls
-  //     js_util.setProperty(js_util.globalThis, 'onPdfGenerated', (dynamic fileName) {
-  //       if (fileName != null) {
-  //         final ctx = navigatorKey.currentContext;
-  //         if (ctx != null) {
-  //           Provider.of<AppProvider>(ctx, listen: false).addRecentPdf(fileName.toString());
-  //         }
-  //       }
-  //     });
-  //   } catch (e) {
-  //     debugPrint('JS bridge onPdfGenerated setup error: $e');
-  //   }
-  // }
 }
 
 class MetodistApp extends StatelessWidget {
@@ -82,16 +58,20 @@ class MetodistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appProvider = context.watch<AppProvider>();
+    // Select granular values to prevent full MaterialApp subtree re-render on unrelated changes
+    final isDarkMode = context.select<AppProvider, bool>((p) => p.isDarkMode);
+    final isPreschool = context.select<AppProvider, bool>((p) => p.selectedAgeGroup == 'preschool');
+    final isLoading = context.select<AppProvider, bool>((p) => p.isLoading);
+    final errorMessage = context.select<AppProvider, String?>((p) => p.errorMessage);
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'Методист',
       debugShowCheckedModeBanner: false,
-      themeMode: appProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      theme: AppTheme.getTheme(isDark: false, isPreschool: appProvider.selectedAgeGroup == 'preschool'),
-      darkTheme: AppTheme.getTheme(isDark: true, isPreschool: appProvider.selectedAgeGroup == 'preschool'),
-      home: appProvider.isLoading
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: AppTheme.getTheme(isDark: false, isPreschool: isPreschool),
+      darkTheme: AppTheme.getTheme(isDark: true, isPreschool: isPreschool),
+      home: isLoading
           ? const Scaffold(
               body: AmbientBackground(
                 child: Center(
@@ -102,7 +82,7 @@ class MetodistApp extends StatelessWidget {
                 ),
               ),
             )
-          : appProvider.errorMessage != null
+          : errorMessage != null
               ? Scaffold(
                   body: AmbientBackground(
                     child: Center(
@@ -125,7 +105,7 @@ class MetodistApp extends StatelessWidget {
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Text(
-                                appProvider.errorMessage!,
+                                errorMessage,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 13),
                               ),
@@ -141,7 +121,7 @@ class MetodistApp extends StatelessWidget {
                                 ),
                                 icon: const Icon(Icons.refresh_rounded),
                                 label: const Text('Повторить попытку'),
-                                onPressed: () => appProvider.initialize(),
+                                onPressed: () => context.read<AppProvider>().initialize(),
                               ),
                             ],
                           ),

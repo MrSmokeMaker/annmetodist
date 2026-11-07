@@ -18,8 +18,13 @@ class YandexGptService {
 
   static const String defaultModel = 'yandexgpt'; // MetodistPRO for high-depth generation
 
-  YandexGptService({required StorageService storageService})
-      : _storageService = storageService;
+  final http.Client _client;
+
+  YandexGptService({
+    required StorageService storageService,
+    http.Client? client,
+  })  : _storageService = storageService,
+        _client = client ?? http.Client();
 
   Future<Map<String, dynamic>> testConnection({
     String? apiKey,
@@ -34,9 +39,8 @@ class YandexGptService {
       };
     }
 
-    final client = http.Client();
     try {
-      final response = await client
+      final response = await _client
           .post(
             Uri.parse(proxyUrl.trim()),
             headers: {'Content-Type': 'application/json'},
@@ -104,7 +108,7 @@ class YandexGptService {
         'message': 'Запрос не дошёл до сервера. Проверьте интернет-соединение и повторите.',
       };
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -122,7 +126,6 @@ class YandexGptService {
       throw YandexGptException('URL прокси не указан. Укажите его в настройках.');
     }
 
-    final client = http.Client();
     try {
       final body = jsonEncode({
         'model': model,
@@ -134,7 +137,7 @@ class YandexGptService {
         'max_tokens': maxTokens,
       });
 
-      final response = await client
+      final response = await _client
           .post(
             Uri.parse(proxyUrl.trim()),
             headers: {'Content-Type': 'application/json'},
@@ -189,7 +192,7 @@ class YandexGptService {
       print('Подсказка: Похоже, запрос заблокирован браузером (CORS) или сервер недоступен.');
       throw YandexGptException('Запрос не дошёл до сервера. Проверьте интернет-соединение и повторите.');
     } finally {
-      client.close();
+      // client pooled
     }
   }
 }

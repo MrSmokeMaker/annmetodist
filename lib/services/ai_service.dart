@@ -54,11 +54,15 @@ class AiService {
     'codestral-latest': 'Codestral (Структурированные данные и карточки)',
   };
 
+  final http.Client _client;
+
   AiService({
     required StorageService storageService,
     required YandexGptService yandexGptService,
+    http.Client? client,
   })  : _storageService = storageService,
-        _yandexGptService = yandexGptService;
+        _yandexGptService = yandexGptService,
+        _client = client ?? http.Client();
 
   String get activeProvider => _storageService.getAiProvider();
 
@@ -171,10 +175,10 @@ class AiService {
     }
 
     final model = _storageService.getMistralModel();
-    final client = http.Client();
+    
 
     try {
-      final response = await client.post(
+      final response = await _client.post(
         Uri.parse(mistralEndpoint),
         headers: {
           'Authorization': 'Bearer ${apiKey.trim()}',
@@ -230,7 +234,7 @@ class AiService {
         'message': 'Ошибка подключения к Mistral AI: $e',
       };
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -245,10 +249,10 @@ class AiService {
     }
 
     final model = _storageService.getOpenRouterModel();
-    final client = http.Client();
+    
 
     try {
-      final response = await client.post(
+      final response = await _client.post(
         Uri.parse(openRouterEndpoint),
         headers: {
           'Authorization': 'Bearer ${apiKey.trim()}',
@@ -313,7 +317,7 @@ class AiService {
         'message': 'Ошибка подключения к OpenRouter: $e',
       };
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -429,7 +433,7 @@ class AiService {
     }
 
     final model = _storageService.getMistralModel();
-    final client = http.Client();
+    
 
     try {
       final body = jsonEncode({
@@ -442,7 +446,7 @@ class AiService {
         'max_tokens': 8000,
       });
 
-      final response = await client.post(
+      final response = await _client.post(
         Uri.parse(mistralEndpoint),
         headers: {
           'Authorization': 'Bearer ${apiKey.trim()}',
@@ -478,7 +482,7 @@ class AiService {
       if (e is AiServiceException) rethrow;
       throw AiServiceException('Ошибка связи с Mistral AI: $e');
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -493,7 +497,7 @@ class AiService {
     }
 
     final model = _storageService.getOpenRouterModel();
-    final client = http.Client();
+    
 
     try {
       final body = jsonEncode({
@@ -506,7 +510,7 @@ class AiService {
         'max_tokens': 8000,
       });
 
-      final response = await client.post(
+      final response = await _client.post(
         Uri.parse(openRouterEndpoint),
         headers: {
           'Authorization': 'Bearer ${apiKey.trim()}',
@@ -545,7 +549,7 @@ class AiService {
       if (e is AiServiceException) rethrow;
       throw AiServiceException('Ошибка связи с OpenRouter: $e');
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -566,7 +570,7 @@ class AiService {
     final String baseUrl = proxyUrl.isNotEmpty ? proxyUrl : 'https://generativelanguage.googleapis.com';
     final Uri uri = Uri.parse('$baseUrl/v1beta/models/$model:generateContent?key=${apiKey.trim()}');
 
-    final client = http.Client();
+    
     try {
       final body = jsonEncode({
         'systemInstruction': {
@@ -584,7 +588,7 @@ class AiService {
         }
       });
 
-      final response = await client.post(
+      final response = await _client.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -641,7 +645,7 @@ class AiService {
       if (e is AiServiceException) rethrow;
       throw AiServiceException('Ошибка подключения к Google Gemini: $e');
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -660,7 +664,7 @@ class AiService {
     final String baseUrl = proxyUrl.isNotEmpty ? proxyUrl : 'https://generativelanguage.googleapis.com';
     final Uri uri = Uri.parse('$baseUrl/v1beta/models/$model:generateContent?key=${apiKey.trim()}');
 
-    final client = http.Client();
+    
     try {
       final body = jsonEncode({
         'contents': [
@@ -674,7 +678,7 @@ class AiService {
         }
       });
 
-      final response = await client.post(
+      final response = await _client.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -716,7 +720,7 @@ class AiService {
         'message': 'Ошибка подключения к Google Gemini: $e',
       };
     } finally {
-      client.close();
+      // client pooled
     }
   }
 
@@ -739,7 +743,7 @@ class AiService {
 
     try {
       final url = Uri.parse('$baseUrl/chat/completions');
-      final response = await http.post(
+      final response = await _client.post(
         url,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
@@ -797,7 +801,7 @@ class AiService {
     final model = rawModel.trim().isNotEmpty ? rawModel.trim() : ZvenoConfig.defaultModel;
 
     final url = Uri.parse('$baseUrl/chat/completions');
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
