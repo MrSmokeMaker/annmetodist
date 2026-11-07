@@ -33,8 +33,8 @@ class StorageService {
   static const String _zvenoImageModelStorageKey = 'zveno_image_model';
 
   String getAiProvider() {
-    if (!_isInitialized) return 'zveno';
-    return _sharedPreferences.getString(_aiProviderStorageKey) ?? 'zveno';
+    if (!_isInitialized) return 'gemini';
+    return _sharedPreferences.getString(_aiProviderStorageKey) ?? 'gemini';
   }
 
   Future<void> saveAiProvider(String provider) async {
@@ -268,8 +268,8 @@ class StorageService {
 
       // Seed active provider default to zveno
       final existingAiProvider = _sharedPreferences.getString(_aiProviderStorageKey);
-      if (existingAiProvider == null || existingAiProvider.isEmpty || existingAiProvider == 'yandex') {
-        await _sharedPreferences.setString(_aiProviderStorageKey, 'zveno');
+      if (existingAiProvider == null || existingAiProvider.isEmpty || existingAiProvider == 'yandex' || existingAiProvider == 'zveno') {
+        await _sharedPreferences.setString(_aiProviderStorageKey, 'gemini');
       }
     } catch (e) {
       debugPrint('StorageService init error: $e');

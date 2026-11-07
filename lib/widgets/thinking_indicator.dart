@@ -79,8 +79,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
 
     if (hasConspect && hasWorksheet && hasHomework) {
       // Полный комплект из 3 материалов
-      _targetSeconds = 80;
-      _expectedTimeRange = '~60–90 сек';
+      _targetSeconds = 35;
+      _expectedTimeRange = '~20–35 сек';
       _steps = const [
         ThinkingStep(
           title: 'Конспект занятия',
@@ -89,7 +89,7 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
           color: Color(0xFF6366F1),
         ),
         ThinkingStep(
-          title: 'Рабочий лист (3 уровня)',
+          title: 'Рабочий лист',
           desc: 'Дидактические поля, эталоны решений и косая линовка 65°',
           icon: Icons.assignment_rounded,
           color: Color(0xFF06B6D4),
@@ -109,8 +109,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
       ];
     } else if (hasConspect && hasWorksheet) {
       // Конспект + Рабочий лист
-      _targetSeconds = 55;
-      _expectedTimeRange = '~45–60 сек';
+      _targetSeconds = 25;
+      _expectedTimeRange = '~15–25 сек';
       _steps = const [
         ThinkingStep(
           title: 'Поурочный сценарий',
@@ -119,13 +119,13 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
           color: Color(0xFF6366F1),
         ),
         ThinkingStep(
-          title: 'Рабочий лист: Уровень 1 (Старт)',
+          title: 'Рабочий лист: Практика',
           desc: 'Базовые упражнения, наглядный образец и косая линовка 65°',
           icon: Icons.looks_one_rounded,
           color: Color(0xFF06B6D4),
         ),
         ThinkingStep(
-          title: 'Рабочий лист: Уровни 2 и 3',
+          title: 'Дидактические механики',
           desc: 'Практикум, ловушки Незнайки, схемы и таблицы для распределения',
           icon: Icons.looks_3_rounded,
           color: Color(0xFF10B981),
@@ -139,8 +139,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
       ];
     } else if (hasWorksheet) {
       // Только Рабочий лист
-      _targetSeconds = 45;
-      _expectedTimeRange = '~35–50 сек';
+      _targetSeconds = 20;
+      _expectedTimeRange = '~12–20 сек';
       _steps = const [
         ThinkingStep(
           title: 'Анализ темы и методики',
@@ -169,8 +169,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
       ];
     } else if (hasHomework) {
       // Только Домашняя работа
-      _targetSeconds = 35;
-      _expectedTimeRange = '~25–40 сек';
+      _targetSeconds = 15;
+      _expectedTimeRange = '~10–18 сек';
       _steps = const [
         ThinkingStep(
           title: 'Отбор учебных задач',
@@ -179,8 +179,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
           color: Color(0xFF6366F1),
         ),
         ThinkingStep(
-          title: 'Дифференцированные задания',
-          desc: 'Задания уровней Старт, Практик и Про для самостоятельной работы',
+          title: 'Практические задания',
+          desc: 'Система упражнений для самостоятельного закрепления',
           icon: Icons.tune_rounded,
           color: Color(0xFF06B6D4),
         ),
@@ -199,8 +199,8 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
       ];
     } else {
       // Только Конспект
-      _targetSeconds = 40;
-      _expectedTimeRange = '~30–45 сек';
+      _targetSeconds = 20;
+      _expectedTimeRange = '~12–20 сек';
       _steps = const [
         ThinkingStep(
           title: 'Цель и триединые задачи',
