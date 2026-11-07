@@ -819,7 +819,7 @@ class AppProvider with ChangeNotifier {
         if (needsRefinement) {
           try {
             final sanitizePrompt = PromptBuilder.buildSanitizerVerificationPrompt(effectiveContent);
-            final cleaned = await _yandexGptService.generateConspect(
+            final cleaned = await _aiService.generate(
               systemPrompt: sanitizePrompt['systemPrompt']!,
               userPrompt: sanitizePrompt['userPrompt']!,
               temperature: 0.2,
@@ -1174,7 +1174,7 @@ class AppProvider with ChangeNotifier {
         baseConspect: baseConspect,
         variantType: 'support',
       );
-      final supportContent = await _yandexGptService.generateConspect(
+      final supportContent = await _aiService.generate(
         systemPrompt: supportPrompt['systemPrompt']!,
         userPrompt: supportPrompt['userPrompt']!,
         temperature: 0.4,
@@ -1203,7 +1203,7 @@ class AppProvider with ChangeNotifier {
         baseConspect: baseConspect,
         variantType: 'olympiad',
       );
-      final olympiadContent = await _yandexGptService.generateConspect(
+      final olympiadContent = await _aiService.generate(
         systemPrompt: olympiadPrompt['systemPrompt']!,
         userPrompt: olympiadPrompt['userPrompt']!,
         temperature: 0.5,

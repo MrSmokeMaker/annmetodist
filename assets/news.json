@@ -1,7 +1,16 @@
 {
-  "currentVersion": "v1.2.7",
+  "currentVersion": "v1.2.8",
   "updatedAt": "2026-11-07",
   "releases": [
+    {
+      "version": "v1.2.8",
+      "date": "7 ноября 2026",
+      "title": "Обновление компонентов: app_provider.dart, ai_service.dart, assistant_ai_service.dart",
+      "badge": "Обновление",
+      "highlights": [
+        "Оптимизация педагогических промптов и алгоритмов ИИ"
+      ]
+    },
     {
       "version": "v1.2.6",
       "date": "7 ноября 2026",

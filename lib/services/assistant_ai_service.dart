@@ -1,6 +1,7 @@
 import '../models/lesson_summary_card.dart';
 import 'package:flutter/foundation.dart';
 import 'yandex_gpt_service.dart';
+import 'ai_service.dart';
 import 'storage_service.dart';
 import '../models/thematic_world.dart';
 
@@ -63,17 +64,25 @@ class AssistantQuickPrompt {
 /// Сервис AI-помощника «Совёнок-Методист»
 class AssistantAiService {
   final StorageService _storageService;
-  final YandexGptService _gptService;
+  final AiService _aiService;
+  final dynamic _customGptService;
 
   static final List<AssistantQuickPrompt> _customPrompts = [];
 
   AssistantAiService({
     StorageService? storageService,
-    YandexGptService? gptService,
+    AiService? aiService,
+    dynamic gptService,
   })  : _storageService = storageService ?? StorageService(),
-        _gptService = gptService ??
-            YandexGptService(
+        _customGptService = gptService,
+        _aiService = aiService ??
+            AiService(
               storageService: storageService ?? StorageService(),
+              yandexGptService: (gptService is YandexGptService)
+                  ? gptService
+                  : YandexGptService(
+                      storageService: storageService ?? StorageService(),
+                    ),
             );
 
   /// Базовые быстрые чипсы-запросы
@@ -257,10 +266,15 @@ class AssistantAiService {
     );
 
     try {
-      final gptResponse = await _gptService.generateConspect(
-        systemPrompt: systemPrompt,
-        userPrompt: question,
-      );
+      final gptResponse = _customGptService != null
+          ? await _customGptService.generateConspect(
+              systemPrompt: systemPrompt,
+              userPrompt: question,
+            )
+          : await _aiService.generate(
+              systemPrompt: systemPrompt,
+              userPrompt: question,
+            );
       if (gptResponse.trim().isNotEmpty) {
         return gptResponse.trim();
       }
@@ -310,10 +324,15 @@ $currentContent
 ''';
 
     try {
-      final enhanced = await _gptService.generateConspect(
-        systemPrompt: systemPrompt,
-        userPrompt: userPrompt,
-      );
+      final enhanced = _customGptService != null
+          ? await _customGptService.generateConspect(
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+            )
+          : await _aiService.generate(
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+            );
       if (enhanced.trim().isNotEmpty) {
         return enhanced.trim();
       }
@@ -750,10 +769,15 @@ ${card.homeworkAssigned}
 ''';
 
     try {
-      final response = await _gptService.generateConspect(
-        systemPrompt: systemPrompt,
-        userPrompt: userPrompt,
-      );
+      final response = _customGptService != null
+          ? await _customGptService.generateConspect(
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+            )
+          : await _aiService.generate(
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+            );
       if (response.trim().isNotEmpty) {
         final text = response.trim();
         String reflection = '';

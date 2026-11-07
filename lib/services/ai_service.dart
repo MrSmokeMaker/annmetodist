@@ -390,6 +390,8 @@ class AiService {
     required String systemPrompt,
     required String userPrompt,
     String? yandexModel,
+    double? temperature,
+    int? maxTokens,
   }) async {
     final provider = activeProvider;
 
@@ -397,6 +399,8 @@ class AiService {
       return _generateGemini(
         systemPrompt: systemPrompt,
         userPrompt: userPrompt,
+        temperature: temperature ?? 0.7,
+        maxOutputTokens: maxTokens ?? 8000,
       );
     } else if (provider == 'zveno') {
       return _generateZveno(
@@ -418,8 +422,27 @@ class AiService {
         systemPrompt: systemPrompt,
         userPrompt: userPrompt,
         model: yandexModel ?? YandexGptService.defaultModel,
+        temperature: temperature ?? 0.6,
+        maxTokens: maxTokens ?? 8000,
       );
     }
+  }
+
+  /// Универсальный метод совместимости для генерации конспекта/ответа
+  Future<String> generateConspect({
+    required String systemPrompt,
+    required String userPrompt,
+    String? model,
+    double? temperature,
+    int? maxTokens,
+  }) async {
+    return generate(
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      yandexModel: model,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
   }
 
   /// Генерация через Mistral AI
